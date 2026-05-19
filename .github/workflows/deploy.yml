@@ -21,6 +21,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
+            set -e
             # 1. Open Port 3000
             echo "Configuring firewall..."
             sudo ufw allow 3000/tcp || true
@@ -69,4 +70,5 @@ jobs:
             
             npx prisma generate
             npm run build
-            pm2 restart vouch-site || pm2 start npm --name "vouch-site" -- start
+            pm2 delete vouch-site || true
+            pm2 start npm --name "vouch-site" -- start -- -p 3000
