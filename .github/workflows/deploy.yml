@@ -81,3 +81,7 @@ jobs:
             pm2 delete vouch-bot || true
             pm2 start npm --name "vouch-site" -- start -- -p 3000
             pm2 start npm --name "vouch-bot" -- run bot
+            echo "--- PM2 Status ---"
+            pm2 status
+            echo "--- Recent Application Logs ---"
+            pm2 logs vouch-site --lines 50 --no-daemon & sleep 5 && kill $! || true
