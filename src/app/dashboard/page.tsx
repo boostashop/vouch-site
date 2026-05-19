@@ -13,8 +13,12 @@ import Link from "next/link"
 export default async function DashboardPage() {
   const session = await auth()
   
+  if (!session?.user?.id) {
+    redirect("/")
+  }
+
   const user = await prisma.user.findUnique({
-    where: { id: session?.user?.id },
+    where: { id: session.user.id },
     include: {
       _count: {
         select: { vouchesReceived: true }

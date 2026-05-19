@@ -52,17 +52,19 @@ export default async function Home() {
             The ultimate insurance policy for your reputation. Automatically back up testimonials from Discord and Telegram to a beautiful public profile.
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col items-center justify-center gap-6">
             {session ? (
               <Link href="/dashboard" className="w-full sm:w-auto bg-indigo-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 active:scale-95">
                 Go to Dashboard
               </Link>
             ) : (
-              <SignIn className="w-full sm:w-auto bg-indigo-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 active:scale-95" />
+              <div className="w-full max-w-md">
+                <SignIn className="" />
+                <p className="text-zinc-500 text-xs mt-4">
+                  No password required. We'll email you a magic link to sign in.
+                </p>
+              </div>
             )}
-            <button className="w-full sm:w-auto bg-white/5 border border-white/10 px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition-all active:scale-95">
-              View Demo
-            </button>
           </div>
 
           <div className="mt-20 border border-white/10 rounded-2xl overflow-hidden bg-zinc-900/50 backdrop-blur shadow-2xl">

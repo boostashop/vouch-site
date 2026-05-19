@@ -74,6 +74,7 @@ jobs:
             
             # Use the local DB if no DATABASE_URL is provided
             export DATABASE_URL="postgresql://vouchuser:vouchpass@localhost:5432/vouchdb"
+            export AUTH_TRUST_HOST="true"
             
             npx prisma generate
             npm run build

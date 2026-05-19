@@ -1,17 +1,17 @@
 import NextAuth from "next-auth"
-import DiscordProvider from "next-auth/providers/discord"
+import Resend from "next-auth/providers/resend"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
-    DiscordProvider({
-      clientId: process.env.DISCORD_CLIENT_ID ?? "",
-      clientSecret: process.env.DISCORD_CLIENT_SECRET ?? "",
-      authorization: { params: { scope: "identify email guilds" } },
+    Resend({
+      apiKey: process.env.AUTH_RESEND_KEY,
+      from: process.env.EMAIL_FROM || "onboarding@resend.dev",
     }),
   ],
+  trustHost: true,
   callbacks: {
     session: ({ session, user }) => ({
       ...session,
@@ -23,5 +23,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   pages: {
     signIn: "/auth/signin",
+    verifyRequest: "/auth/verify-request",
   },
 })

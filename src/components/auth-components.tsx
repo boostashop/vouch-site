@@ -1,23 +1,32 @@
 import { signIn, signOut } from "@/auth"
-import { LogIn, LogOut } from "lucide-react"
+import { Mail, LogOut } from "lucide-react"
 
 export function SignIn({
-  provider,
+  className,
   ...props
-}: { provider?: string } & React.ComponentPropsWithRef<"button">) {
+}: React.ComponentPropsWithRef<"button">) {
   return (
     <form
-      action={async () => {
+      action={async (formData) => {
         "use server"
-        await signIn(provider)
+        const email = formData.get("email")
+        await signIn("resend", { email, redirectTo: "/dashboard" })
       }}
+      className="flex flex-col sm:flex-row gap-2 w-full max-w-sm"
     >
+      <input
+        type="email"
+        name="email"
+        placeholder="name@example.com"
+        required
+        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+      />
       <button 
-        {...props}
-        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
+        type="submit"
+        className={`flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-indigo-600/20 whitespace-nowrap ${className}`}
       >
-        <LogIn size={18} />
-        Sign In with Discord
+        <Mail size={18} />
+        Send Magic Link
       </button>
     </form>
   )
@@ -28,7 +37,7 @@ export function SignOut(props: React.ComponentPropsWithRef<"button">) {
     <form
       action={async () => {
         "use server"
-        await signOut()
+        await signOut({ redirectTo: "/" })
       }}
       className="w-full"
     >
