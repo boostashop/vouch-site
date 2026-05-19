@@ -1,0 +1,32 @@
+name: Deploy to Oracle VPS
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }} || {
+              mkdir -p ${{ secrets.DEPLOY_PATH }}
+              cd ${{ secrets.DEPLOY_PATH }}
+              git clone -b dev https://github.com/${{ github.repository }}.git .
+            }
+            git pull origin dev
+            # The following steps will be uncommented once package.json is created
+            # npm install
+            # npm run build
+            # pm2 restart vouch-site || pm2 start npm --name "vouch-site" -- start
