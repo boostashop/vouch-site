@@ -26,7 +26,14 @@ jobs:
             sudo ufw allow 3000/tcp || true
             sudo iptables -I INPUT -p tcp --dport 3000 -j ACCEPT || true
             
-            # 2. Check for PostgreSQL
+            # 2. Ensure Node.js and NPM are installed
+            if ! command -v node &> /dev/null; then
+              echo "Node.js not found. Installing..."
+              curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+
+            # 3. Check for PostgreSQL
             echo "Checking PostgreSQL..."
             if ! command -v psql &> /dev/null; then
               echo "PostgreSQL not found. Installing..."
@@ -38,17 +45,20 @@ jobs:
               # Create a default database and user for the app
               sudo -u postgres psql -c "CREATE USER vouchuser WITH PASSWORD 'vouchpass';" || true
               sudo -u postgres psql -c "CREATE DATABASE vouchdb OWNER vouchuser;" || true
+              sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE vouchdb TO vouchuser;" || true
             else
               echo "PostgreSQL is already installed."
             fi
 
-            # 3. Standard Deploy
+            # 4. Standard Deploy
             cd ${{ secrets.DEPLOY_PATH }} || {
               mkdir -p ${{ secrets.DEPLOY_PATH }}
               cd ${{ secrets.DEPLOY_PATH }}
               git clone -b dev https://github.com/${{ github.repository }}.git .
             }
-            git pull origin dev
+            git fetch origin dev
+            git reset --hard origin/dev
+            
             npm install
             if ! command -v pm2 &> /dev/null; then
               sudo npm install -g pm2
