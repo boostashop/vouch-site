@@ -1,7 +1,11 @@
-import Link from "next/image";
+import Link from "next/link";
 import { CheckCircle, Shield, Zap, Globe, MessageSquare, Database } from "lucide-react";
+import { SignIn } from "@/components/auth-components";
+import { auth } from "@/auth";
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+
   return (
     <div className="flex flex-col min-h-screen bg-black text-white selection:bg-indigo-500/30">
       {/* Navigation */}
@@ -18,9 +22,13 @@ export default function Home() {
               <a href="/docs" className="hover:text-white transition-colors">Documentation</a>
             </div>
             <div>
-              <button className="bg-white text-black px-5 py-2 rounded-full text-sm font-semibold hover:bg-zinc-200 transition-all active:scale-95">
-                Get Started
-              </button>
+              {session ? (
+                <Link href="/dashboard" className="bg-white text-black px-5 py-2 rounded-full text-sm font-semibold hover:bg-zinc-200 transition-all active:scale-95">
+                  Dashboard
+                </Link>
+              ) : (
+                <SignIn className="bg-white text-black px-5 py-2 rounded-full text-sm font-semibold hover:bg-zinc-200 transition-all active:scale-95" />
+              )}
             </div>
           </div>
         </div>
@@ -45,9 +53,13 @@ export default function Home() {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button className="w-full sm:w-auto bg-indigo-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 active:scale-95">
-              Claim Your Profile
-            </button>
+            {session ? (
+              <Link href="/dashboard" className="w-full sm:w-auto bg-indigo-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 active:scale-95">
+                Go to Dashboard
+              </Link>
+            ) : (
+              <SignIn className="w-full sm:w-auto bg-indigo-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 active:scale-95" />
+            )}
             <button className="w-full sm:w-auto bg-white/5 border border-white/10 px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition-all active:scale-95">
               View Demo
             </button>
