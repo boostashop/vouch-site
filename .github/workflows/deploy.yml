@@ -78,4 +78,6 @@ jobs:
             npx prisma generate
             npm run build
             pm2 delete vouch-site || true
+            pm2 delete vouch-bot || true
             pm2 start npm --name "vouch-site" -- start -- -p 3000
+            pm2 start npm --name "vouch-bot" -- run bot
