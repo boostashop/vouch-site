@@ -33,7 +33,6 @@ export function SignOut(props: React.ComponentPropsWithRef<"button">) {
       className="w-full"
     >
       <button 
-        variant="ghost" 
         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all group"
         {...props}
       >
