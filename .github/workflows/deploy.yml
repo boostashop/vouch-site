@@ -26,7 +26,10 @@ jobs:
               git clone -b dev https://github.com/${{ github.repository }}.git .
             }
             git pull origin dev
-            # The following steps will be uncommented once package.json is created
-            # npm install
-            # npm run build
-            # pm2 restart vouch-site || pm2 start npm --name "vouch-site" -- start
+            npm install
+            if ! command -v pm2 &> /dev/null; then
+              sudo npm install -g pm2
+            fi
+            npx prisma generate
+            npm run build
+            pm2 restart vouch-site || pm2 start npm --name "vouch-site" -- start
