@@ -23,9 +23,16 @@ jobs:
           script: |
             set -e
             # 1. Open Port 3000
-            echo "Configuring firewall..."
-            sudo ufw allow 3000/tcp || true
+            echo "Configuring firewall for port 3000..."
+            if command -v ufw &> /dev/null; then
+              sudo ufw allow 3000/tcp || true
+            fi
+            # Oracle Linux / Ubuntu on Oracle often uses iptables directly
             sudo iptables -I INPUT -p tcp --dport 3000 -j ACCEPT || true
+            # Save iptables if possible
+            if command -v iptables-save &> /dev/null; then
+              sudo iptables-save | sudo tee /etc/iptables/rules.v4 || true
+            fi
             
             # 2. Ensure Node.js and NPM are installed
             if ! command -v node &> /dev/null; then
