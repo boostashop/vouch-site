@@ -126,6 +126,7 @@ class BotManager {
 
       client.on('interactionCreate', async (interaction) => {
         if (!interaction.isChatInputCommand()) return;
+        console.log(`[Interaction] Received ${interaction.commandName} (ID: ${interaction.id}) from ${interaction.user.tag} for User ${userId}`);
         await this.handleDiscordInteraction(interaction, userId);
       });
 
