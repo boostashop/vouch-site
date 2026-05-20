@@ -6,7 +6,8 @@ import {
   SlashCommandBuilder, 
   ChatInputCommandInteraction,
   CacheType,
-  Options
+  Options,
+  EmbedBuilder
 } from 'discord.js';
 import { Telegraf, Context } from 'telegraf';
 import { PrismaClient } from '@prisma/client';
@@ -27,7 +28,28 @@ class BotManager {
     await this.syncBots();
 
     // Poll for new tokens every 60 seconds (or use a DB trigger/event in a real prod env)
-    setInterval(() => this.syncBots(), 60000);
+    const interval = setInterval(() => this.syncBots(), 60000);
+
+    // Enable graceful stop
+    const shutdown = async (signal: string) => {
+      console.log(`Received ${signal}. Shutting down Bot Manager...`);
+      clearInterval(interval);
+      
+      for (const [userId, client] of this.discordClients) {
+        console.log(`Destroying Discord client for ${userId}`);
+        client.destroy();
+      }
+      
+      for (const [userId, bot] of this.telegramBots) {
+        console.log(`Stopping Telegram bot for ${userId}`);
+        bot.stop(signal);
+      }
+      
+      process.exit(0);
+    };
+
+    process.once('SIGINT', () => shutdown('SIGINT'));
+    process.once('SIGTERM', () => shutdown('SIGTERM'));
   }
 
   async syncBots() {
@@ -42,13 +64,34 @@ class BotManager {
 
     for (const user of users) {
       // Discord Sync
-      if (user.discordBotToken && !this.discordClients.has(user.id)) {
-        await this.spawnDiscordBot(user.id, user.discordBotToken);
+      const existingDiscord = this.discordClients.get(user.id);
+      if (user.discordBotToken) {
+        // If no client exists OR token has changed, (re)spawn
+        // Note: In a real app we might store the token hash to compare easily
+        // but here we'll just check if the client's token matches (if we can)
+        // or just restart if we don't have a way to verify without storing token.
+        // For simplicity, let's just spawn if not exists for now.
+        // To handle updates, we'd need to track the token we used to spawn.
+        if (!existingDiscord) {
+          await this.spawnDiscordBot(user.id, user.discordBotToken);
+        }
+      } else if (existingDiscord) {
+        // Token was removed
+        console.log(`Stopping Discord bot for ${user.id} (token removed)`);
+        existingDiscord.destroy();
+        this.discordClients.delete(user.id);
       }
 
       // Telegram Sync
-      if (user.telegramBotToken && !this.telegramBots.has(user.id)) {
-        await this.spawnTelegramBot(user.id, user.telegramBotToken);
+      const existingTelegram = this.telegramBots.get(user.id);
+      if (user.telegramBotToken) {
+        if (!existingTelegram) {
+          await this.spawnTelegramBot(user.id, user.telegramBotToken);
+        }
+      } else if (existingTelegram) {
+        console.log(`Stopping Telegram bot for ${user.id} (token removed)`);
+        existingTelegram.stop('SIGTERM');
+        this.telegramBots.delete(user.id);
       }
     }
   }
@@ -141,7 +184,9 @@ class BotManager {
       try {
         const user = await prisma.user.findUnique({
           where: { id: userId },
-          include: { _count: { select: { vouchesReceived: true } } }
+          include: { 
+            _count: { select: { vouchesReceived: true } }
+          }
         });
 
         if (!user) {
@@ -155,6 +200,10 @@ class BotManager {
           });
         }
 
+        if (user.vouchRequireProof && !proof) {
+          return interaction.reply({ content: '❌ This user requires proof (screenshot) for every vouch.', ephemeral: true });
+        }
+
         let proofUrl = proof?.url || null;
 
         if (proof) {
@@ -165,13 +214,11 @@ class BotManager {
             const fileExtension = proof.name.split('.').pop() || 'png';
             const key = `proofs/${uuidv4()}.${fileExtension}`;
             
-            // Only attempt upload if R2 is configured
             if (process.env.R2_ENDPOINT) {
               proofUrl = await uploadToR2(buffer, key, proof.contentType || 'image/png');
             }
           } catch (uploadErr) {
             console.error('Failed to upload proof to R2:', uploadErr);
-            // Fallback to Discord URL if upload fails
           }
         }
 
@@ -189,10 +236,54 @@ class BotManager {
           }
         });
 
+        // Build Custom Embed
+        const stars = '⭐'.repeat(rating);
+        const embed = new EmbedBuilder()
+          .setTitle(user.vouchEmbedTitle)
+          .setColor(user.vouchEmbedColor as any)
+          .setFooter({ text: user.vouchEmbedFooter })
+          .setTimestamp()
+          .addFields(
+            { name: 'Vouch:', value: comment },
+            { name: 'Rating:', value: stars, inline: true }
+          );
+
+        if (user.vouchShowCount) {
+          embed.addFields({ name: 'Vouch Nº:', value: `${user._count.vouchesReceived + 1}`, inline: true });
+        }
+
+        if (user.vouchTagUser) {
+          embed.addFields({ name: 'Vouched by:', value: `<@${interaction.user.id}>`, inline: true });
+        }
+
+        if (proofUrl) {
+          embed.setImage(proofUrl);
+        }
+
+        // Handle Custom Channel/Role/Emoji for Premium
+        let responseContent = '✅ **Vouch Recorded!**';
+        if (user.isPremium && user.vouchEmoji) {
+          responseContent = `${user.vouchEmoji} **Vouch Recorded!**`;
+        }
+
+        // If a specific channel is set and user is premium, send there too
+        if (user.isPremium && user.vouchChannelId) {
+          try {
+            const channel = await interaction.client.channels.fetch(user.vouchChannelId);
+            if (channel && channel.isTextBased()) {
+              await (channel as any).send({ embeds: [embed] });
+            }
+          } catch (err) {
+            console.error('Failed to send vouch to custom channel:', err);
+          }
+        }
+
         await interaction.reply({
-          content: `✅ **Vouch Recorded!** Thank you for your feedback, ${interaction.user.username}.`,
-          ephemeral: true
+          content: responseContent,
+          embeds: [embed],
+          ephemeral: false
         });
+
       } catch (err) {
         console.error('Error saving vouch:', err);
         await interaction.reply({ content: '❌ Failed to save vouch. Please try again later.', ephemeral: true });
@@ -200,10 +291,51 @@ class BotManager {
     }
 
     if (interaction.commandName === 'stats') {
-       const count = await prisma.vouch.count({ where: { receiverId: userId } });
-       await interaction.reply({
-         content: `📊 **Vouch Stats:** This user has collected **${count}** vouches!`,
-       });
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          include: { 
+            _count: { select: { vouchesReceived: true } },
+            vouchesReceived: { select: { rating: true } }
+          }
+        });
+
+        if (!user) {
+          return interaction.reply({ content: '❌ User not found.', ephemeral: true });
+        }
+
+        const count = user._count.vouchesReceived;
+        const totalRating = user.vouchesReceived.reduce((acc, v) => acc + v.rating, 0);
+        const averageRating = count > 0 ? (totalRating / count).toFixed(1) : '0.0';
+
+        const embed = new EmbedBuilder()
+          .setTitle(user.statsEmbedTitle)
+          .setDescription(user.statsEmbedDescription)
+          .setColor(user.statsEmbedColor as any)
+          .setFooter({ text: user.statsEmbedFooter })
+          .setTimestamp();
+
+        if (user.statsShowCount) {
+          embed.addFields({ name: 'Nº Vouches:', value: `${count}`, inline: true });
+        }
+
+        if (user.statsShowScore) {
+          embed.addFields({ name: 'Score:', value: `${averageRating} / 5.0`, inline: true });
+        }
+
+        if (user.statsShowPlan) {
+          embed.addFields({ name: 'Plan:', value: user.isPremium ? 'Premium Plan' : 'Free Plan', inline: true });
+        }
+
+        if (user.statsShowAge) {
+          embed.addFields({ name: 'Member Since:', value: user.emailVerified?.toLocaleDateString() || 'N/A', inline: true });
+        }
+
+        await interaction.reply({ embeds: [embed] });
+      } catch (err) {
+        console.error('Error fetching stats:', err);
+        await interaction.reply({ content: '❌ Failed to fetch stats.', ephemeral: true });
+      }
     }
 
     if (interaction.commandName === 'restore') {
@@ -360,10 +492,6 @@ class BotManager {
     } catch (error) {
       console.error(`Failed to start Telegram bot for ${userId}:`, error);
     }
-
-    // Enable graceful stop
-    process.once('SIGINT', () => bot.stop('SIGINT'));
-    process.once('SIGTERM', () => bot.stop('SIGTERM'));
   }
 }
 
