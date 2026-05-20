@@ -124,7 +124,9 @@ class BotManager {
 
     const rest = new REST({ version: '10' }).setToken(token);
     try {
+      console.log(`Started refreshing application (/) commands for bot ${botId}.`);
       await rest.put(Routes.applicationCommands(botId), { body: commands });
+      console.log(`Successfully reloaded application (/) commands for bot ${botId}.`);
     } catch (err) {
       console.error(`Error registering Discord commands for bot ${botId}:`, err);
     }
