@@ -9,7 +9,7 @@ import {
 } from 'discord.js';
 import { Telegraf, Context } from 'telegraf';
 import { PrismaClient } from '@prisma/client';
-import { uploadToR2 } from './lib/s3.js';
+import { uploadToR2 } from '@/lib/s3';
 import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
