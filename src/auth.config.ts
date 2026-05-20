@@ -1,13 +1,7 @@
 import type { NextAuthConfig } from "next-auth"
-import Resend from "next-auth/providers/resend"
 
 export default {
-  providers: [
-    Resend({
-      apiKey: process.env.AUTH_RESEND_KEY,
-      from: process.env.EMAIL_FROM || "onboarding@resend.dev",
-    }),
-  ],
+  providers: [],
   session: { strategy: "jwt" },
   callbacks: {
     session: ({ session, token }) => ({

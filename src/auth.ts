@@ -5,11 +5,16 @@ import authConfig from "./auth.config"
 import Credentials from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 
+import Resend from "next-auth/providers/resend"
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   ...authConfig,
   providers: [
-    ...authConfig.providers,
+    Resend({
+      apiKey: process.env.AUTH_RESEND_KEY,
+      from: process.env.EMAIL_FROM || "onboarding@resend.dev",
+    }),
     Credentials({
       name: "credentials",
       credentials: {
