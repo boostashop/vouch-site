@@ -1,36 +1,85 @@
-import { SignIn } from "@/components/auth-components"
-import { Zap } from "lucide-react"
+"use client"
+
+import { SignIn, CredentialsForm } from "@/components/auth-components"
+import { Zap, Mail, Lock } from "lucide-react"
+import Link from "next/link"
+import { useState } from "react"
 
 export default function SignInPage() {
+  const [method, setMethod] = useState<"magic" | "credentials">("magic")
+
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 font-sans">
+      <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-2xl mb-4">V</div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Welcome to VouchSite</h1>
-          <p className="text-zinc-400 mt-2">Sign in or create your account to continue</p>
+          <Link href="/" className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-bold text-2xl mb-6 shadow-xl shadow-indigo-600/20 active:scale-95 transition-transform">V</Link>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">Welcome Back</h1>
+          <p className="text-zinc-500 mt-2 font-medium">Choose your preferred sign in method</p>
         </div>
 
-        <div className="bg-zinc-900/50 border border-white/5 p-8 rounded-2xl backdrop-blur-sm">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-medium uppercase tracking-wider">
-              <Zap size={10} />
-              <span>Magic Link Authentication</span>
+        <div className="bg-zinc-900/30 border border-white/5 p-2 rounded-3xl flex gap-1">
+          <button 
+            onClick={() => setMethod("magic")}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${method === "magic" ? "bg-white text-black shadow-lg" : "text-zinc-500 hover:text-white"}`}
+          >
+            <Mail size={16} />
+            Magic Link
+          </button>
+          <button 
+            onClick={() => setMethod("credentials")}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${method === "credentials" ? "bg-white text-black shadow-lg" : "text-zinc-500 hover:text-white"}`}
+          >
+            <Lock size={16} />
+            Password
+          </button>
+        </div>
+
+        <div className="bg-zinc-900/20 border border-white/5 p-8 rounded-[32px] backdrop-blur-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-[0.03]">
+            {method === "magic" ? <Mail size={80} /> : <Lock size={80} />}
+          </div>
+          
+          <div className="relative space-y-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-wider">
+              <Zap size={10} className="fill-current" />
+              <span>{method === "magic" ? "Passwordless Auth" : "Secure Credentials"}</span>
             </div>
             
-            <div>
-              <h2 className="text-lg font-bold mb-2">Sign in with Email</h2>
-              <p className="text-xs text-zinc-500 mb-6">
-                Enter your email address and we'll send you a magic link to sign in instantly. No password required.
-              </p>
-              <SignIn className="w-full" />
-            </div>
+            {method === "magic" ? (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-2">Sign in with Email</h2>
+                  <p className="text-sm text-zinc-500 leading-relaxed font-medium">
+                    We'll send a magic link to your inbox for instant, password-free access.
+                  </p>
+                </div>
+                <SignIn />
+              </div>
+            ) : (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-2">Sign in with Password</h2>
+                  <p className="text-sm text-zinc-500 leading-relaxed font-medium">
+                    Enter your username and password to access your dashboard.
+                  </p>
+                </div>
+                <CredentialsForm />
+              </div>
+            )}
           </div>
         </div>
 
-        <p className="text-center text-xs text-zinc-500">
-          By continuing, you agree to our Terms of Service and Privacy Policy.
-        </p>
+        <div className="text-center space-y-4">
+          <p className="text-sm text-zinc-500 font-medium">
+            Don't have an account?{" "}
+            <Link href="/auth/signup" className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">
+              Create one for free
+            </Link>
+          </p>
+          <p className="text-[10px] text-zinc-700 font-medium leading-relaxed px-8">
+            By continuing, you agree to our <span className="underline cursor-pointer">Terms of Service</span> and <span className="underline cursor-pointer">Privacy Policy</span>.
+          </p>
+        </div>
       </div>
     </div>
   )

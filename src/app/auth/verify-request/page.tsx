@@ -18,7 +18,7 @@ export default function VerifyRequestPage() {
 
         <div className="bg-zinc-900/30 border border-white/5 p-6 rounded-2xl">
           <p className="text-xs text-zinc-500">
-            Didn't receive the email? Check your spam folder or try signing in again with a different email address.
+            Didn&apos;t receive the email? Check your spam folder or try signing in again with a different email address.
           </p>
         </div>
 

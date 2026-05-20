@@ -4,10 +4,12 @@ import { redirect } from "next/navigation"
 import { 
   MessageSquare, 
   ShieldCheck, 
-  TrendingUp, 
-  PlusCircle,
   ExternalLink,
-  Zap
+  Zap,
+  ArrowRight,
+  Shield,
+  Bot,
+  CheckCircle
 } from "lucide-react"
 import Link from "next/link"
 
@@ -27,80 +29,109 @@ export default async function DashboardPage() {
     }
   })
 
+  const vouchCount = user?._count.vouchesReceived || 0;
+  const isPremium = user?.isPremium || false;
+  const hasBot = !!user?.discordBotToken;
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
+      {/* Welcome Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-          <p className="text-zinc-400 mt-1">Welcome back, {session?.user?.name}. Here's what's happening.</p>
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
+            Hello, {session?.user?.name || 'Builder'} <span className="inline-block animate-bounce-slow">👋</span>
+          </h1>
+          <p className="text-zinc-400 mt-2 font-medium">Your reputation engine is {hasBot ? 'active and monitoring.' : 'awaiting configuration.'}</p>
         </div>
         <div className="flex items-center gap-3">
           <Link 
             href="/dashboard/bot" 
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
+            className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-2xl text-sm font-bold transition-all active:scale-95 shadow-lg shadow-indigo-600/20 w-full md:w-auto"
           >
-            <PlusCircle size={16} />
-            Connect Bot
+            <Bot size={18} />
+            Manage Bot
           </Link>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Quick Stats Grid */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <StatCard 
           icon={<MessageSquare className="text-indigo-400" />}
           label="Total Vouches"
-          value={user?._count.vouchesReceived || 0}
-          description="Across all platforms"
+          value={vouchCount}
+          description="Verified testimonials"
+          trend="+0 this week"
+          color="indigo"
         />
         <StatCard 
-          icon={<ShieldCheck className="text-green-400" />}
-          label="Plan Status"
-          value={user?.isPremium ? "Premium" : "Free Tier"}
-          description={user?.isPremium ? "Unlimited Storage" : `${user?._count.vouchesReceived || 0}/50 Vouches used`}
+          icon={<ShieldCheck className="text-emerald-400" />}
+          label="Account Status"
+          value={isPremium ? "Premium" : "Free"}
+          description={isPremium ? "Unlimited Storage" : `${vouchCount}/50 Limit`}
+          trend={isPremium ? "Active" : "Upgrade"}
+          color="emerald"
         />
         <StatCard 
-          icon={<Zap className="text-yellow-400" />}
-          label="Active Bot"
-          value={user?.discordBotToken ? "Online" : "None"}
-          description={user?.discordBotToken ? "Listening for commands" : "Setup required"}
+          icon={<Zap className={hasBot ? "text-amber-400" : "text-zinc-500"} />}
+          label="System Health"
+          value={hasBot ? "Online" : "Offline"}
+          description={hasBot ? "Bot is listening" : "No token provided"}
+          trend={hasBot ? "Stable" : "Action Req."}
+          color={hasBot ? "amber" : "zinc"}
         />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Recent Vouches Placeholder */}
-        <div className="bg-zinc-900/30 border border-white/5 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold">Recent Vouches</h2>
-            <Link href="/dashboard/vouches" className="text-indigo-400 text-sm hover:underline flex items-center gap-1">
-              View all <ExternalLink size={12} />
+      <div className="grid lg:grid-cols-5 gap-8">
+        {/* Recent Activity Feed */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              Recent Activity
+            </h2>
+            <Link href="/dashboard/vouches" className="text-indigo-400 text-sm font-bold hover:text-indigo-300 flex items-center gap-1 transition-colors">
+              View All <ArrowRight size={14} />
             </Link>
           </div>
-          <div className="flex flex-col items-center justify-center py-12 text-zinc-600 border border-dashed border-white/10 rounded-xl">
-             <MessageSquare size={48} className="mb-4 opacity-20" />
-             <p className="text-sm">No vouches found yet.</p>
-             <p className="text-xs mt-1">Vouches will appear here once your bot is setup.</p>
+          
+          <div className="bg-zinc-900/20 border border-white/5 rounded-3xl p-8 md:p-12 flex flex-col items-center justify-center text-center">
+             <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-white/5">
+               <MessageSquare size={32} className="text-zinc-700" />
+             </div>
+             <h3 className="text-lg font-bold text-white mb-2">No vouches found</h3>
+             <p className="text-sm text-zinc-500 max-w-[240px] leading-relaxed">
+               Once your bot is connected and receiving feedback, they will appear here.
+             </p>
+             <Link href="/dashboard/bot" className="mt-8 text-sm font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-4 decoration-indigo-500/30 transition-colors">
+               Setup your first bot →
+             </Link>
           </div>
         </div>
 
-        {/* Quick Tips */}
-        <div className="bg-zinc-900/30 border border-white/5 rounded-2xl p-6">
-          <h2 className="text-xl font-bold mb-6">Quick Start Guide</h2>
-          <div className="space-y-4">
-            <TipItem 
-              step="1"
-              title="Create a Discord Bot"
-              description="Head to the Discord Developer Portal and create a new application."
+        {/* Action Center / Tips */}
+        <div className="lg:col-span-2 space-y-6">
+          <h2 className="text-xl font-bold">Action Center</h2>
+          <div className="bg-zinc-900/30 border border-white/5 rounded-3xl p-6 space-y-6">
+            <ActionItem 
+              icon={<Bot className="text-indigo-400" />}
+              title="Connect Discord"
+              description="Link your custom bot token to start collecting vouches."
+              href="/dashboard/bot"
+              status={hasBot ? "done" : "pending"}
             />
-            <TipItem 
-              step="2"
-              title="Get Your Token"
-              description="Copy your bot token and paste it in the Bot Settings tab."
+            <ActionItem 
+              icon={<ExternalLink className="text-sky-400" />}
+              title="Share Profile"
+              description="Your public profile is ready at your-slug.vouchsite.es"
+              href="/dashboard/profile"
+              status="pending"
             />
-            <TipItem 
-              step="3"
-              title="Invite to Server"
-              description="Use the generated OAuth2 link to invite the bot to your server."
+            <ActionItem 
+              icon={<Shield className="text-purple-400" />}
+              title="Enable Protection"
+              description="Upgrade to Premium for unlimited storage and custom domains."
+              href="/dashboard/billing"
+              status="pending"
             />
           </div>
         </div>
@@ -109,33 +140,72 @@ export default async function DashboardPage() {
   )
 }
 
-function StatCard({ icon, label, value, description }: { icon: React.ReactNode, label: string, value: string | number, description: string }) {
+function StatCard({ 
+  icon, 
+  label, 
+  value, 
+  description, 
+  trend,
+  color
+}: { 
+  icon: React.ReactNode, 
+  label: string, 
+  value: string | number, 
+  description: string,
+  trend: string,
+  color: string
+}) {
+  const colorMap: Record<string, string> = {
+    indigo: "border-indigo-500/10 hover:border-indigo-500/20",
+    emerald: "border-emerald-500/10 hover:border-emerald-500/20",
+    amber: "border-amber-500/10 hover:border-amber-500/20",
+    zinc: "border-white/5 hover:border-white/10"
+  };
+
   return (
-    <div className="p-6 rounded-2xl bg-zinc-900/30 border border-white/5 hover:border-white/10 transition-all">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+    <div className={`p-6 rounded-3xl bg-zinc-900/30 border ${colorMap[color]} transition-all group`}>
+      <div className="flex items-center justify-between mb-6">
+        <div className="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center border border-white/5 group-hover:scale-105 transition-transform">
           {icon}
         </div>
-        <span className="text-sm font-medium text-zinc-400">{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 bg-zinc-900/50 px-2 py-1 rounded-lg border border-white/5">
+          {trend}
+        </span>
       </div>
-      <div className="flex flex-col">
-        <span className="text-3xl font-bold tracking-tight">{value}</span>
-        <span className="text-xs text-zinc-500 mt-1">{description}</span>
+      <div className="space-y-1">
+        <p className="text-sm font-bold text-zinc-400">{label}</p>
+        <h4 className="text-3xl font-extrabold tracking-tight text-white">{value}</h4>
+        <p className="text-xs font-medium text-zinc-600 mt-2">{description}</p>
       </div>
     </div>
   )
 }
 
-function TipItem({ step, title, description }: { step: string, title: string, description: string }) {
+function ActionItem({ 
+  icon, 
+  title, 
+  description, 
+  href, 
+  status 
+}: { 
+  icon: React.ReactNode, 
+  title: string, 
+  description: string, 
+  href: string, 
+  status: "done" | "pending" 
+}) {
   return (
-    <div className="flex gap-4">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-600/10 border border-indigo-600/20 flex items-center justify-center text-indigo-400 font-bold text-sm">
-        {step}
+    <Link href={href} className="flex gap-4 group p-2 rounded-2xl hover:bg-white/[0.02] transition-colors">
+      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-zinc-900 border border-white/5 flex items-center justify-center group-hover:bg-zinc-800 transition-colors">
+        {icon}
       </div>
-      <div>
-        <h4 className="text-sm font-bold text-white">{title}</h4>
-        <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{description}</p>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-0.5">
+          <h4 className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">{title}</h4>
+          {status === "done" && <CheckCircle size={14} className="text-emerald-500" />}
+        </div>
+        <p className="text-xs text-zinc-500 leading-relaxed line-clamp-2">{description}</p>
       </div>
-    </div>
+    </Link>
   )
 }

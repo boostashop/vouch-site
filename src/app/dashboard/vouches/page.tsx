@@ -40,7 +40,7 @@ export default async function VouchesPage() {
                     ))}
                   </div>
                 </div>
-                <p className="text-zinc-300 text-sm italic">"{vouch.comment}"</p>
+                <p className="text-zinc-300 text-sm italic">&quot;{vouch.comment}&quot;</p>
                 <div className="flex items-center gap-4 text-xs text-zinc-500">
                    <div className="flex items-center gap-1">
                      <Calendar size={12} />
