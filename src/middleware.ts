@@ -9,6 +9,8 @@ export default auth((req) => {
   const isDashboardPage = req.nextUrl.pathname.startsWith("/dashboard")
   const isAdminPage = req.nextUrl.pathname.startsWith("/admin")
 
+  console.log(`[Middleware] Path: ${req.nextUrl.pathname}, Auth: ${isAuth}, Role: ${req.auth?.user?.role}`)
+
   if ((isDashboardPage || isAdminPage) && !isAuth) {
     return NextResponse.redirect(new URL("/auth/signin", req.nextUrl.origin))
   }

@@ -11,80 +11,92 @@ import {
 } from "lucide-react"
 
 export default async function AdminPulsePage() {
-  const [userCount, vouchCount, premiumCount] = await Promise.all([
-    prisma.user.count(),
-    prisma.vouch.count(),
-    prisma.user.count({ where: { isPremium: true } })
-  ])
+  console.log("[AdminPage] Fetching stats...")
+  try {
+    const [userCount, vouchCount, premiumCount] = await Promise.all([
+      prisma.user.count(),
+      prisma.vouch.count(),
+      prisma.user.count({ where: { isPremium: true } })
+    ])
+    console.log(`[AdminPage] Stats fetched: users=${userCount}, vouches=${vouchCount}`)
 
-  return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-white">System Pulse</h1>
-        <p className="text-zinc-500 mt-2 font-medium">Real-time health and growth metrics for VouchSite.</p>
-      </div>
+    return (
+      <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">System Pulse</h1>
+          <p className="text-zinc-500 mt-2 font-medium">Real-time health and growth metrics for VouchSite.</p>
+        </div>
 
-      {/* Hero Stats */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <PulseCard 
-          icon={<Users className="text-blue-400" />}
-          label="Total Users"
-          value={userCount}
-          trend="+12% this month"
-          color="blue"
-        />
-        <PulseCard 
-          icon={<MessageSquare className="text-indigo-400" />}
-          label="Total Vouches"
-          value={vouchCount}
-          trend="+84 today"
-          color="indigo"
-        />
-        <PulseCard 
-          icon={<ShieldCheck className="text-emerald-400" />}
-          label="Premium Users"
-          value={premiumCount}
-          trend="4.2% conversion"
-          color="emerald"
-        />
-        <PulseCard 
-          icon={<Server className="text-amber-400" />}
-          label="Node Status"
-          value="Healthy"
-          trend="VPS Online"
-          color="amber"
-        />
-      </div>
+        {/* Hero Stats */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <PulseCard 
+            icon={<Users className="text-blue-400" />}
+            label="Total Users"
+            value={userCount}
+            trend="+12% this month"
+            color="blue"
+          />
+          <PulseCard 
+            icon={<MessageSquare className="text-indigo-400" />}
+            label="Total Vouches"
+            value={vouchCount}
+            trend="+84 today"
+            color="indigo"
+          />
+          <PulseCard 
+            icon={<ShieldCheck className="text-emerald-400" />}
+            label="Premium Users"
+            value={premiumCount}
+            trend="4.2% conversion"
+            color="emerald"
+          />
+          <PulseCard 
+            icon={<Server className="text-amber-400" />}
+            label="Node Status"
+            value="Healthy"
+            trend="VPS Online"
+            color="amber"
+          />
+        </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Quick Admin Actions */}
-        <div className="bg-zinc-900/30 border border-white/5 rounded-[32px] p-8 space-y-6">
-          <h2 className="text-xl font-bold">Priority Actions</h2>
-          <div className="grid gap-4">
-            <AdminAction 
-              icon={<UserCheck className="text-indigo-400" />}
-              title="Manual Premium Upgrade"
-              description="Manually upgrade a user by email or username."
-              href="/admin/users"
-            />
-            <AdminAction 
-              icon={<ShieldCheck className="text-emerald-400" />}
-              title="Global Bot Sync"
-              description="Force restart and sync all active bot instances."
-              href="/admin/settings"
-            />
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Quick Admin Actions */}
+          <div className="bg-zinc-900/30 border border-white/5 rounded-[32px] p-8 space-y-6">
+            <h2 className="text-xl font-bold">Priority Actions</h2>
+            <div className="grid gap-4">
+              <AdminAction 
+                icon={<UserCheck className="text-indigo-400" />}
+                title="Manual Premium Upgrade"
+                description="Manually upgrade a user by email or username."
+                href="/admin/users"
+              />
+              <AdminAction 
+                icon={<ShieldCheck className="text-emerald-400" />}
+                title="Global Bot Sync"
+                description="Force restart and sync all active bot instances."
+                href="/admin/settings"
+              />
+            </div>
+          </div>
+
+          {/* System Logs Placeholder */}
+          <div className="bg-zinc-900/10 border border-dashed border-white/10 rounded-[32px] p-8 flex flex-col items-center justify-center text-center">
+            <ActivityIcon className="w-12 h-12 text-zinc-800 mb-4" />
+            <h3 className="text-lg font-bold text-zinc-500">Live Traffic Logs</h3>
+            <p className="text-xs text-zinc-600 mt-2 max-w-[200px]">System activity streaming is currently being initialized.</p>
           </div>
         </div>
-
-        {/* System Logs Placeholder */}
-        <div className="bg-zinc-900/10 border border-dashed border-white/10 rounded-[32px] p-8 flex flex-col items-center justify-center text-center">
-          <ActivityIcon className="w-12 h-12 text-zinc-800 mb-4" />
-          <h3 className="text-lg font-bold text-zinc-500">Live Traffic Logs</h3>
-          <p className="text-xs text-zinc-600 mt-2 max-w-[200px]">System activity streaming is currently being initialized.</p>
-        </div>
       </div>
-    </div>
-  )
+    )
+  } catch (error) {
+    console.error("[AdminPage] Error fetching stats:", error)
+    return (
+      <div className="p-8 bg-red-500/10 border border-red-500/20 rounded-3xl text-red-400">
+        <h2 className="text-xl font-bold mb-2">System Error</h2>
+        <p>Failed to load admin metrics. Check database connection.</p>
+      </div>
+    )
+  }
 }
 
 function PulseCard({ icon, label, value, trend, color }: { icon: React.ReactNode, label: string, value: string | number, trend: string, color: string }) {
