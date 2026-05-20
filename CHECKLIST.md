@@ -6,8 +6,8 @@
   - [ ] Setup PostgreSQL database (local or Oracle cloud)
   - [ ] Initialize Prisma ORM and create schema
   - [ ] Configure Cloudflare R2 bucket for image storage
-- [ ] **Authentication**
-  - [ ] Setup Discord OAuth2 via NextAuth.js
+- [x] **Authentication**
+  - [x] Setup Resend (Magic Links) via Auth.js
 - [ ] **User Dashboard**
   - [ ] Create authenticated dashboard view
   - [ ] Add form to accept and save user's custom Discord Bot Token
