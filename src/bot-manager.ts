@@ -5,7 +5,8 @@ import {
   Routes, 
   SlashCommandBuilder, 
   ChatInputCommandInteraction,
-  CacheType
+  CacheType,
+  Options
 } from 'discord.js';
 import { Telegraf, Context } from 'telegraf';
 import { PrismaClient } from '@prisma/client';
@@ -63,27 +64,14 @@ class BotManager {
         GatewayIntentBits.GuildMessages
       ],
       // Optimization: Limit cache to keep RAM usage low
-      makeCache: (manager) => {
-        // Disable unnecessary caches
-        const disabled = [
-          'MessageManager',
-          'GuildMemberManager',
-          'UserManager',
-          'PresenceManager',
-          'ThreadManager',
-          'GuildEmojiManager',
-          'GuildStickerManager',
-          'GuildScheduledEventManager',
-          'ReactionManager',
-          'ReactionUserManager',
-          'VoiceStateManager'
-        ];
-        if (disabled.includes(manager.name)) {
-          return new Map(); // Return a dummy map to disable caching
-        }
-        // @ts-expect-error - discord.js type definitions are sometimes incomplete for internal managers
-        return manager.constructor.defaultMakeCache()(manager);
-      }
+      makeCache: Options.cacheWithLimits({
+        MessageManager: 0,
+        PresenceManager: 0,
+        ThreadManager: 0,
+        ReactionManager: 0,
+        GuildMemberManager: 0,
+        UserManager: 0,
+      }),
     });
 
     try {
