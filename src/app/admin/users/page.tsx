@@ -1,0 +1,132 @@
+import { prisma } from "@/lib/prisma"
+import { Users, Shield, Zap, Search, MoreVertical, Check, X, ShieldAlert, ShieldCheck } from "lucide-react"
+import { toggleUserPremium, toggleUserRole } from "../actions"
+
+export default async function AdminUsersPage() {
+  const users = await prisma.user.findMany({
+    orderBy: { email: 'asc' },
+    include: {
+      _count: {
+        select: { vouchesReceived: true }
+      }
+    }
+  })
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">User Management</h1>
+          <p className="text-zinc-500 mt-2 font-medium">Oversee all registered accounts and their status.</p>
+        </div>
+        
+        <div className="relative w-full md:w-64">
+           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+           <input 
+             type="text" 
+             placeholder="Search users..." 
+             className="w-full bg-zinc-900/50 border border-white/5 rounded-xl pl-12 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all outline-none"
+           />
+        </div>
+      </div>
+
+      <div className="bg-zinc-900/30 border border-white/5 rounded-[32px] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-white/5 text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-900/20">
+                <th className="px-8 py-5">User</th>
+                <th className="px-6 py-5">Role</th>
+                <th className="px-6 py-5">Premium</th>
+                <th className="px-6 py-5 text-center">Vouches</th>
+                <th className="px-6 py-5">Bot Status</th>
+                <th className="px-8 py-5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {users.map((user) => (
+                <tr key={user.id} className="group hover:bg-white/[0.02] transition-colors">
+                  <td className="px-8 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-white/5 flex items-center justify-center text-zinc-500 overflow-hidden">
+                        {user.image ? <img src={user.image} alt="" /> : user.email?.[0].toUpperCase()}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-white leading-none mb-1">{user.name || 'Anonymous'}</span>
+                        <span className="text-[11px] font-medium text-zinc-500">{user.email}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5">
+                    <UserRoleBadge role={user.role} userId={user.id} />
+                  </td>
+                  <td className="px-6 py-5">
+                    <PremiumToggle userId={user.id} isPremium={user.isPremium} />
+                  </td>
+                  <td className="px-6 py-5 text-center font-bold text-sm text-zinc-400">
+                    {user._count.vouchesReceived}
+                  </td>
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-2">
+                       <div className={`w-1.5 h-1.5 rounded-full ${user.discordBotToken ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-700'}`} />
+                       <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+                         {user.discordBotToken ? 'Active' : 'No Bot'}
+                       </span>
+                    </div>
+                  </td>
+                  <td className="px-8 py-5 text-right">
+                    <button className="p-2 text-zinc-500 hover:text-white transition-colors">
+                      <MoreVertical size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function UserRoleBadge({ role, userId }: { role: string, userId: string }) {
+  const isAdmin = role === 'ADMIN'
+  return (
+    <form action={async () => {
+      'use server'
+      await toggleUserRole(userId, isAdmin ? 'USER' : 'ADMIN')
+    }}>
+      <button 
+        type="submit"
+        className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
+          isAdmin 
+            ? 'bg-red-500/10 border-red-500/20 text-red-500' 
+            : 'bg-zinc-800 border-white/5 text-zinc-500 hover:border-white/10'
+        }`}
+      >
+        {role}
+      </button>
+    </form>
+  )
+}
+
+function PremiumToggle({ userId, isPremium }: { userId: string, isPremium: boolean }) {
+  return (
+    <form action={async () => {
+      'use server'
+      await toggleUserPremium(userId, !isPremium)
+    }}>
+      <button 
+        type="submit"
+        className={`flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
+          isPremium 
+            ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' 
+            : 'bg-zinc-800 border-white/5 text-zinc-500 hover:border-white/10'
+        }`}
+      >
+        <Zap size={10} fill={isPremium ? 'currentColor' : 'none'} />
+        {isPremium ? 'Premium' : 'Free'}
+      </button>
+    </form>
+  )
+}

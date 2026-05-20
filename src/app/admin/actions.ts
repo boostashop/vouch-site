@@ -1,0 +1,44 @@
+"use server"
+
+import { prisma } from "@/lib/prisma"
+import { auth } from "@/auth"
+import { revalidatePath } from "next/cache"
+
+async function ensureAdmin() {
+  const session = await auth()
+  if (session?.user?.role !== "ADMIN") {
+    throw new Error("Unauthorized")
+  }
+}
+
+export async function toggleUserPremium(userId: string, isPremium: boolean) {
+  await ensureAdmin()
+  
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isPremium }
+  })
+  
+  revalidatePath("/admin/users")
+}
+
+export async function toggleUserRole(userId: string, role: "USER" | "ADMIN") {
+  await ensureAdmin()
+  
+  await prisma.user.update({
+    where: { id: userId },
+    data: { role }
+  })
+  
+  revalidatePath("/admin/users")
+}
+
+export async function deleteVouch(vouchId: string) {
+  await ensureAdmin()
+  
+  await prisma.vouch.delete({
+    where: { id: vouchId }
+  })
+  
+  revalidatePath("/admin/vouches")
+}

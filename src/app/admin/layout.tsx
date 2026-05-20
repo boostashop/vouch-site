@@ -18,6 +18,8 @@ import {
 } from "lucide-react"
 import { SignOut, MobileSignOut } from "@/components/auth-components"
 
+import { AdminNavItem } from "@/components/admin/admin-nav"
+
 export default async function AdminLayout({
   children,
 }: {
@@ -41,10 +43,10 @@ export default async function AdminLayout({
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-1">
-          <NavItem href="/admin" icon={<Activity size={18} />} label="System Pulse" />
-          <NavItem href="/admin/users" icon={<Users size={18} />} label="User Management" />
-          <NavItem href="/admin/vouches" icon={<MessageSquare size={18} />} label="Vouch Audit" />
-          <NavItem href="/admin/settings" icon={<ShieldAlert size={18} />} label="Core Settings" />
+          <AdminNavItem href="/admin" icon={<Activity size={18} />} label="System Pulse" />
+          <AdminNavItem href="/admin/users" icon={<Users size={18} />} label="User Management" />
+          <AdminNavItem href="/admin/vouches" icon={<MessageSquare size={18} />} label="Vouch Audit" />
+          <AdminNavItem href="/admin/settings" icon={<ShieldAlert size={18} />} label="Core Settings" />
         </nav>
 
         <div className="p-4 border-t border-white/5">
@@ -111,23 +113,5 @@ export default async function AdminLayout({
       </nav>
       <div className="h-16 lg:hidden" />
     </div>
-  )
-}
-
-function NavItem({ href, icon, label, active = false }: { href: string, icon: React.ReactNode, label: string, active?: boolean }) {
-  return (
-    <Link 
-      href={href}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group ${
-        active 
-          ? "bg-red-600 text-white shadow-lg shadow-red-600/20" 
-          : "text-zinc-500 hover:text-white hover:bg-white/5"
-      }`}
-    >
-      <span className={`${active ? "text-white" : "text-zinc-600 group-hover:text-red-400"} transition-colors`}>
-        {icon}
-      </span>
-      {label}
-    </Link>
   )
 }
