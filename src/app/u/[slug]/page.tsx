@@ -35,7 +35,7 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
 
   const vouchCount = user._count.vouchesReceived
   const avgRating = vouchCount > 0 
-    ? user.vouchesReceived.reduce((acc, v) => acc + v.rating, 0) / vouchCount 
+    ? user.vouchesReceived.reduce((acc: number, v: any) => acc + v.rating, 0) / vouchCount 
     : 0
 
   return (

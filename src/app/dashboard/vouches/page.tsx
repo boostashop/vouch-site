@@ -26,7 +26,7 @@ export default async function VouchesPage() {
         </div>
       ) : (
         <div className="grid gap-4">
-          {vouches.map((vouch) => (
+          {vouches.map((vouch: any) => (
             <div key={vouch.id} className="p-6 rounded-2xl bg-zinc-900/30 border border-white/5 hover:border-white/10 transition-all flex flex-col md:flex-row gap-6">
               <div className="flex-1 space-y-3">
                 <div className="flex items-center justify-between">
