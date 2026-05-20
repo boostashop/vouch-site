@@ -12,6 +12,7 @@ import {
   ShieldAlert
 } from "lucide-react"
 import { SignOut, MobileSignOut } from "@/components/auth-components"
+import { UserNav } from "@/components/dashboard/user-nav"
 
 export default async function DashboardLayout({
   children,
@@ -51,7 +52,7 @@ export default async function DashboardLayout({
               <UserIcon size={18} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white truncate">{session.user?.name || 'User'}</p>
+              <p className="text-sm font-bold text-white truncate">{session.user?.name || session.user?.username || 'User'}</p>
               <p className="text-[10px] text-zinc-500 truncate font-medium uppercase tracking-wider">{session.user?.email}</p>
             </div>
           </div>
@@ -85,17 +86,7 @@ export default async function DashboardLayout({
                <Bell size={18} />
              </button>
              <div className="h-8 w-[1px] bg-white/5 mx-1" />
-             {session.user?.image ? (
-               <img 
-                 src={session.user.image} 
-                 alt="Profile" 
-                 className="w-8 h-8 rounded-full border border-white/10 shadow-sm"
-               />
-             ) : (
-               <div className="w-8 h-8 rounded-full border border-white/10 bg-zinc-900 flex items-center justify-center text-zinc-500">
-                 <UserIcon size={14} />
-               </div>
-             )}
+             <UserNav user={session.user} />
           </div>
         </header>
 

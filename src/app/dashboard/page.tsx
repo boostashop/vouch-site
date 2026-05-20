@@ -29,6 +29,12 @@ export default async function DashboardPage() {
     }
   })
 
+  const recentVouches = await prisma.vouch.findMany({
+    where: { receiverId: session.user.id },
+    orderBy: { createdAt: 'desc' },
+    take: 5
+  })
+
   const vouchCount = user?._count.vouchesReceived || 0;
   const isPremium = user?.isPremium || false;
   const hasBot = !!user?.discordBotToken;
@@ -39,7 +45,7 @@ export default async function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
-            Hello, {session?.user?.name || 'Builder'} <span className="inline-block animate-bounce-slow">👋</span>
+            Hello, {session?.user?.name || session?.user?.username || 'Builder'} <span className="inline-block animate-bounce-slow">👋</span>
           </h1>
           <p className="text-zinc-400 mt-2 font-medium">Your reputation engine is {hasBot ? 'active and monitoring.' : 'awaiting configuration.'}</p>
         </div>
@@ -94,17 +100,51 @@ export default async function DashboardPage() {
             </Link>
           </div>
           
-          <div className="bg-zinc-900/20 border border-white/5 rounded-3xl p-8 md:p-12 flex flex-col items-center justify-center text-center">
-             <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-white/5">
-               <MessageSquare size={32} className="text-zinc-700" />
-             </div>
-             <h3 className="text-lg font-bold text-white mb-2">No vouches found</h3>
-             <p className="text-sm text-zinc-500 max-w-[240px] leading-relaxed">
-               Once your bot is connected and receiving feedback, they will appear here.
-             </p>
-             <Link href="/dashboard/bot" className="mt-8 text-sm font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-4 decoration-indigo-500/30 transition-colors">
-               Setup your first bot →
-             </Link>
+          <div className="space-y-4">
+            {recentVouches.length > 0 ? (
+              recentVouches.map((vouch) => (
+                <div key={vouch.id} className="bg-zinc-900/30 border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-zinc-900/50 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-white/5 flex items-center justify-center text-indigo-400 font-bold">
+                      {vouch.rating}★
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">{vouch.giverName}</p>
+                      <p className="text-xs text-zinc-500 line-clamp-1">{vouch.comment}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">
+                      {new Date(vouch.createdAt).toLocaleDateString()}
+                    </p>
+                    <div className="flex items-center justify-end gap-1 mt-1">
+                      {vouch.platform === 'discord' ? (
+                        <div className="w-4 h-4 rounded bg-indigo-500/10 flex items-center justify-center">
+                          <span className="text-[8px] text-indigo-400 font-bold">D</span>
+                        </div>
+                      ) : (
+                        <div className="w-4 h-4 rounded bg-sky-500/10 flex items-center justify-center">
+                          <span className="text-[8px] text-sky-400 font-bold">T</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="bg-zinc-900/20 border border-white/5 rounded-3xl p-8 md:p-12 flex flex-col items-center justify-center text-center">
+                 <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-white/5">
+                   <MessageSquare size={32} className="text-zinc-700" />
+                 </div>
+                 <h3 className="text-lg font-bold text-white mb-2">No vouches found</h3>
+                 <p className="text-sm text-zinc-500 max-w-[240px] leading-relaxed">
+                   Once your bot is connected and receiving feedback, they will appear here.
+                 </p>
+                 <Link href="/dashboard/bot" className="mt-8 text-sm font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-4 decoration-indigo-500/30 transition-colors">
+                   Setup your first bot →
+                 </Link>
+              </div>
+            )}
           </div>
         </div>
 
