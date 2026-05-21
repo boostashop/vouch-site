@@ -9,7 +9,8 @@ import {
   ChevronRight,
   Menu,
   Bell,
-  ShieldAlert
+  ShieldAlert,
+  Trophy
 } from "lucide-react"
 import { SignOut, MobileSignOut } from "@/components/auth-components"
 import { UserNav } from "@/components/dashboard/user-nav"
