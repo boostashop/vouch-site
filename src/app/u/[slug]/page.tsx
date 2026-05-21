@@ -57,6 +57,15 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
   const theme = user.profileTheme || "dark"
   const isLight = theme === "light"
   const isGlass = theme === "glass"
+  const bannerImage = user.profileBannerImage || null
+  const customCSS = user.profileCustomCSS || null
+
+  const fontMap: Record<string, string> = {
+    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    serif: "Georgia, 'Times New Roman', serif",
+    mono: "ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace",
+  }
+  const fontFamily = fontMap[user.profileFontFamily] || fontMap.sans
 
   // Theme-derived class sets
   const pageBg = isLight ? "bg-zinc-50" : "bg-zinc-950"
@@ -84,7 +93,9 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
     : "bg-zinc-900/50 border-white/5 text-white"
 
   return (
-    <div className={`min-h-screen ${pageBg} ${pageText} font-sans selection:bg-indigo-500/30`}>
+    <div className={`min-h-screen ${pageBg} ${pageText} selection:bg-indigo-500/30`} style={{ fontFamily }}>
+      {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
+
       {/* Background glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div
@@ -96,7 +107,15 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
         />
       </div>
 
-      <div className="relative max-w-4xl mx-auto px-6 py-12 md:py-24">
+      {/* Banner image */}
+      {bannerImage && (
+        <div className="relative w-full h-52 md:h-72 overflow-hidden">
+          <img src={bannerImage} alt="Profile banner" className="w-full h-full object-cover" />
+          <div className={`absolute inset-0 bg-gradient-to-b ${isLight ? "from-transparent to-zinc-50" : "from-transparent to-zinc-950"}`} />
+        </div>
+      )}
+
+      <div className={`relative max-w-4xl mx-auto px-6 pb-12 md:pb-24 ${bannerImage ? "pt-0" : "py-12 md:py-24"}`}>
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="space-y-6">
