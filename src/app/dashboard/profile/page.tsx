@@ -114,13 +114,11 @@ export default async function ProfileSettingsPage() {
                   />
                   <input 
                     type="text"
+                    id="accent_color_text"
+                    name="profileAccentColor"
                     defaultValue={user?.profileAccentColor || "#6366f1"}
                     placeholder="#6366f1"
                     className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
-                    onChange={(e) => {
-                      const colorInput = document.getElementById('profileAccentColor') as HTMLInputElement;
-                      if (colorInput) colorInput.value = e.target.value;
-                    }}
                   />
                 </div>
               </div>
