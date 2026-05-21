@@ -20,6 +20,7 @@ export default async function Home() {
             <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600 dark:text-zinc-400">
               <a href="#features" className="hover:text-white transition-colors">Features</a>
               <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+              <Link href="/leaderboard" className="hover:text-white transition-colors">Leaderboard</Link>
             </div>
 
             <div className="flex items-center gap-3">

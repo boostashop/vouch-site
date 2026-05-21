@@ -39,6 +39,7 @@ export default async function DashboardLayout({
 
         <nav className="flex-1 px-4 py-4 space-y-1 text-zinc-950 dark:text-white">
           <NavItem href="/dashboard" icon={<LayoutDashboard size={18} />} label="Overview" />
+          <NavItem href="/leaderboard" icon={<Trophy size={18} />} label="Leaderboard" />
           <NavItem href="/dashboard/bot" icon={<Settings size={18} />} label="Bot Settings" />
           <NavItem href="/dashboard/vouches" icon={<MessageSquare size={18} />} label="Vouches" />
           <NavItem href="/dashboard/profile" icon={<UserIcon size={18} />} label="Public Profile" />
