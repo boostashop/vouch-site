@@ -29,15 +29,15 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen bg-zinc-50 dark:bg-black font-sans transition-colors duration-300">
       {/* Sidebar - Desktop */}
-      <aside className="w-64 border-r border-zinc-200 dark:border-white/5 hidden lg:flex flex-col fixed inset-y-0 left-0 bg-white dark:bg-black z-30 transition-colors duration-300">
-        <div className="p-6">
+      <aside className="w-64 border-r border-zinc-200 dark:border-white/10 hidden lg:flex flex-col fixed inset-y-0 left-0 bg-white dark:bg-[#050505] z-30 transition-colors duration-300">
+        <div className="p-6 text-zinc-950 dark:text-white">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-600/20">V</div>
-            <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">VouchSite</span>
+            <span className="text-xl font-bold tracking-tight">VouchSite</span>
           </Link>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1">
+        <nav className="flex-1 px-4 py-4 space-y-1 text-zinc-950 dark:text-white">
           <NavItem href="/dashboard" icon={<LayoutDashboard size={18} />} label="Overview" />
           <NavItem href="/dashboard/bot" icon={<Settings size={18} />} label="Bot Settings" />
           <NavItem href="/dashboard/vouches" icon={<MessageSquare size={18} />} label="Vouches" />
@@ -47,14 +47,14 @@ export default async function DashboardLayout({
           )}
         </nav>
 
-        <div className="p-4 border-t border-zinc-200 dark:border-white/5">
+        <div className="p-4 border-t border-zinc-200 dark:border-white/10">
           <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-900/50 mb-4 border border-zinc-200 dark:border-white/5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600/10 border border-indigo-500/10 flex items-center justify-center text-indigo-400">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600/10 border border-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
               <UserIcon size={18} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">{session.user?.name || session.user?.username || 'User'}</p>
-              <p className="text-[10px] text-zinc-500 truncate font-medium uppercase tracking-wider">{session.user?.email}</p>
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate font-medium uppercase tracking-wider">{session.user?.email}</p>
             </div>
           </div>
           <SignOut />
@@ -64,17 +64,17 @@ export default async function DashboardLayout({
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         {/* Header */}
-        <header className="h-16 border-b border-zinc-200 dark:border-white/5 flex items-center justify-between px-4 md:px-8 bg-white/80 dark:bg-black/80 backdrop-blur-xl sticky top-0 z-20 transition-colors duration-300">
+        <header className="h-16 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between px-4 md:px-8 bg-white/80 dark:bg-black/80 backdrop-blur-xl sticky top-0 z-20 transition-colors duration-300">
           <div className="flex items-center gap-4">
             {/* Mobile Menu Toggle (Placeholder - requires client component for state) */}
-            <button className="lg:hidden p-2 -ml-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
+            <button className="lg:hidden p-2 -ml-2 text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white transition-colors">
               <Menu size={20} />
             </button>
             
             <div className="hidden md:flex items-center gap-3 text-sm font-medium">
               <span className="text-zinc-500">Dashboard</span>
-              <ChevronRight size={14} className="text-zinc-300 dark:text-zinc-700" />
-              <span className="text-zinc-900 dark:text-white">Overview</span>
+              <ChevronRight size={14} className="text-zinc-300 dark:text-zinc-800" />
+              <span className="text-zinc-950 dark:text-white">Overview</span>
             </div>
             
             <Link href="/dashboard" className="md:hidden flex items-center gap-2">
@@ -84,11 +84,11 @@ export default async function DashboardLayout({
           
           <div className="flex items-center gap-2">
              <ThemeToggle />
-             <div className="h-6 w-[1px] bg-zinc-200 dark:bg-white/5 mx-1" />
+             <div className="h-6 w-[1px] bg-zinc-200 dark:bg-white/10 mx-1" />
              <button className="p-2 text-zinc-500 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-white transition-colors rounded-full hover:bg-zinc-100 dark:hover:bg-white/5">
                <Bell size={18} />
              </button>
-             <div className="h-6 w-[1px] bg-zinc-200 dark:bg-white/5 mx-1" />
+             <div className="h-6 w-[1px] bg-zinc-200 dark:bg-white/10 mx-1" />
              <UserNav user={session.user} />
           </div>
         </header>
