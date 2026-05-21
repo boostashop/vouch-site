@@ -6,9 +6,9 @@ export default async function Home() {
   const session = await auth();
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white selection:bg-indigo-500/30 font-sans">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-white selection:bg-indigo-500/30 font-sans">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-black/80 backdrop-blur-xl">
+      <nav className="fixed top-0 w-full z-50 border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-black/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link href="/" className="flex items-center gap-2.5 group">
@@ -16,7 +16,7 @@ export default async function Home() {
               <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">VouchSite</span>
             </Link>
             
-            <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
+            <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600 dark:text-zinc-400">
               <a href="#features" className="hover:text-white transition-colors">Features</a>
               <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
             </div>
@@ -47,11 +47,11 @@ export default async function Home() {
               <span className="uppercase tracking-wider">Multi-Platform Protection</span>
             </div>
             
-            <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1] bg-gradient-to-b from-white via-white to-zinc-500 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1] bg-gradient-to-b from-zinc-900 via-zinc-700 to-zinc-500 dark:from-white dark:via-white dark:to-zinc-500 bg-clip-text text-transparent">
               Your Reputation, <br className="hidden sm:block" /> Secured Forever.
             </h1>
             
-            <p className="max-w-2xl mx-auto text-base md:text-xl text-zinc-400 mb-12 leading-relaxed px-4">
+            <p className="max-w-2xl mx-auto text-base md:text-xl text-zinc-600 dark:text-zinc-400 mb-12 leading-relaxed px-4">
               Automatically back up testimonials from Discord and Telegram to a stunning public profile. The ultimate insurance policy for builders.
             </p>
             
@@ -69,9 +69,9 @@ export default async function Home() {
                     Get Started Free
                   </Link>
 
-                  <Link 
-                    href="#features" 
-                    className="w-full sm:w-auto bg-zinc-900 border border-white/10 px-10 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-800 transition-all active:scale-95 text-center"
+                  <Link
+                    href="#features"
+                    className="w-full sm:w-auto bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 text-zinc-900 dark:text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all active:scale-95 text-center"
                   >
                     Learn More
                   </Link>
@@ -89,11 +89,11 @@ export default async function Home() {
           <div className="mt-20 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-              <div className="relative border border-white/10 rounded-2xl overflow-hidden bg-zinc-900/40 backdrop-blur-sm shadow-2xl aspect-[16/9] md:aspect-auto md:h-[500px]">
-                 <div className="absolute inset-0 flex items-center justify-center text-zinc-700 bg-[radial-gradient(#1e1e1e_1px,transparent_1px)] [background-size:24px_24px]">
+              <div className="relative border border-zinc-300 dark:border-white/10 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900/40 backdrop-blur-sm shadow-2xl aspect-[16/9] md:aspect-auto md:h-[500px]">
+                 <div className="absolute inset-0 flex items-center justify-center text-zinc-500 dark:text-zinc-700 bg-[radial-gradient(#d4d4d8_1px,transparent_1px)] dark:bg-[radial-gradient(#1e1e1e_1px,transparent_1px)] [background-size:24px_24px]">
                     <div className="text-center space-y-4 px-6">
-                      <div className="inline-block p-4 rounded-full bg-zinc-800/50 mb-2">
-                        <LayoutDashboardIcon className="w-8 h-8 text-zinc-600" />
+                      <div className="inline-block p-4 rounded-full bg-zinc-200 dark:bg-zinc-800/50 mb-2">
+                        <LayoutDashboardIcon className="w-8 h-8 text-zinc-400 dark:text-zinc-600" />
                       </div>
                       <p className="text-xs md:text-sm font-mono tracking-[0.3em] uppercase opacity-50">Interactive Preview Coming Soon</p>
                     </div>
@@ -104,10 +104,10 @@ export default async function Home() {
         </section>
 
         {/* Features Grid */}
-        <section id="features" className="max-w-7xl mx-auto px-6 lg:px-8 py-24 md:py-32 border-t border-white/5">
+        <section id="features" className="max-w-7xl mx-auto px-6 lg:px-8 py-24 md:py-32 border-t border-zinc-200 dark:border-white/5">
           <div className="text-center max-w-3xl mx-auto mb-20">
             <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">Built for Scaling</h2>
-            <p className="text-zinc-400 text-lg leading-relaxed">Everything you need to manage, protect, and showcase your professional credibility.</p>
+            <p className="text-zinc-600 dark:text-zinc-400 text-lg leading-relaxed">Everything you need to manage, protect, and showcase your professional credibility.</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             <FeatureCard 
@@ -129,7 +129,7 @@ export default async function Home() {
         </section>
 
         {/* The "Killer Feature" Section */}
-        <section className="bg-zinc-900/20 border-y border-white/5 py-24 md:py-40">
+        <section className="bg-zinc-50 dark:bg-zinc-900/20 border-y border-zinc-200 dark:border-white/5 py-24 md:py-40">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
               <div className="order-2 lg:order-1">
@@ -137,7 +137,7 @@ export default async function Home() {
                   <Zap size={24} className="fill-current" />
                 </div>
                 <h2 className="text-4xl md:text-5xl font-bold mb-8 tracking-tight">The <span className="text-indigo-500">/restore</span> Command</h2>
-                <p className="text-zinc-400 text-lg mb-10 leading-relaxed">
+                <p className="text-zinc-600 dark:text-zinc-400 text-lg mb-10 leading-relaxed">
                   Lost your community? No problem. Invite your custom bot to a new server and run `/restore`. Watch years of work reappear in seconds.
                 </p>
                 <div className="space-y-5">
@@ -147,7 +147,7 @@ export default async function Home() {
                     "Auto-syncs with web profile",
                     "Smart delays to prevent rate limits"
                   ].map((item, i) => (
-                    <div key={i} className="flex items-start gap-3.5 text-zinc-300 font-medium">
+                    <div key={i} className="flex items-start gap-3.5 text-zinc-700 dark:text-zinc-300 font-medium">
                       <div className="mt-1 flex-shrink-0">
                         <CheckCircle size={20} className="text-green-500" />
                       </div>
@@ -159,11 +159,11 @@ export default async function Home() {
               <div className="order-1 lg:order-2">
                 <div className="relative group">
                   <div className="absolute -inset-1 bg-indigo-500/10 rounded-3xl blur-2xl"></div>
-                  <div className="relative bg-black p-6 md:p-10 rounded-3xl border border-white/10 font-mono text-[13px] md:text-sm shadow-2xl overflow-hidden">
+                  <div className="relative bg-zinc-900 dark:bg-black p-6 md:p-10 rounded-3xl border border-zinc-700 dark:border-white/10 font-mono text-[13px] md:text-sm shadow-2xl overflow-hidden">
                     <div className="flex gap-2 mb-8">
-                      <div className="w-3 h-3 rounded-full bg-zinc-800" />
-                      <div className="w-3 h-3 rounded-full bg-zinc-800" />
-                      <div className="w-3 h-3 rounded-full bg-zinc-800" />
+                      <div className="w-3 h-3 rounded-full bg-zinc-700 dark:bg-zinc-800" />
+                      <div className="w-3 h-3 rounded-full bg-zinc-700 dark:bg-zinc-800" />
+                      <div className="w-3 h-3 rounded-full bg-zinc-700 dark:bg-zinc-800" />
                     </div>
                     <div className="space-y-4">
                       <div className="flex gap-2">
@@ -189,13 +189,13 @@ export default async function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-white/5 py-16 bg-black px-6">
+      <footer className="border-t border-zinc-200 dark:border-white/5 py-16 bg-white dark:bg-black px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-12">
             <div className="flex flex-col items-center md:items-start gap-4 text-center md:text-left">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl">V</div>
-                <span className="text-xl font-bold tracking-tight">VouchSite</span>
+                <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">VouchSite</span>
               </div>
               <p className="text-zinc-500 text-sm max-w-xs leading-relaxed font-medium">The reputation standard for digital communities and service providers.</p>
             </div>
@@ -207,7 +207,7 @@ export default async function Home() {
             </div>
           </div>
           
-          <div className="mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium text-zinc-600">
+          <div className="mt-16 pt-8 border-t border-zinc-200 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium text-zinc-600">
             <p>© 2026 VouchSite. Built by Spiral.</p>
             <div className="flex gap-6">
               <p className="hover:text-zinc-400 cursor-pointer transition-colors">Server Status: Online</p>
@@ -221,15 +221,15 @@ export default async function Home() {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
   return (
-    <div className="p-8 md:p-10 rounded-3xl bg-zinc-900/30 border border-white/5 hover:border-indigo-500/20 hover:bg-zinc-900/50 transition-all group relative overflow-hidden">
+    <div className="p-8 md:p-10 rounded-3xl bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 hover:border-indigo-500/20 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 transition-all group relative overflow-hidden">
       <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
         {icon}
       </div>
       <div className="mb-6 bg-indigo-500/5 w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform border border-indigo-500/10">
         <div className="scale-125">{icon}</div>
       </div>
-      <h3 className="text-xl font-bold mb-4 tracking-tight text-white">{title}</h3>
-      <p className="text-zinc-400 leading-relaxed text-sm md:text-base font-medium">
+      <h3 className="text-xl font-bold mb-4 tracking-tight text-zinc-900 dark:text-white">{title}</h3>
+      <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-sm md:text-base font-medium">
         {description}
       </p>
     </div>
@@ -239,7 +239,7 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode, titl
 function FooterColumn({ title, links }: { title: string, links: string[] }) {
   return (
     <div className="flex flex-col gap-4 text-center md:text-left min-w-[100px]">
-      <h4 className="text-white text-sm font-bold tracking-wider uppercase">{title}</h4>
+      <h4 className="text-zinc-900 dark:text-white text-sm font-bold tracking-wider uppercase">{title}</h4>
       <div className="flex flex-col gap-3">
         {links.map((link, i) => (
           <a key={i} href="#" className="text-zinc-500 hover:text-indigo-400 text-sm font-medium transition-colors">{link}</a>

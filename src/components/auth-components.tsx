@@ -37,14 +37,14 @@ export function SignIn({
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all outline-none"
+              className="w-full bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-300 dark:border-white/5 text-zinc-900 dark:text-white placeholder:text-zinc-400 rounded-2xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all outline-none"
             />
           </div>
         </div>
         <button 
           type="submit"
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 bg-white text-black h-14 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 bg-zinc-900 dark:bg-white text-white dark:text-black h-14 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-50"
         >
           {isLoading ? "Sending..." : "Send Magic Link"}
           <ArrowRight size={18} />
@@ -98,7 +98,7 @@ export function CredentialsForm({ type = "signin" }: { type?: "signin" | "signup
               type="email"
               placeholder="email@example.com"
               required
-              className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all outline-none"
+              className="w-full bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-300 dark:border-white/5 text-zinc-900 dark:text-white placeholder:text-zinc-400 rounded-2xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all outline-none"
             />
           </div>
         </div>
