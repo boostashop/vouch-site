@@ -15,10 +15,8 @@ export async function generateMetadata({ params }: CustomDomainPageProps): Promi
   })
   if (!user) return { title: "Profile Not Found" }
   return {
-    title: user.profileMetaTitle || `${user.name || "User"}'s Vouch Profile | VouchSite`,
-    description:
-      user.profileMetaDescription ||
-      `View verified vouches and reputation for ${user.name || "this user"} on VouchSite.`,
+    title: user.profileMetaTitle || `${user.name || "User"}'s Vouch Profile | Vouched.to`,
+    description: user.profileMetaDescription || `View verified vouches and reputation for ${user.name || "this user"} on Vouched.to.`,
   }
 }
 

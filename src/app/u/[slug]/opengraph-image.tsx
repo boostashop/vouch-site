@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og"
 import { prisma } from "@/lib/prisma"
 
-export const alt = "VouchSite Profile"
+export const alt = "Vouched.to Profile"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -83,7 +83,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
               V
             </div>
             <span style={{ color: "#71717a", fontSize: 18, fontWeight: 700, letterSpacing: "0.1em" }}>
-              VOUCHSITE
+              VOUCHED.TO
             </span>
           </div>
 

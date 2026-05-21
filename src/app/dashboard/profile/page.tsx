@@ -63,7 +63,7 @@ export default async function ProfileSettingsPage() {
                   />
                 </div>
                 <p className="text-[10px] text-zinc-500">
-                   This will be your public URL: <strong>vouchsite.es/u/{user?.slug || 'your-name'}</strong>
+                   This will be your public URL: <strong>vouched.to/u/{user?.slug || 'your-name'}</strong>
                 </p>
               </div>
             </div>
@@ -189,7 +189,7 @@ export default async function ProfileSettingsPage() {
                   />
                 </div>
                 <p className="text-[10px] text-zinc-500">
-                   Map your own domain to your profile. (CNAME record to <strong>cname.vouchsite.es</strong>)
+                   Map your own domain to your profile. (CNAME record to <strong>cname.vouched.to</strong>)
                 </p>
               </div>
             </div>

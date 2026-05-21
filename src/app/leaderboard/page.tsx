@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic"
 export default async function LeaderboardPage() {
   const topUsers = await prisma.user.findMany({
     where: {
-      slug: { not: null },
       vouchesReceived: { some: {} }
     },
     select: {
@@ -44,7 +43,7 @@ export default async function LeaderboardPage() {
           <div className="flex justify-between h-16 items-center">
             <Link href="/" className="flex items-center gap-2.5 group">
               <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl group-hover:scale-105 transition-transform shadow-lg shadow-indigo-600/20">V</div>
-              <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">VouchSite</span>
+              <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">Vouched.to</span>
             </Link>
             
             <div className="flex items-center gap-4">
@@ -94,8 +93,8 @@ export default async function LeaderboardPage() {
                 rankedUsers.map((user, i) => (
                   <Link 
                     key={user.id} 
-                    href={`/u/${user.slug}`}
-                    className="grid grid-cols-12 gap-4 px-6 md:px-8 py-6 items-center hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-all group"
+                    href={user.slug ? `/u/${user.slug}` : "#"}
+                    className={`grid grid-cols-12 gap-4 px-6 md:px-8 py-6 items-center hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-all group ${!user.slug ? 'pointer-events-none cursor-default' : ''}`}
                   >
                     <div className="col-span-2 md:col-span-1 text-center font-black text-zinc-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                       #{i + 1}
@@ -115,7 +114,7 @@ export default async function LeaderboardPage() {
                              </p>
                              {user.isPremium && <ShieldCheck size={14} className="text-indigo-600 dark:text-indigo-400" />}
                           </div>
-                          <p className="text-[10px] text-zinc-400 font-bold">/u/{user.slug}</p>
+                          <p className="text-[10px] text-zinc-400 font-bold">{user.slug ? `/u/${user.slug}` : "No public profile"}</p>
                        </div>
                     </div>
                     <div className="hidden md:flex col-span-2 justify-center">
@@ -145,7 +144,7 @@ export default async function LeaderboardPage() {
       {/* Footer */}
       <footer className="mt-20 py-12 border-t border-zinc-200 dark:border-white/5 text-center">
          <p className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.3em]">
-           Verified by VouchSite Reputation Engine
+           Verified by Vouched.to Reputation Engine
          </p>
       </footer>
     </div>
@@ -207,10 +206,10 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
              <span className="text-zinc-900 dark:text-white text-lg">{user.totalVouches}</span>
           </div>
           <Link 
-            href={`/u/${user.slug}`}
-            className="w-full block py-3 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-black text-xs font-black uppercase tracking-widest hover:opacity-90 transition-opacity active:scale-95"
+            href={user.slug ? `/u/${user.slug}` : "#"}
+            className={`w-full block py-3 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-black text-xs font-black uppercase tracking-widest hover:opacity-90 transition-opacity active:scale-95 ${!user.slug ? 'opacity-50 pointer-events-none' : ''}`}
           >
-            View Profile
+            {user.slug ? "View Profile" : "No Profile"}
           </Link>
        </div>
     </div>

@@ -76,7 +76,7 @@ export default async function AdminPulsePage() {
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">System Pulse</h1>
-        <p className="text-zinc-500 mt-2 font-medium">Real-time health and growth metrics for VouchSite.</p>
+        <p className="text-zinc-500 mt-2 font-medium">Real-time health and growth metrics for Vouched.to.</p>
       </div>
 
       {/* Hero Stats — 6-up */}

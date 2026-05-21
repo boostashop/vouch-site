@@ -397,7 +397,7 @@ class BotManager {
           where: { id: userId },
           data: { telegramId: ctx.from.id.toString() }
         });
-        await ctx.reply('🚀 **VouchSite Bot is linked!**\n\nYour Telegram account is now connected to your dashboard. You can use /vouch <rating> <comment> to collect feedback and /restore to re-post your vouches.', { parse_mode: 'Markdown' });
+        await ctx.reply('🚀 **Vouched.to Bot is linked!**\n\nYour Telegram account is now connected to your dashboard. You can use /vouch <rating> <comment> to collect feedback and /restore to re-post your vouches.', { parse_mode: 'Markdown' });
       } catch (err) {
         console.error('Failed to link Telegram ID:', err);
         await ctx.reply('❌ Failed to link your account. Please try again.');

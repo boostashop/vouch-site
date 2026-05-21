@@ -11,7 +11,7 @@ export default function SignUpPage() {
         <div className="flex flex-col items-center text-center">
           <Link href="/" className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-bold text-2xl mb-6 shadow-xl shadow-indigo-600/20 active:scale-95 transition-transform">V</Link>
           <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">Get Started</h1>
-          <p className="text-zinc-500 mt-2 font-medium">Create your VouchSite account today</p>
+          <p className="text-zinc-500 mt-2 font-medium">Create your Vouched.to account today</p>
         </div>
 
         <div className="bg-zinc-50 dark:bg-zinc-900/20 border border-zinc-200 dark:border-white/5 p-8 rounded-[32px] backdrop-blur-sm relative overflow-hidden group">

@@ -29,10 +29,8 @@ export async function generateMetadata({ params }: PublicProfileProps): Promise<
   })
   if (!user) return { title: "Profile Not Found" }
   return {
-    title: user.profileMetaTitle || `${user.name || "User"}'s Vouch Profile | VouchSite`,
-    description:
-      user.profileMetaDescription ||
-      `View verified vouches and reputation for ${user.name || "this user"} on VouchSite.`,
+    title: user.profileMetaTitle || `${user.name || "User"}'s Vouch Profile | Vouched.to`,
+    description: user.profileMetaDescription || `View verified vouches and reputation for ${user.name || "this user"} on Vouched.to.`,
   }
 }
 
@@ -250,10 +248,10 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
         <footer className={`mt-24 pt-12 border-t ${divider} text-center space-y-4 opacity-40 hover:opacity-100 transition-opacity`}>
           <div className={`flex items-center justify-center gap-2 ${subtleText} text-sm font-bold`}>
             <ShieldCheck size={15} style={{ color: accentColor }} />
-            Reputation verified by VouchSite
+            Reputation verified by Vouched.to
           </div>
           <p className={`text-[10px] ${faintText} uppercase tracking-[0.3em] font-black`}>
-            &copy; 2026 VouchSite. All Rights Reserved.
+            &copy; 2026 Vouched.to. All Rights Reserved.
           </p>
         </footer>
       </div>

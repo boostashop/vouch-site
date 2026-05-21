@@ -34,7 +34,7 @@ export default async function DashboardLayout({
         <div className="p-6 text-zinc-950 dark:text-white">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-600/20">V</div>
-            <span className="text-xl font-bold tracking-tight">VouchSite</span>
+            <span className="text-xl font-bold tracking-tight">Vouched.to</span>
           </Link>
         </div>
 

@@ -162,7 +162,7 @@ export default async function DashboardPage() {
             <ActionItem 
               icon={<ExternalLink className="text-sky-400" />}
               title="Share Profile"
-              description="Your public profile is ready at your-slug.vouchsite.es"
+              description="Your public profile is ready at your-slug.vouched.to"
               href="/dashboard/profile"
               status="pending"
             />

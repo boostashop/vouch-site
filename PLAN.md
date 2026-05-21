@@ -1,7 +1,7 @@
-# Implementation Plan: VouchSite (Reputation Engine)
+# Implementation Plan: Vouched.to (Reputation Engine)
 
-## 1. Objective
-To build a highly scalable, feature-rich reputation management platform. VouchSite serves as a secure backup for customer testimonials ("vouches"), providing professional public profiles and a robust "insurance policy" against platform bans.
+## Vision
+To build a highly scalable, feature-rich reputation management platform. Vouched.to serves as a secure backup for customer testimonials ("vouches"), providing professional public profiles and a robust "insurance policy" against platform bans.
 
 ## 2. Core Features & Business Logic
 
@@ -27,7 +27,7 @@ To build a highly scalable, feature-rich reputation management platform. VouchSi
 
 ### Phase 2: Professional Presence
 *   [ ] **Customizable Website Profile:** Dynamic themes, custom colors, and layout options.
-*   [ ] **Custom Domain:** Ability to map `profile.yourdomain.com` to the VouchSite profile.
+*   [ ] **Custom Domain:** Ability to map `profile.yourdomain.com` to the Vouched.to profile.
 *   [ ] **SEO Optimization:** Customizable meta titles, descriptions, and OpenGraph images for profiles.
 *   [ ] **Multi-Profile Website:** Manage multiple identities/businesses under a single dashboard account.
 
