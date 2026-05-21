@@ -1,14 +1,18 @@
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
-import { 
-  MessageSquare, 
-  Star, 
-  ShieldCheck, 
+import {
+  MessageSquare,
+  Star,
+  ShieldCheck,
   Calendar,
   User as UserIcon,
   ExternalLink,
   Award,
-  Zap
+  Zap,
+  Trophy,
+  Flame,
+  Heart,
+  TrendingUp,
 } from "lucide-react"
 import Link from "next/link"
 import { Metadata } from "next"
@@ -21,164 +25,200 @@ export async function generateMetadata({ params }: PublicProfileProps): Promise<
   const { slug } = await params
   const user = await prisma.user.findUnique({
     where: { slug },
-    select: { name: true, profileMetaTitle: true, profileMetaDescription: true }
+    select: { name: true, profileMetaTitle: true, profileMetaDescription: true },
   })
-
   if (!user) return { title: "Profile Not Found" }
-
   return {
     title: user.profileMetaTitle || `${user.name || "User"}'s Vouch Profile | VouchSite`,
-    description: user.profileMetaDescription || `View verified vouches and reputation for ${user.name || "this user"} on VouchSite.`,
+    description:
+      user.profileMetaDescription ||
+      `View verified vouches and reputation for ${user.name || "this user"} on VouchSite.`,
   }
 }
 
 export default async function PublicProfilePage({ params }: PublicProfileProps) {
   const { slug } = await params
-  
+
   const user = await prisma.user.findUnique({
     where: { slug },
     include: {
-      vouchesReceived: {
-        orderBy: { createdAt: 'desc' }
-      },
-      _count: {
-        select: { vouchesReceived: true }
-      }
-    }
+      vouchesReceived: { orderBy: { createdAt: "desc" } },
+      _count: { select: { vouchesReceived: true } },
+    },
   })
 
-  if (!user) {
-    notFound()
-  }
+  if (!user) notFound()
 
   const vouchCount = user._count.vouchesReceived
-  const avgRating = vouchCount > 0 
-    ? user.vouchesReceived.reduce((acc: number, v: any) => acc + v.rating, 0) / vouchCount 
-    : 0
+  const avgRating =
+    vouchCount > 0
+      ? user.vouchesReceived.reduce((acc: number, v: any) => acc + v.rating, 0) / vouchCount
+      : 0
 
   const accentColor = user.profileAccentColor || "#6366f1"
-  const isGlass = user.profileTheme === 'glass'
+  const theme = user.profileTheme || "dark"
+  const isLight = theme === "light"
+  const isGlass = theme === "glass"
+
+  // Theme-derived class sets
+  const pageBg = isLight ? "bg-zinc-50" : "bg-zinc-950"
+  const pageText = isLight ? "text-zinc-900" : "text-white"
+  const cardBg = isLight
+    ? "bg-white border-zinc-200 shadow-sm"
+    : isGlass
+    ? "bg-white/5 backdrop-blur-xl border-white/10"
+    : "bg-zinc-900/30 border-white/5"
+  const cardHover = isLight
+    ? "hover:border-zinc-300 hover:bg-zinc-50"
+    : isGlass
+    ? "hover:bg-white/[0.08] hover:border-white/10"
+    : "hover:bg-zinc-900/50 hover:border-white/10"
+  const subtleText = isLight ? "text-zinc-600" : "text-zinc-400"
+  const faintText = isLight ? "text-zinc-500" : "text-zinc-500"
+  const divider = isLight ? "border-zinc-200" : "border-white/5"
+  const tagBg = isLight ? "bg-zinc-100 border-zinc-200" : "bg-zinc-900/50 border-white/5"
+  const avatarBg = isLight ? "bg-zinc-200 border-zinc-300" : "bg-zinc-800 border-white/5"
+  const initialsText = isLight ? "text-zinc-600" : "text-zinc-300"
+  const vouchText = isLight ? "text-zinc-700" : "text-zinc-300"
+  const giverHover = isLight ? "group-hover:text-indigo-600" : "group-hover:text-indigo-400"
+  const badgeBg = isLight
+    ? "bg-zinc-100 border-zinc-200 text-zinc-700"
+    : "bg-zinc-900/50 border-white/5 text-white"
 
   return (
-    <div className={`min-h-screen bg-black text-white font-sans selection:bg-indigo-500/30 ${user.profileTheme === 'light' ? 'bg-zinc-50 text-black' : ''}`}>
-      {/* Background Decor */}
+    <div className={`min-h-screen ${pageBg} ${pageText} font-sans selection:bg-indigo-500/30`}>
+      {/* Background glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="absolute -top-[25%] -left-[10%] w-[70%] h-[70%] blur-[120px] rounded-full opacity-20" 
+        <div
+          className="absolute -top-[25%] -left-[10%] w-[70%] h-[70%] blur-[120px] rounded-full opacity-15"
           style={{ backgroundColor: accentColor }}
         />
-        <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] bg-purple-500/5 blur-[120px] rounded-full" />
+        <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] blur-[120px] rounded-full opacity-5"
+          style={{ backgroundColor: accentColor }}
+        />
       </div>
 
       <div className="relative max-w-4xl mx-auto px-6 py-12 md:py-24">
-        {/* Header Section */}
+        {/* Header */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="space-y-6">
-            <div className={`w-24 h-24 rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl border ${isGlass ? 'bg-white/5 border-white/10 backdrop-blur-md' : 'bg-zinc-900 border-white/10'}`}>
+            <div className={`w-24 h-24 rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl border ${avatarBg}`}>
               {user.image ? (
                 <img src={user.image} alt={user.name || "User"} className="w-full h-full object-cover" />
               ) : (
-                <UserIcon size={40} className="text-zinc-700" />
+                <UserIcon size={40} className={initialsText} />
               )}
             </div>
-            
-            <div className="space-y-2">
+
+            <div className="space-y-3">
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
                 {user.name || "Anonymous User"}
               </h1>
-              <div className="flex flex-wrap items-center gap-4 text-zinc-400">
-                <span className="flex items-center gap-1.5 bg-zinc-900/50 border border-white/5 px-3 py-1 rounded-full text-xs font-bold">
-                   <ShieldCheck size={14} style={{ color: accentColor }} />
-                   Verified Profile
+              <div className={`flex flex-wrap items-center gap-3 ${subtleText}`}>
+                <span className={`flex items-center gap-1.5 ${tagBg} border px-3 py-1 rounded-full text-xs font-bold`}>
+                  <ShieldCheck size={13} style={{ color: accentColor }} />
+                  Verified Profile
                 </span>
                 {user.isPremium && (
-                  <span className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-xs font-bold">
-                    <Zap size={14} fill="currentColor" />
-                    Premium member
+                  <span className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 px-3 py-1 rounded-full text-xs font-bold">
+                    <Zap size={13} fill="currentColor" />
+                    Premium
                   </span>
                 )}
-                <span className="flex items-center gap-1.5 text-sm">
-                   <MessageSquare size={14} />
-                   {vouchCount} Vouches
+                <span className="flex items-center gap-1.5 text-sm font-medium">
+                  <MessageSquare size={13} />
+                  {vouchCount} Vouches
                 </span>
                 {vouchCount > 0 && (
-                  <span className="flex items-center gap-1.5 text-sm text-amber-400 font-bold">
-                    <Star size={14} fill="currentColor" />
-                    {avgRating.toFixed(1)} Rating
+                  <span className="flex items-center gap-1.5 text-sm font-bold text-amber-500">
+                    <Star size={13} fill="currentColor" />
+                    {avgRating.toFixed(1)} avg
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-             <Link 
-               href="/"
-               className="bg-white text-black px-8 py-4 rounded-2xl text-sm font-extrabold hover:bg-zinc-200 transition-all active:scale-95 flex items-center gap-2 shadow-xl shadow-white/5"
-             >
-               Create Your Profile
-               <ExternalLink size={16} />
-             </Link>
-          </div>
+          <Link
+            href="/"
+            className="self-start md:self-auto flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-extrabold transition-all active:scale-95 shadow-lg"
+            style={{ backgroundColor: accentColor, color: "#fff" }}
+          >
+            Get Your Profile
+            <ExternalLink size={14} />
+          </Link>
         </header>
 
-        {/* Stats Grid - New */}
+        {/* Stats */}
         {user.profileShowStats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-             <StatMini label="Vouches" value={vouchCount} />
-             <StatMini label="Rating" value={`${avgRating.toFixed(1)}/5`} />
-             <StatMini label="Platform" value={user.discordBotToken ? 'Discord' : 'Web'} />
-             <StatMini label="Rank" value={vouchCount > 100 ? 'Top Tier' : 'Growing'} />
+            <StatMini label="Vouches" value={vouchCount} cardBg={cardBg} />
+            <StatMini label="Rating" value={vouchCount > 0 ? `${avgRating.toFixed(1)}/5` : "—"} cardBg={cardBg} />
+            <StatMini
+              label="Platform"
+              value={user.discordBotToken && user.telegramBotToken ? "Both" : user.telegramBotToken ? "Telegram" : "Discord"}
+              cardBg={cardBg}
+            />
+            <StatMini
+              label="Standing"
+              value={vouchCount >= 100 ? "Top Tier" : vouchCount >= 25 ? "Trusted" : vouchCount >= 5 ? "Rising" : "New"}
+              cardBg={cardBg}
+            />
           </div>
         )}
 
         {/* Vouches Feed */}
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-          <div className="flex items-center justify-between border-b border-white/5 pb-6">
+          <div className={`flex items-center justify-between border-b ${divider} pb-6`}>
             <h2 className="text-xl font-bold">Wall of Vouches</h2>
-            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+            <span className={`text-xs font-bold ${faintText} uppercase tracking-widest`}>
               Latest Activity
-            </div>
+            </span>
           </div>
 
           {user.vouchesReceived.length === 0 ? (
-            <div className={`border border-white/5 rounded-3xl p-12 text-center ${isGlass ? 'bg-white/5 backdrop-blur-xl' : 'bg-zinc-900/20'}`}>
-               <p className="text-zinc-500 font-medium">No vouches recorded yet.</p>
+            <div className={`border ${cardBg} rounded-3xl p-12 text-center`}>
+              <p className={`${faintText} font-medium`}>No vouches recorded yet.</p>
             </div>
           ) : (
-            <div className="grid gap-6">
+            <div className="grid gap-5">
               {user.vouchesReceived.map((vouch) => (
-                <div key={vouch.id} className={`border border-white/5 rounded-[32px] p-6 md:p-8 space-y-6 hover:border-white/10 transition-all group ${isGlass ? 'bg-white/5 backdrop-blur-xl hover:bg-white/[0.08]' : 'bg-zinc-900/30 hover:bg-zinc-900/50'}`}>
+                <div
+                  key={vouch.id}
+                  className={`border ${cardBg} ${cardHover} rounded-[28px] p-6 md:p-8 space-y-4 transition-all group`}
+                >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-zinc-800 flex items-center justify-center text-lg font-bold border border-white/5 group-hover:scale-105 transition-transform">
-                        {vouch.giverName[0]?.toUpperCase()}
+                      <div className={`w-12 h-12 rounded-2xl ${avatarBg} border flex items-center justify-center text-lg font-black group-hover:scale-105 transition-transform`}>
+                        <span className={initialsText}>{vouch.giverName[0]?.toUpperCase()}</span>
                       </div>
                       <div>
-                        <h4 className="font-bold text-white group-hover:text-indigo-400 transition-colors">{vouch.giverName}</h4>
-                        <div className="flex items-center gap-2 text-[10px] text-zinc-500 mt-1 font-bold uppercase tracking-wider">
-                           <Calendar size={10} />
-                           {new Date(vouch.createdAt).toLocaleDateString()}
-                           <span className="w-1 h-1 bg-zinc-700 rounded-full" />
-                           {vouch.platform}
+                        <h4 className={`font-bold ${giverHover} transition-colors`}>{vouch.giverName}</h4>
+                        <div className={`flex items-center gap-2 text-[10px] ${faintText} mt-1 font-bold uppercase tracking-wider`}>
+                          <Calendar size={10} />
+                          {new Date(vouch.createdAt).toLocaleDateString()}
+                          <span className="w-1 h-1 rounded-full" style={{ backgroundColor: accentColor }} />
+                          {vouch.platform}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 bg-amber-500/10 text-amber-400 px-3 py-1.5 rounded-xl border border-amber-500/20 shadow-lg shadow-amber-500/5">
-                      <Star size={14} fill="currentColor" />
+                    <div className="flex items-center gap-1 bg-amber-500/10 text-amber-500 px-3 py-1.5 rounded-xl border border-amber-500/20">
+                      <Star size={13} fill="currentColor" />
                       <span className="text-sm font-black">{vouch.rating}</span>
                     </div>
                   </div>
 
-                  <p className="text-zinc-300 leading-relaxed font-medium">
-                    {vouch.comment}
-                  </p>
+                  {vouch.comment && (
+                    <p className={`${vouchText} leading-relaxed font-medium text-[15px]`}>
+                      {vouch.comment}
+                    </p>
+                  )}
 
                   {vouch.proofImageUrl && (
-                    <div className="rounded-2xl overflow-hidden border border-white/5 bg-black/50 group-hover:border-white/10 transition-colors">
-                      <img 
-                        src={vouch.proofImageUrl} 
-                        alt="Proof" 
+                    <div className={`rounded-2xl overflow-hidden border ${divider}`}>
+                      <img
+                        src={vouch.proofImageUrl}
+                        alt="Proof"
                         className="w-full max-h-[400px] object-contain"
                       />
                     </div>
@@ -189,48 +229,52 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
           )}
         </div>
 
-        {/* Badges Section - New */}
+        {/* Badges */}
         {user.profileShowBadges && vouchCount > 0 && (
-          <div className="mt-20 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-             <h3 className="text-sm font-black text-zinc-500 uppercase tracking-[0.2em]">Earned Awards</h3>
-             <div className="flex flex-wrap gap-4">
-                <Badge icon={<Award size={16} />} label="Early Adopter" color="#10b981" />
-                {vouchCount >= 10 && <Badge icon={<Star size={16} />} label="10+ Vouches" color="#f59e0b" />}
-                {vouchCount >= 50 && <Badge icon={<ShieldCheck size={16} />} label="Trusted Seller" color="#6366f1" />}
-             </div>
+          <div className="mt-20 space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+            <h3 className={`text-xs font-black ${faintText} uppercase tracking-[0.2em]`}>Earned Awards</h3>
+            <div className="flex flex-wrap gap-3">
+              <Badge icon={<Award size={14} />} label="Early Adopter" color="#10b981" badgeBg={badgeBg} />
+              {vouchCount >= 5 && <Badge icon={<TrendingUp size={14} />} label="5+ Vouches" color="#6366f1" badgeBg={badgeBg} />}
+              {vouchCount >= 10 && <Badge icon={<Star size={14} />} label="10+ Vouches" color="#f59e0b" badgeBg={badgeBg} />}
+              {vouchCount >= 25 && <Badge icon={<Heart size={14} />} label="Community Favourite" color="#ec4899" badgeBg={badgeBg} />}
+              {vouchCount >= 50 && <Badge icon={<ShieldCheck size={14} />} label="Trusted Seller" color="#6366f1" badgeBg={badgeBg} />}
+              {vouchCount >= 100 && <Badge icon={<Trophy size={14} />} label="Hall of Fame" color="#f59e0b" badgeBg={badgeBg} />}
+              {avgRating >= 4.8 && vouchCount >= 5 && <Badge icon={<Flame size={14} />} label="Top Rated" color="#f97316" badgeBg={badgeBg} />}
+              {user.isPremium && <Badge icon={<Zap size={14} />} label="Premium Member" color="#a855f7" badgeBg={badgeBg} />}
+            </div>
           </div>
         )}
 
         {/* Footer */}
-        <footer className="mt-24 pt-12 border-t border-white/5 text-center space-y-6 opacity-50 hover:opacity-100 transition-opacity">
-           <div className="flex items-center justify-center gap-2 text-zinc-400 text-sm font-bold">
-             <ShieldCheck size={16} style={{ color: accentColor }} />
-             Reputation verified by VouchSite
-           </div>
-           <p className="text-[10px] text-zinc-600 uppercase tracking-[0.3em] font-black">
-             &copy; 2026 VouchSite. All Rights Reserved.
-           </p>
+        <footer className={`mt-24 pt-12 border-t ${divider} text-center space-y-4 opacity-40 hover:opacity-100 transition-opacity`}>
+          <div className={`flex items-center justify-center gap-2 ${subtleText} text-sm font-bold`}>
+            <ShieldCheck size={15} style={{ color: accentColor }} />
+            Reputation verified by VouchSite
+          </div>
+          <p className={`text-[10px] ${faintText} uppercase tracking-[0.3em] font-black`}>
+            &copy; 2026 VouchSite. All Rights Reserved.
+          </p>
         </footer>
       </div>
     </div>
   )
 }
 
-function StatMini({ label, value }: { label: string, value: string | number }) {
+function StatMini({ label, value, cardBg }: { label: string; value: string | number; cardBg: string }) {
   return (
-    <div className="bg-zinc-900/30 border border-white/5 rounded-2xl p-4 text-center">
+    <div className={`border ${cardBg} rounded-2xl p-4 text-center`}>
       <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">{label}</p>
-      <p className="text-lg font-black text-white">{value}</p>
+      <p className="text-lg font-black">{value}</p>
     </div>
   )
 }
 
-function Badge({ icon, label, color }: { icon: React.ReactNode, label: string, color: string }) {
+function Badge({ icon, label, color, badgeBg }: { icon: React.ReactNode; label: string; color: string; badgeBg: string }) {
   return (
-    <div className="flex items-center gap-2 bg-zinc-900/50 border border-white/5 px-4 py-2 rounded-xl text-xs font-bold text-white group hover:border-white/10 transition-colors">
+    <div className={`flex items-center gap-2 ${badgeBg} border px-3.5 py-2 rounded-xl text-xs font-bold`}>
       <span style={{ color }}>{icon}</span>
       {label}
     </div>
   )
 }
-
