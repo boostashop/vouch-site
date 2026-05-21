@@ -391,6 +391,12 @@ class BotManager {
     
     const bot = new Telegraf(token);
 
+    // Debug: Log every single update
+    bot.use((ctx, next) => {
+      console.log(`[Telegram] Received update type: ${ctx.updateType} from ${ctx.from?.id}`);
+      return next();
+    });
+
     bot.command('start', async (ctx) => {
       console.log(`[Telegram] Received /start from ${ctx.from.id} for User ${userId}`);
       try {
