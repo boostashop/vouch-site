@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useRef, useCallback, useTransition } from "react"
+import { useState, useRef, useCallback, useTransition, useEffect } from "react"
 import { DesignTokens } from "@/types/design-tokens"
 import { saveDesignTokens } from "@/app/dashboard/profile/actions"
 import {
   Paintbrush, Monitor, Save, RefreshCw, CheckCircle2,
-  RotateCcw, ArrowLeft, ExternalLink, Eye, SlidersHorizontal,
+  RotateCcw, ArrowLeft, ExternalLink, Eye, SlidersHorizontal, RefreshCcw,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -20,7 +20,8 @@ export function ProfileBuilder({ slug, initialTokens }: Props) {
   const [saveState, setSaveState] = useState<"idle" | "saved">("idle")
   const [hasChanges, setHasChanges] = useState(false)
   const [mobileTab, setMobileTab] = useState<"edit" | "preview">("edit")
-  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [previewUrl, setPreviewUrl] = useState(`/u/${slug}`)
+  const [previewKey, setPreviewKey] = useState(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const baseRef = useRef<DesignTokens>(initialTokens)
 
@@ -29,10 +30,11 @@ export function ProfileBuilder({ slug, initialTokens }: Props) {
       clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
         try {
-          const encoded = btoa(JSON.stringify(t))
-          if (iframeRef.current) iframeRef.current.src = `/u/${slug}?t=${encoded}`
+          // encodeURIComponent prevents base64 chars (+/=) from breaking the query string
+          const encoded = encodeURIComponent(btoa(JSON.stringify(t)))
+          setPreviewUrl(`/u/${slug}?t=${encoded}`)
         } catch {}
-      }, 550)
+      }, 500)
     },
     [slug]
   )
@@ -45,6 +47,18 @@ export function ProfileBuilder({ slug, initialTokens }: Props) {
       return next
     })
   }
+
+  // When switching to preview on mobile, force a fresh load with current tokens
+  useEffect(() => {
+    if (mobileTab === "preview") {
+      try {
+        const encoded = encodeURIComponent(btoa(JSON.stringify(tokens)))
+        setPreviewUrl(`/u/${slug}?t=${encoded}`)
+        setPreviewKey((k) => k + 1)
+      } catch {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mobileTab])
 
   const handleSave = () => {
     startTransition(async () => {
@@ -197,8 +211,8 @@ export function ProfileBuilder({ slug, initialTokens }: Props) {
           </a>
         </div>
         <iframe
-          ref={iframeRef}
-          src={`/u/${slug}`}
+          key={previewKey}
+          src={previewUrl}
           className="flex-1 w-full"
           title="Profile Preview"
         />
