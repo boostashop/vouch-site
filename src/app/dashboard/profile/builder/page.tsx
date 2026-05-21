@@ -20,7 +20,25 @@ export default async function DesignStudioPage() {
   })
 
   if (!user?.isPremium) redirect("/dashboard/profile")
-  if (!user?.slug) redirect("/dashboard/profile")
+
+  if (!user?.slug) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4 px-4">
+        <div className="text-5xl">🎨</div>
+        <h2 className="text-2xl font-extrabold text-zinc-900 dark:text-white">Set a profile slug first</h2>
+        <p className="text-zinc-500 max-w-sm">
+          You need a public profile URL before you can use the Design Studio.
+          Head to Profile Settings and set your slug.
+        </p>
+        <a
+          href="/dashboard/profile"
+          className="mt-2 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all"
+        >
+          Go to Profile Settings →
+        </a>
+      </div>
+    )
+  }
 
   const saved = user.profileDesignTokens as DesignTokens | null
   const defaults = user.profileTheme === "light" ? defaultLightTokens : defaultDarkTokens
@@ -30,7 +48,6 @@ export default async function DesignStudioPage() {
     <ProfileBuilder
       slug={user.slug}
       initialTokens={initialTokens}
-      accentColor={user.profileAccentColor || "#6366f1"}
     />
   )
 }
