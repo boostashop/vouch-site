@@ -106,6 +106,7 @@ export default async function PublicProfilePage({ params, searchParams }: Public
   return (
     <div id="vp" className={`min-h-screen ${pageBg} ${pageText} selection:bg-indigo-500/30`} style={{ fontFamily }}>
       {tokenCSS && <style dangerouslySetInnerHTML={{ __html: tokenCSS }} />}
+      <script dangerouslySetInnerHTML={{ __html: `(function(){window.addEventListener('message',function(e){if(e.data&&e.data.type==='vc-preview-css'){var s=document.getElementById('vc-preview-style');if(!s){s=document.createElement('style');s.id='vc-preview-style';document.head.appendChild(s);}s.textContent=e.data.css;}});})();` }} />
 
       {/* Background glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -140,7 +141,7 @@ export default async function PublicProfilePage({ params, searchParams }: Public
             </div>
 
             <div className="space-y-3">
-              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
+              <h1 className="vc-name text-4xl md:text-5xl font-extrabold tracking-tight">
                 {user.name || "Anonymous User"}
               </h1>
               <div className={`vc-subtle flex flex-wrap items-center gap-3 ${subtleText}`}>
@@ -170,7 +171,7 @@ export default async function PublicProfilePage({ params, searchParams }: Public
 
           <Link
             href="/"
-            className="self-start md:self-auto flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-extrabold transition-all active:scale-95 shadow-lg"
+            className="vc-cta self-start md:self-auto flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-extrabold transition-all active:scale-95 shadow-lg"
             style={{ backgroundColor: accentColor, color: "#fff" }}
           >
             Get Your Profile
@@ -198,7 +199,7 @@ export default async function PublicProfilePage({ params, searchParams }: Public
 
         {/* Vouches Feed */}
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-          <div className={`flex items-center justify-between border-b ${divider} pb-6`}>
+          <div className={`vc-divider flex items-center justify-between border-b ${divider} pb-6`}>
             <h2 className="text-xl font-bold">Wall of Vouches</h2>
             <span className={`text-xs font-bold ${faintText} uppercase tracking-widest`}>
               Latest Activity
@@ -231,14 +232,14 @@ export default async function PublicProfilePage({ params, searchParams }: Public
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 bg-amber-500/10 text-amber-500 px-3 py-1.5 rounded-xl border border-amber-500/20">
+                    <div className="vc-rating flex items-center gap-1 bg-amber-500/10 text-amber-500 px-3 py-1.5 rounded-xl border border-amber-500/20">
                       <Star size={13} fill="currentColor" />
                       <span className="text-sm font-black">{vouch.rating}</span>
                     </div>
                   </div>
 
                   {vouch.comment && (
-                    <p className={`${vouchText} leading-relaxed font-medium text-[15px]`}>
+                    <p className={`vc-card-comment ${vouchText} leading-relaxed font-medium text-[15px]`}>
                       {vouch.comment}
                     </p>
                   )}
@@ -293,15 +294,15 @@ export default async function PublicProfilePage({ params, searchParams }: Public
 function StatMini({ label, value, cardBg }: { label: string; value: string | number; cardBg: string }) {
   return (
     <div className={`vc-stat border ${cardBg} rounded-2xl p-4 text-center`}>
-      <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">{label}</p>
-      <p className="text-lg font-black">{value}</p>
+      <p className="vc-stat-label text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">{label}</p>
+      <p className="vc-stat-value text-lg font-black">{value}</p>
     </div>
   )
 }
 
 function Badge({ icon, label, color, badgeBg }: { icon: React.ReactNode; label: string; color: string; badgeBg: string }) {
   return (
-    <div className={`flex items-center gap-2 ${badgeBg} border px-3.5 py-2 rounded-xl text-xs font-bold`}>
+    <div className={`vc-badge flex items-center gap-2 ${badgeBg} border px-3.5 py-2 rounded-xl text-xs font-bold`}>
       <span style={{ color }}>{icon}</span>
       {label}
     </div>

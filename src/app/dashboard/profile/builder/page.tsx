@@ -2,7 +2,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { ProfileBuilder } from "./ProfileBuilder"
-import { defaultDarkTokens, defaultLightTokens, DesignTokens } from "@/types/design-tokens"
+import { defaultDarkConfig, defaultLightConfig, ProfileDesignConfig } from "@/types/design-tokens"
 
 export default async function DesignStudioPage() {
   const session = await auth()
@@ -14,7 +14,6 @@ export default async function DesignStudioPage() {
       isPremium: true,
       slug: true,
       profileTheme: true,
-      profileAccentColor: true,
       profileDesignTokens: true,
     },
   })
@@ -40,9 +39,11 @@ export default async function DesignStudioPage() {
     )
   }
 
-  const saved = user.profileDesignTokens as DesignTokens | null
-  const defaults = user.profileTheme === "light" ? defaultLightTokens : defaultDarkTokens
-  const initialTokens: DesignTokens = saved ?? defaults
+  const defaults = user.profileTheme === "light" ? defaultLightConfig : defaultDarkConfig
+  // If saved tokens are missing the new pageBgType field it's an old format — use defaults
+  const saved = user.profileDesignTokens as Record<string, unknown> | null
+  const initialTokens: ProfileDesignConfig =
+    saved && "pageBgType" in saved ? (saved as unknown as ProfileDesignConfig) : defaults
 
   return (
     <ProfileBuilder
