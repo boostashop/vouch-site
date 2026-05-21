@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle, Shield, Zap, Globe, MessageSquare } from "lucide-react";
 import { auth } from "@/auth";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default async function Home() {
   const session = await auth();
@@ -21,13 +22,14 @@ export default async function Home() {
               <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
               {session ? (
-                <Link href="/dashboard" className="bg-white text-black px-5 py-2 rounded-full text-sm font-bold hover:bg-zinc-200 transition-all active:scale-95 shadow-md">
+                <Link href="/dashboard" className="bg-zinc-900 dark:bg-white text-white dark:text-black px-5 py-2 rounded-full text-sm font-bold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-all active:scale-95 shadow-md">
                   Dashboard
                 </Link>
               ) : (
-                <Link href="/auth/signin" className="bg-white text-black px-5 py-2 rounded-full text-sm font-bold hover:bg-zinc-200 transition-all active:scale-95 shadow-md">
+                <Link href="/auth/signin" className="bg-zinc-900 dark:bg-white text-white dark:text-black px-5 py-2 rounded-full text-sm font-bold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-all active:scale-95 shadow-md">
                   Sign In
                 </Link>
               )}

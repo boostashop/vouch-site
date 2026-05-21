@@ -13,12 +13,12 @@ export default async function ProfileSettingsPage() {
     <div className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Profile Settings</h1>
-        <p className="text-zinc-400 mt-1">Manage your public identity, themes, and professional appearance.</p>
+        <p className="text-zinc-600 dark:text-zinc-400 mt-1">Manage your public identity, themes, and professional appearance.</p>
       </div>
 
       <form action={updateProfile} className="space-y-8">
         {/* Public Identity */}
-        <section className="bg-zinc-900/30 border border-white/5 rounded-2xl overflow-hidden">
+        <section className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl overflow-hidden">
           <div className="p-6 border-b border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/50 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
               <User size={20} />
