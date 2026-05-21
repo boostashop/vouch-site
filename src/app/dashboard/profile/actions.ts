@@ -1,10 +1,11 @@
+"use server"
+
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { DesignTokens } from "@/types/design-tokens"
 
 export async function updateProfile(formData: FormData) {
-  "use server"
-  
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
   
@@ -49,4 +50,23 @@ export async function updateProfile(formData: FormData) {
   
   revalidatePath("/dashboard/profile")
   revalidatePath(`/u/${cleanSlug}`)
+}
+
+export async function saveDesignTokens(tokens: DesignTokens, slug: string) {
+  "use server"
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isPremium: true },
+  })
+  if (!user?.isPremium) throw new Error("Premium required")
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { profileDesignTokens: tokens as object },
+  })
+
+  revalidatePath(`/u/${slug}`)
 }

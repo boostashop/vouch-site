@@ -16,9 +16,11 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { Metadata } from "next"
+import { tokensToCSS, DesignTokens } from "@/types/design-tokens"
 
 interface PublicProfileProps {
   params: Promise<{ slug: string }>
+  searchParams?: Promise<{ t?: string }>
 }
 
 export async function generateMetadata({ params }: PublicProfileProps): Promise<Metadata> {
@@ -34,8 +36,9 @@ export async function generateMetadata({ params }: PublicProfileProps): Promise<
   }
 }
 
-export default async function PublicProfilePage({ params }: PublicProfileProps) {
+export default async function PublicProfilePage({ params, searchParams }: PublicProfileProps) {
   const { slug } = await params
+  const { t } = searchParams ? await searchParams : {}
 
   const user = await prisma.user.findUnique({
     where: { slug },
@@ -58,7 +61,15 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
   const isLight = theme === "light"
   const isGlass = theme === "glass"
   const bannerImage = user.profileBannerImage || null
-  const customCSS = user.profileCustomCSS || null
+
+  // Design token CSS — preview param overrides saved tokens
+  let activeTokens: DesignTokens | null = null
+  if (t) {
+    try { activeTokens = JSON.parse(Buffer.from(t, "base64").toString("utf-8")) } catch {}
+  } else if (user.profileDesignTokens) {
+    activeTokens = user.profileDesignTokens as unknown as DesignTokens
+  }
+  const tokenCSS = activeTokens ? tokensToCSS(activeTokens) : null
 
   const fontMap: Record<string, string> = {
     sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -93,16 +104,17 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
     : "bg-zinc-900/50 border-white/5 text-white"
 
   return (
-    <div className={`min-h-screen ${pageBg} ${pageText} selection:bg-indigo-500/30`} style={{ fontFamily }}>
-      {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
+    <div id="vp" className={`min-h-screen ${pageBg} ${pageText} selection:bg-indigo-500/30`} style={{ fontFamily }}>
+      {tokenCSS && <style dangerouslySetInnerHTML={{ __html: tokenCSS }} />}
 
       {/* Background glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div
-          className="absolute -top-[25%] -left-[10%] w-[70%] h-[70%] blur-[120px] rounded-full opacity-15"
+          className="vc-glow-1 absolute -top-[25%] -left-[10%] w-[70%] h-[70%] blur-[120px] rounded-full opacity-15"
           style={{ backgroundColor: accentColor }}
         />
-        <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] blur-[120px] rounded-full opacity-5"
+        <div
+          className="vc-glow-2 absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] blur-[120px] rounded-full opacity-5"
           style={{ backgroundColor: accentColor }}
         />
       </div>
@@ -119,7 +131,7 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="space-y-6">
-            <div className={`w-24 h-24 rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl border ${avatarBg}`}>
+            <div className={`vc-avatar w-24 h-24 rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl border ${avatarBg}`}>
               {user.image ? (
                 <img src={user.image} alt={user.name || "User"} className="w-full h-full object-cover" />
               ) : (
@@ -131,7 +143,7 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
                 {user.name || "Anonymous User"}
               </h1>
-              <div className={`flex flex-wrap items-center gap-3 ${subtleText}`}>
+              <div className={`vc-subtle flex flex-wrap items-center gap-3 ${subtleText}`}>
                 <span className={`flex items-center gap-1.5 ${tagBg} border px-3 py-1 rounded-full text-xs font-bold`}>
                   <ShieldCheck size={13} style={{ color: accentColor }} />
                   Verified Profile
@@ -202,7 +214,7 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
               {user.vouchesReceived.map((vouch) => (
                 <div
                   key={vouch.id}
-                  className={`border ${cardBg} ${cardHover} rounded-[28px] p-6 md:p-8 space-y-4 transition-all group`}
+                  className={`vc-card border ${cardBg} ${cardHover} rounded-[28px] p-6 md:p-8 space-y-4 transition-all group`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-4">
@@ -280,7 +292,7 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
 
 function StatMini({ label, value, cardBg }: { label: string; value: string | number; cardBg: string }) {
   return (
-    <div className={`border ${cardBg} rounded-2xl p-4 text-center`}>
+    <div className={`vc-stat border ${cardBg} rounded-2xl p-4 text-center`}>
       <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">{label}</p>
       <p className="text-lg font-black">{value}</p>
     </div>
