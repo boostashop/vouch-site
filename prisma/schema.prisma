@@ -86,6 +86,17 @@ model User {
   statsShowPlan         Boolean  @default(true)
   statsShowExpiration   Boolean  @default(true)
   statsShowAge          Boolean  @default(true)
+
+  // Web Profile Customization
+  profileTheme           String   @default("dark")
+  profileAccentColor     String   @default("#6366f1")
+  profileBannerImage     String?
+  profileMetaTitle       String?
+  profileMetaDescription String?
+  profileCustomCSS       String?
+  profileFontFamily      String   @default("sans")
+  profileShowStats       Boolean  @default(true)
+  profileShowBadges      Boolean  @default(true)
 }
 
 model VerificationToken {

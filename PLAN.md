@@ -1,84 +1,68 @@
-# Implementation Plan: MyVouch.es Clone
+# Implementation Plan: VouchSite (Reputation Engine)
 
 ## 1. Objective
-To build a highly scalable, low-cost clone of MyVouch.es. The platform will serve as a secure backup for customer testimonials ("vouches") and provide public web profiles. It will run efficiently on an Oracle Ampere VPS (while free) and use Cloudflare R2 for scalable image storage. It will feature multi-tenant bot architecture for both Discord and, eventually, Telegram.
+To build a highly scalable, feature-rich reputation management platform. VouchSite serves as a secure backup for customer testimonials ("vouches"), providing professional public profiles and a robust "insurance policy" against platform bans.
 
-## 2. Core Features & Business Logic (The "MyVouch" Model)
+## 2. Core Features & Business Logic
 
-Based on deeper research into the target platform, here is how the core business logic operates:
+### A. The "Custom Bot" Model
+*   **Decentralized Bots:** Every user provides their own Discord and Telegram Bot Tokens.
+*   **Multi-Platform:** Support for Discord, Telegram, and direct Website vouches.
+*   **The Insurance Policy:** The `/restore` command allows users to instantly re-post their entire vouch history into a new server or channel if their previous one is lost.
 
-*   **Custom Bots for Everyone:** The core hook of the platform is that *every* user (even free users) provides their own Discord Bot Token. They don't invite a massive "MyVouch bot" to their server; they invite *their own* bot, which is powered by our backend.
-*   **The Monetization Strategy:**
-    *   **Free Tier:** Gets their custom bot, custom domain, and profile, but is **hard-capped at 50 stored vouches**.
-    *   **Paid Tiers ($2.99 - $4.99/mo):** Unlocks unlimited vouch storage and the ability to manage multiple profiles/bots under one account.
-*   **The "Insurance Policy":** The `/restore [channel]` command is the killer feature. If a server/group is banned, they spin up a new one, run `/restore`, and their custom bot rapidly re-posts all their saved vouches into the new channel.
+### B. Monetization & Plans
+*   **Free Tier:** Custom bot, 50 vouch limit, basic profile.
+*   **Premium Plan:** Unlimited vouches, custom domain, advanced customization, multiple profiles.
+*   **Business Plan:** White-label options, priority support, advanced analytics.
 
-## 3. Architecture for 1000+ Users (Multi-Tenant Bot System)
+---
 
-Scaling to 1000 users means our backend might eventually need to maintain 1000 simultaneous connections to Discord/Telegram. 
+## 3. Feature Roadmap (The "Everything You Need" Suite)
 
-*   **Frontend / User Dashboard:** Next.js + Tailwind CSS. Hosted alongside the API.
-*   **API / Web Server:** Node.js (Express or Next.js API Routes).
-*   **The Bot Manager (The Critical Component):** Dedicated Node.js services responsible for dynamically spinning up, managing, and tearing down bot client instances based on tokens stored in the database.
-    *   *Discord Optimization:* Limit the `discord.js` cache (ignoring presences, typing indicators, and message caching for anything other than commands) to keep RAM usage low.
-    *   *Telegram Manager:* Similar architecture using `telegraf` or a similar Node.js Telegram bot library.
-*   **Database:** PostgreSQL (via Prisma). Fast, relational, and easily runs on the Oracle VPS.
-*   **Storage:** Cloudflare R2. (10GB free/month, $0 egress). Perfect for storing vouch image attachments permanently without bloating the VPS disk.
+### Phase 1: Storage & Connectivity
+*   [x] **Store Unlimited Vouches:** Receive via Discord, Telegram, or Website. (Website vouching pending)
+*   [ ] **Backup Existing Vouches:** Tools to import existing Discord/Telegram messages as vouches.
+*   [x] **Restore Vouches:** `/restore` command for Discord and Telegram.
+*   [x] **Custom Bot:** Dedicated managers for individual user bot tokens.
 
-## 4. Database Schema (Prisma)
+### Phase 2: Professional Presence
+*   [ ] **Customizable Website Profile:** Dynamic themes, custom colors, and layout options.
+*   [ ] **Custom Domain:** Ability to map `profile.yourdomain.com` to the VouchSite profile.
+*   [ ] **SEO Optimization:** Customizable meta titles, descriptions, and OpenGraph images for profiles.
+*   [ ] **Multi-Profile Website:** Manage multiple identities/businesses under a single dashboard account.
 
-```prisma
-model User {
-  id               String   @id // Primary ID (could be UUID or Discord ID)
-  discordId        String?  @unique // Used for Discord OAuth login
-  discordName      String?
-  telegramId       String?  @unique // For future Telegram linking
-  isPremium        Boolean  @default(false)
-  discordBotToken  String?  // The user's custom Discord bot token
-  telegramBotToken String?  // The user's custom Telegram bot token
-  customDomain     String?
-  vouches          Vouch[]  @relation("ReceivedVouches")
-}
+### Phase 3: Analytics & Trust
+*   [x] **Easy-to-Use Dashboard:** User-friendly management of vouches and settings.
+*   [x] **Vouches Stats:** Detailed trends, average ratings, and volume insights.
+*   [ ] **Vouch Spam Protection:** User blacklist, rate limiting, and automated spam detection.
+*   [ ] **MyVouches Awards:** Earnable badges based on activity (e.g., "100+ Vouches", "Top Rated").
 
-model Vouch {
-  id              String   @id @default(uuid())
-  receiverId      String   // Links to User
-  platform        String   // "discord" or "telegram"
-  giverId         String   // ID of the person who left the vouch (Discord ID or Telegram ID)
-  giverName       String
-  sourceId        String   // Server ID or Telegram Group ID
-  rating          Int      // 1-5
-  comment         String?
-  proofImageUrl   String?  // Cloudflare R2 URL
-  createdAt       DateTime @default(now())
+### Phase 4: Community & Support
+*   [ ] **MyVouches Leaderboard:** Global ranking of the most reputable users.
+*   [ ] **24/7 Support:** Integrated help center and ticket system.
+*   [ ] **Extendable Plans:** Tiered subscription management (Stripe integration).
 
-  receiver        User     @relation("ReceivedVouches", fields: [receiverId], references: [id])
-}
-```
+---
 
-## 5. Implementation Phases
+## 4. Architecture & Scalability
 
-### Phase 1: Foundation & Web
-1.  **Infrastructure Setup:** Provision Oracle VPS, install Node.js, PostgreSQL. Setup Cloudflare R2 bucket.
-2.  **Web App Shell:** Initialize Next.js, setup Prisma, configure NextAuth for Discord Login.
-3.  **User Dashboard:** Build the UI for users to paste their Custom Bot Token and view their vouch limit (x/50).
+*   **Bot Manager (Node.js):** A lightweight multi-tenant service using `discord.js` and `telegraf`.
+    *   *Optimization:* Aggressive cache management to support 1000+ simultaneous bot instances on a single VPS.
+*   **Frontend (Next.js):** Server-side rendered profiles for maximum SEO performance.
+*   **Database (PostgreSQL + Prisma):** Relational storage for vouches, user settings, and audit logs.
+*   **Storage (Cloudflare R2):** S3-compatible, egress-free storage for proof screenshots.
 
-### Phase 2: The Discord Bot Engine
-4.  **Bot Manager Service (Discord):** Write a Node.js script that connects to the DB, fetches all active `discordBotToken`s, and spawns a lightweight `discord.js` client for each. 
-5.  **Slash Command Registration:** Automate the registration of `/vouch`, `/stats`, and `/restore` slash commands for every active Discord bot token.
-6.  **`/vouch` Implementation:** When a bot receives a vouch, upload the attachment to Cloudflare R2, save the record to PostgreSQL, and reply to the channel. Enforce the 50-vouch limit for free users.
+---
 
-### Phase 3: Public Profiles & Restore
-7.  **Public Web Profiles:** Build the Next.js dynamic route (`/u/[username]`) to beautifully display the data from PostgreSQL, differentiating platform sources if needed.
-8.  **`/restore` Implementation (Discord):** Build the logic for a bot to query its owner's vouches from the DB and sequentially post them into the designated Discord channel (with slight delays to avoid rate limits).
+## 5. Technical Tasks & Verification
 
-### Phase 4: Telegram Integration (The Competitive Edge)
-9.  **Telegram Auth & Linking:** Allow users to link their Telegram account in the dashboard.
-10. **Bot Manager Service (Telegram):** Implement a similar multi-tenant manager using `telegraf` to manage `telegramBotToken`s.
-11. **Telegram Commands:** Implement `/vouch`, `/stats`, and `/restore` equivalents for Telegram groups.
-12. **Unified Feed:** Ensure the public web profile seamlessly blends vouches received from both Discord and Telegram.
+### Ongoing & Upcoming Tasks
+1.  **[High] Subscription Logic:** Implement Stripe billing to toggle `isPremium` and unlock limits.
+2.  **[Med] Profile Customization:** Add fields to `User` model for `themeColor`, `customCSS`, and `metaDescription`.
+3.  **[Med] Vouch Import Tool:** Create a utility command/UI to "scrape" a channel for existing vouch messages.
+4.  **[Low] Leaderboard Logic:** Aggregate vouch counts across all users for a global ranking page.
 
-## 6. Verification Plan
-*   **Storage Test:** Verify image uploads flow correctly from a Discord/Telegram interaction -> Node.js Buffer -> Cloudflare R2 -> R2 Public URL.
-*   **Multi-Bot Test:** Provision separate test accounts, provide different bot tokens, and verify both bots come online and process commands independently.
-*   **Memory Profiling:** Monitor the RAM usage of the Node.js bot managers with 5-10 bots connected to ensure the cache limitations are effective for scaling on the Oracle VPS.
+### Verification Plan
+*   **Performance:** Monitor VPS RAM/CPU as more bot tokens are added.
+*   **Security:** Ensure users can only access/restore their own vouches.
+*   **Integrity:** Verify that "Unlimited" really works for Premium users without database bottlenecks.
