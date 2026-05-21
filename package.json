@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "bot": "tsx src/bot-manager.ts",
+    "bot": "npx tsx src/bot-manager.ts",
     "lint": "eslint"
   },
   "dependencies": {
