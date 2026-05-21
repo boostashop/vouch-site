@@ -11,11 +11,20 @@ import {
 } from "lucide-react"
 
 export default async function AdminPulsePage() {
-  const [userCount, vouchCount, premiumCount] = await Promise.all([
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+
+  const [userCount, vouchCount, premiumCount, vouchesToday, activeBotCount] = await Promise.all([
     prisma.user.count(),
     prisma.vouch.count(),
-    prisma.user.count({ where: { isPremium: true } })
+    prisma.user.count({ where: { isPremium: true } }),
+    prisma.vouch.count({ where: { createdAt: { gte: todayStart } } }),
+    prisma.user.count({ where: { OR: [{ discordBotToken: { not: null } }, { telegramBotToken: { not: null } }] } }),
   ])
+
+  const conversionRate = userCount > 0
+    ? ((premiumCount / userCount) * 100).toFixed(1)
+    : "0.0"
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
@@ -26,25 +35,25 @@ export default async function AdminPulsePage() {
 
       {/* Hero Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <PulseCard 
+        <PulseCard
           icon={<Users className="text-blue-400" />}
           label="Total Users"
           value={userCount}
-          trend="+12% this month"
+          trend={`${activeBotCount} with active bots`}
           color="blue"
         />
-        <PulseCard 
+        <PulseCard
           icon={<MessageSquare className="text-indigo-400" />}
           label="Total Vouches"
           value={vouchCount}
-          trend="+84 today"
+          trend={`+${vouchesToday} today`}
           color="indigo"
         />
-        <PulseCard 
+        <PulseCard
           icon={<ShieldCheck className="text-emerald-400" />}
           label="Premium Users"
           value={premiumCount}
-          trend="4.2% conversion"
+          trend={`${conversionRate}% conversion`}
           color="emerald"
         />
         <PulseCard 
