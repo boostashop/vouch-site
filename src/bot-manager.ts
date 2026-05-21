@@ -392,19 +392,22 @@ class BotManager {
     const bot = new Telegraf(token);
 
     bot.command('start', async (ctx) => {
+      console.log(`[Telegram] Received /start from ${ctx.from.id} for User ${userId}`);
       try {
         await prisma.user.update({
           where: { id: userId },
           data: { telegramId: ctx.from.id.toString() }
         });
+        console.log(`[Telegram] Successfully linked ID ${ctx.from.id} to User ${userId}`);
         await ctx.reply('🚀 **Vouched.to Bot is linked!**\n\nYour Telegram account is now connected to your dashboard. You can use /vouch <rating> <comment> to collect feedback and /restore to re-post your vouches.', { parse_mode: 'Markdown' });
       } catch (err) {
-        console.error('Failed to link Telegram ID:', err);
+        console.error(`[Telegram] Failed to link ID ${ctx.from.id} to User ${userId}:`, err);
         await ctx.reply('❌ Failed to link your account. Please try again.');
       }
     });
 
     bot.command('vouch', async (ctx) => {
+      console.log(`[Telegram] Received /vouch from ${ctx.from.id} for User ${userId}`);
       const args = ctx.message.text.split(' ').slice(1);
       const rating = parseInt(args[0]);
       const comment = args.slice(1).join(' ');
