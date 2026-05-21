@@ -19,12 +19,12 @@ export default async function ProfileSettingsPage() {
       <form action={updateProfile} className="space-y-8">
         {/* Public Identity */}
         <section className="bg-zinc-900/30 border border-white/5 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-white/5 bg-zinc-900/50 flex items-center gap-3">
+          <div className="p-6 border-b border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/50 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
               <User size={20} />
             </div>
             <div>
-              <h2 className="font-bold">Public Identity</h2>
+              <h2 className="font-bold text-zinc-900 dark:text-white">Public Identity</h2>
               <p className="text-xs text-zinc-500">How you appear to others on your public profile.</p>
             </div>
           </div>
@@ -32,7 +32,7 @@ export default async function ProfileSettingsPage() {
           <div className="p-6 space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium text-zinc-300">
+                <label htmlFor="name" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Display Name
                 </label>
                 <input 
@@ -41,12 +41,12 @@ export default async function ProfileSettingsPage() {
                   name="name"
                   defaultValue={user?.name || ""}
                   placeholder="John Doe"
-                  className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                  className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
                 />
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="slug" className="text-sm font-medium text-zinc-300">
+                <label htmlFor="slug" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Profile Slug
                 </label>
                 <div className="relative">
@@ -59,7 +59,7 @@ export default async function ProfileSettingsPage() {
                     name="slug"
                     defaultValue={user?.slug || ""}
                     placeholder="john-doe"
-                    className="w-full bg-black border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-mono"
+                    className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-mono"
                   />
                 </div>
                 <p className="text-[10px] text-zinc-500">
@@ -71,13 +71,13 @@ export default async function ProfileSettingsPage() {
         </section>
 
         {/* Profile Customization */}
-        <section className="bg-zinc-900/30 border border-white/5 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-white/5 bg-zinc-900/50 flex items-center gap-3">
+        <section className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-6 border-b border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/50 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
               <Palette size={20} />
             </div>
             <div>
-              <h2 className="font-bold">Profile Customization</h2>
+              <h2 className="font-bold text-zinc-900 dark:text-white">Profile Customization</h2>
               <p className="text-xs text-zinc-500">Express yourself with themes and colors.</p>
             </div>
           </div>
@@ -85,23 +85,23 @@ export default async function ProfileSettingsPage() {
           <div className="p-6 space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label htmlFor="profileTheme" className="text-sm font-medium text-zinc-300">
+                <label htmlFor="profileTheme" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Theme
                 </label>
                 <select 
                   id="profileTheme"
                   name="profileTheme"
                   defaultValue={user?.profileTheme || "dark"}
-                  className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
+                  className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
                 >
                   <option value="dark">Midnight (Dark)</option>
-                  <option value="light" disabled>Daylight (Light) - Premium</option>
+                  <option value="light">Daylight (Light)</option>
                   <option value="glass">Glassmorphism - Premium</option>
                 </select>
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="profileAccentColor" className="text-sm font-medium text-zinc-300">
+                <label htmlFor="profileAccentColor" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Accent Color
                 </label>
                 <div className="flex gap-3">
@@ -110,7 +110,7 @@ export default async function ProfileSettingsPage() {
                     id="profileAccentColor"
                     name="profileAccentColor"
                     defaultValue={user?.profileAccentColor || "#6366f1"}
-                    className="w-12 h-12 bg-black border border-white/10 rounded-xl p-1 cursor-pointer"
+                    className="w-12 h-12 bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl p-1 cursor-pointer transition-all"
                   />
                   <input 
                     type="text"
@@ -118,7 +118,7 @@ export default async function ProfileSettingsPage() {
                     name="profileAccentColor"
                     defaultValue={user?.profileAccentColor || "#6366f1"}
                     placeholder="#6366f1"
-                    className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                    className="flex-1 bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                   />
                 </div>
               </div>
@@ -127,13 +127,13 @@ export default async function ProfileSettingsPage() {
         </section>
 
         {/* SEO & Domain */}
-        <section className="bg-zinc-900/30 border border-white/5 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-white/5 bg-zinc-900/50 flex items-center gap-3">
+        <section className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-6 border-b border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/50 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
               <Globe size={20} />
             </div>
             <div>
-              <h2 className="font-bold">SEO & Domain</h2>
+              <h2 className="font-bold text-zinc-900 dark:text-white">SEO & Domain</h2>
               <p className="text-xs text-zinc-500">Control how search engines and custom domains see you.</p>
             </div>
           </div>
@@ -141,7 +141,7 @@ export default async function ProfileSettingsPage() {
           <div className="p-6 space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <label htmlFor="profileMetaTitle" className="text-sm font-medium text-zinc-300">
+                <label htmlFor="profileMetaTitle" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Meta Title
                 </label>
                 <div className="relative">
@@ -152,13 +152,13 @@ export default async function ProfileSettingsPage() {
                     name="profileMetaTitle"
                     defaultValue={user?.profileMetaTitle || ""}
                     placeholder="My Professional Vouch Profile"
-                    className="w-full bg-black border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
+                    className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="profileMetaDescription" className="text-sm font-medium text-zinc-300">
+                <label htmlFor="profileMetaDescription" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Meta Description
                 </label>
                 <textarea 
@@ -167,12 +167,12 @@ export default async function ProfileSettingsPage() {
                   defaultValue={user?.profileMetaDescription || ""}
                   placeholder="Check out my verified vouches and testimonials..."
                   rows={3}
-                  className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all resize-none"
+                  className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all resize-none"
                 />
               </div>
 
               <div className="space-y-2 pt-4">
-                <label htmlFor="customDomain" className="text-sm font-medium text-zinc-300 flex items-center justify-between">
+                <label htmlFor="customDomain" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
                   Custom Domain
                   {!user?.isPremium && <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Premium</span>}
                 </label>
@@ -185,7 +185,7 @@ export default async function ProfileSettingsPage() {
                     defaultValue={user?.customDomain || ""}
                     disabled={!user?.isPremium}
                     placeholder="vouch.yourname.com"
-                    className="w-full bg-black border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <p className="text-[10px] text-zinc-500">
@@ -195,14 +195,14 @@ export default async function ProfileSettingsPage() {
             </div>
           </div>
 
-          <div className="p-6 border-t border-white/5 bg-black/20 flex items-center justify-between">
+          <div className="p-6 border-t border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-black/20 flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs text-zinc-500">
               <Shield size={14} className="text-emerald-500/50" />
               Settings are saved immediately to your profile
             </div>
             <button 
               type="submit"
-              className="bg-white text-black px-8 py-3 rounded-xl text-sm font-extrabold hover:bg-zinc-200 transition-all active:scale-95 shadow-lg shadow-white/5"
+              className="bg-zinc-900 dark:bg-white text-white dark:text-black px-8 py-3 rounded-xl text-sm font-extrabold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all active:scale-95 shadow-lg shadow-black/5 dark:shadow-white/5"
             >
               Save All Changes
             </button>
@@ -211,14 +211,14 @@ export default async function ProfileSettingsPage() {
       </form>
 
       {user?.slug && (
-         <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+         <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
            <div className="flex items-center gap-5">
-             <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/10">
+             <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/10 shadow-inner">
                <LinkIcon size={24} />
              </div>
              <div>
-               <h4 className="font-bold text-lg">Your profile is live!</h4>
-               <p className="text-sm text-zinc-400 mt-1">Share your reputation with the world.</p>
+               <h4 className="font-bold text-lg text-zinc-900 dark:text-white">Your profile is live!</h4>
+               <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Share your reputation with the world.</p>
              </div>
            </div>
            <a 

@@ -44,10 +44,10 @@ export default async function DashboardPage() {
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
             Hello, {session?.user?.name || session?.user?.username || 'Builder'} <span className="inline-block animate-bounce-slow">👋</span>
           </h1>
-          <p className="text-zinc-400 mt-2 font-medium">Your reputation engine is {hasBot ? 'active and monitoring.' : 'awaiting configuration.'}</p>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-2 font-medium">Your reputation engine is {hasBot ? 'active and monitoring.' : 'awaiting configuration.'}</p>
         </div>
         <div className="flex items-center gap-3">
           <Link 
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
       {/* Quick Stats Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <StatCard 
-          icon={<MessageSquare className="text-indigo-400" />}
+          icon={<MessageSquare className="text-indigo-600 dark:text-indigo-400" />}
           label="Total Vouches"
           value={vouchCount}
           description="Verified testimonials"
@@ -71,7 +71,7 @@ export default async function DashboardPage() {
           color="indigo"
         />
         <StatCard 
-          icon={<ShieldCheck className="text-emerald-400" />}
+          icon={<ShieldCheck className="text-emerald-600 dark:text-emerald-400" />}
           label="Account Status"
           value={isPremium ? "Premium" : "Free"}
           description={isPremium ? "Unlimited Storage" : `${vouchCount}/50 Limit`}
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
           color="emerald"
         />
         <StatCard 
-          icon={<Zap className={hasBot ? "text-amber-400" : "text-zinc-500"} />}
+          icon={<Zap className={hasBot ? "text-amber-600 dark:text-amber-400" : "text-zinc-400 dark:text-zinc-500"} />}
           label="System Health"
           value={hasBot ? "Online" : "Offline"}
           description={hasBot ? "Bot is listening" : "No token provided"}
@@ -92,10 +92,10 @@ export default async function DashboardPage() {
         {/* Recent Activity Feed */}
         <div className="lg:col-span-3 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold flex items-center gap-2">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-zinc-900 dark:text-white">
               Recent Activity
             </h2>
-            <Link href="/dashboard/vouches" className="text-indigo-400 text-sm font-bold hover:text-indigo-300 flex items-center gap-1 transition-colors">
+            <Link href="/dashboard/vouches" className="text-indigo-600 dark:text-indigo-400 text-sm font-bold hover:text-indigo-500 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors">
               View All <ArrowRight size={14} />
             </Link>
           </div>
@@ -103,28 +103,28 @@ export default async function DashboardPage() {
           <div className="space-y-4">
             {recentVouches.length > 0 ? (
               recentVouches.map((vouch) => (
-                <div key={vouch.id} className="bg-zinc-900/30 border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-zinc-900/50 transition-all">
+                <div key={vouch.id} className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:border-zinc-300 dark:hover:bg-zinc-900/50 transition-all shadow-sm">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-white/5 flex items-center justify-center text-indigo-400 font-bold">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-white/5 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
                       {vouch.rating}★
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">{vouch.giverName}</p>
+                      <p className="text-sm font-bold text-zinc-900 dark:text-white">{vouch.giverName}</p>
                       <p className="text-xs text-zinc-500 line-clamp-1">{vouch.comment}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">
+                    <p className="text-[10px] text-zinc-400 dark:text-zinc-600 font-bold uppercase tracking-widest">
                       {new Date(vouch.createdAt).toLocaleDateString()}
                     </p>
                     <div className="flex items-center justify-end gap-1 mt-1">
                       {vouch.platform === 'discord' ? (
                         <div className="w-4 h-4 rounded bg-indigo-500/10 flex items-center justify-center">
-                          <span className="text-[8px] text-indigo-400 font-bold">D</span>
+                          <span className="text-[8px] text-indigo-600 dark:text-indigo-400 font-bold">D</span>
                         </div>
                       ) : (
                         <div className="w-4 h-4 rounded bg-sky-500/10 flex items-center justify-center">
-                          <span className="text-[8px] text-sky-400 font-bold">T</span>
+                          <span className="text-[8px] text-sky-600 dark:text-sky-400 font-bold">T</span>
                         </div>
                       )}
                     </div>
@@ -132,15 +132,15 @@ export default async function DashboardPage() {
                 </div>
               ))
             ) : (
-              <div className="bg-zinc-900/20 border border-white/5 rounded-3xl p-8 md:p-12 flex flex-col items-center justify-center text-center">
-                 <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-white/5">
-                   <MessageSquare size={32} className="text-zinc-700" />
+              <div className="bg-white dark:bg-zinc-900/20 border border-zinc-200 dark:border-white/5 rounded-3xl p-8 md:p-12 flex flex-col items-center justify-center text-center shadow-sm">
+                 <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-zinc-200 dark:border-white/5">
+                   <MessageSquare size={32} className="text-zinc-400 dark:text-zinc-700" />
                  </div>
-                 <h3 className="text-lg font-bold text-white mb-2">No vouches found</h3>
+                 <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">No vouches found</h3>
                  <p className="text-sm text-zinc-500 max-w-[240px] leading-relaxed">
                    Once your bot is connected and receiving feedback, they will appear here.
                  </p>
-                 <Link href="/dashboard/bot" className="mt-8 text-sm font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-4 decoration-indigo-500/30 transition-colors">
+                 <Link href="/dashboard/bot" className="mt-8 text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 underline underline-offset-4 decoration-indigo-500/30 transition-colors">
                    Setup your first bot →
                  </Link>
               </div>
@@ -150,10 +150,10 @@ export default async function DashboardPage() {
 
         {/* Action Center / Tips */}
         <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-xl font-bold">Action Center</h2>
-          <div className="bg-zinc-900/30 border border-white/5 rounded-3xl p-6 space-y-6">
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Action Center</h2>
+          <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-3xl p-6 space-y-6 shadow-sm dark:shadow-none">
             <ActionItem 
-              icon={<Bot className="text-indigo-400" />}
+              icon={<Bot className="text-indigo-600 dark:text-indigo-400" />}
               title="Connect Discord"
               description="Link your custom bot token to start collecting vouches."
               href="/dashboard/bot"
@@ -199,23 +199,23 @@ function StatCard({
     indigo: "border-indigo-500/10 hover:border-indigo-500/20",
     emerald: "border-emerald-500/10 hover:border-emerald-500/20",
     amber: "border-amber-500/10 hover:border-amber-500/20",
-    zinc: "border-white/5 hover:border-white/10"
+    zinc: "border-zinc-200 dark:border-white/5 hover:border-zinc-300 dark:hover:border-white/10"
   };
 
   return (
-    <div className={`p-6 rounded-3xl bg-zinc-900/30 border ${colorMap[color]} transition-all group`}>
+    <div className={`p-6 rounded-3xl bg-white dark:bg-zinc-900/30 border ${colorMap[color]} transition-all group shadow-sm dark:shadow-none`}>
       <div className="flex items-center justify-between mb-6">
-        <div className="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center border border-white/5 group-hover:scale-105 transition-transform">
+        <div className="w-12 h-12 rounded-2xl bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center border border-zinc-200 dark:border-white/5 group-hover:scale-105 transition-transform">
           {icon}
         </div>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 bg-zinc-900/50 px-2 py-1 rounded-lg border border-white/5">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 bg-zinc-100 dark:bg-zinc-900/50 px-2 py-1 rounded-lg border border-zinc-200 dark:border-white/5">
           {trend}
         </span>
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-bold text-zinc-400">{label}</p>
-        <h4 className="text-3xl font-extrabold tracking-tight text-white">{value}</h4>
-        <p className="text-xs font-medium text-zinc-600 mt-2">{description}</p>
+        <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">{label}</p>
+        <h4 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">{value}</h4>
+        <p className="text-xs font-medium text-zinc-400 dark:text-zinc-600 mt-2">{description}</p>
       </div>
     </div>
   )
@@ -235,13 +235,13 @@ function ActionItem({
   status: "done" | "pending" 
 }) {
   return (
-    <Link href={href} className="flex gap-4 group p-2 rounded-2xl hover:bg-white/[0.02] transition-colors">
-      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-zinc-900 border border-white/5 flex items-center justify-center group-hover:bg-zinc-800 transition-colors">
+    <Link href={href} className="flex gap-4 group p-2 rounded-2xl hover:bg-zinc-100 dark:hover:bg-white/[0.02] transition-colors">
+      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 flex items-center justify-center group-hover:bg-zinc-100 dark:group-hover:bg-zinc-800 transition-colors">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
-          <h4 className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">{title}</h4>
+          <h4 className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{title}</h4>
           {status === "done" && <CheckCircle size={14} className="text-emerald-500" />}
         </div>
         <p className="text-xs text-zinc-500 leading-relaxed line-clamp-2">{description}</p>
@@ -249,3 +249,4 @@ function ActionItem({
     </Link>
   )
 }
+

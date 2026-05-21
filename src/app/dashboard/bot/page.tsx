@@ -77,7 +77,7 @@ export default async function BotSettingsPage() {
                 name="discordToken"
                 defaultValue={user?.discordBotToken || ""}
                 placeholder="MTAyN..."
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono"
+                className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono"
               />
               <div className="flex items-start gap-2 p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-lg">
                 <Info size={14} className="text-indigo-400 mt-0.5" />
@@ -123,48 +123,48 @@ export default async function BotSettingsPage() {
                   <input 
                     name="vouchEmbedTitle"
                     defaultValue={user.vouchEmbedTitle}
-                    className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                    className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">Embed Footer</label>
+                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Footer</label>
                   <input 
                     name="vouchEmbedFooter"
                     defaultValue={user.vouchEmbedFooter}
-                    className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                    className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
                     <Palette size={14} /> Border Color
                   </label>
                   <input 
                     type="color"
                     name="vouchEmbedColor"
                     defaultValue={user.vouchEmbedColor}
-                    className="w-full h-10 bg-black border border-white/10 rounded-xl px-2 py-1 cursor-pointer"
+                    className="w-full h-10 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-2 py-1 cursor-pointer transition-all"
                   />
                 </div>
               </div>
 
               <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-white/5 rounded-2xl border border-zinc-200 dark:border-white/5">
                   <div className="space-y-0.5">
-                    <p className="text-sm font-bold text-white">Require Proofs</p>
+                    <p className="text-sm font-bold text-zinc-900 dark:text-white">Require Proofs</p>
                     <p className="text-[11px] text-zinc-500">Force users to upload a screenshot</p>
                   </div>
                   <input type="checkbox" name="vouchRequireProof" defaultChecked={user.vouchRequireProof} className="w-5 h-5 accent-green-500" />
                 </div>
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-white/5 rounded-2xl border border-zinc-200 dark:border-white/5">
                   <div className="space-y-0.5">
-                    <p className="text-sm font-bold text-white">Show Vouch Number</p>
+                    <p className="text-sm font-bold text-zinc-900 dark:text-white">Show Vouch Number</p>
                     <p className="text-[11px] text-zinc-500">Display the vouch count in the embed</p>
                   </div>
                   <input type="checkbox" name="vouchShowCount" defaultChecked={user.vouchShowCount} className="w-5 h-5 accent-green-500" />
                 </div>
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-white/5 rounded-2xl border border-zinc-200 dark:border-white/5">
                   <div className="space-y-0.5">
-                    <p className="text-sm font-bold text-white">Tag Giver</p>
+                    <p className="text-sm font-bold text-zinc-900 dark:text-white">Tag Giver</p>
                     <p className="text-[11px] text-zinc-500">Mention the user who vouched</p>
                   </div>
                   <input type="checkbox" name="vouchTagUser" defaultChecked={user.vouchTagUser} className="w-5 h-5 accent-green-500" />
@@ -173,39 +173,39 @@ export default async function BotSettingsPage() {
             </div>
 
             {/* Premium Features */}
-            <div className="space-y-4 pt-4 border-t border-white/5">
+            <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-white/5">
               <h3 className="text-xs font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
                 Premium Features {!user.isPremium && <Lock size={12} className="text-amber-500" />}
               </h3>
               <div className="grid md:grid-cols-3 gap-4">
                 <div className={`space-y-2 ${!user.isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
-                  <label className="text-xs font-medium text-zinc-400">Vouch Channel ID</label>
+                  <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Vouch Channel ID</label>
                   <input 
                     name="vouchChannelId"
                     defaultValue={user.vouchChannelId || ""}
                     placeholder="123456789..."
                     disabled={!user.isPremium}
-                    className="w-full bg-black border border-white/10 rounded-xl px-4 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none"
                   />
                 </div>
                 <div className={`space-y-2 ${!user.isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
-                  <label className="text-xs font-medium text-zinc-400">Mention Role ID</label>
+                  <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Mention Role ID</label>
                   <input 
                     name="vouchRoleId"
                     defaultValue={user.vouchRoleId || ""}
                     placeholder="123456789..."
                     disabled={!user.isPremium}
-                    className="w-full bg-black border border-white/10 rounded-xl px-4 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none"
                   />
                 </div>
                 <div className={`space-y-2 ${!user.isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
-                  <label className="text-xs font-medium text-zinc-400">Success Emoji</label>
+                  <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Success Emoji</label>
                   <input 
                     name="vouchEmoji"
                     defaultValue={user.vouchEmoji || "✅"}
                     placeholder="✅"
                     disabled={!user.isPremium}
-                    className="w-full bg-black border border-white/10 rounded-xl px-4 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none"
                   />
                 </div>
               </div>
@@ -241,31 +241,31 @@ export default async function BotSettingsPage() {
             <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">Embed Title</label>
+                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Title</label>
                   <input 
                     name="statsEmbedTitle"
                     defaultValue={user.statsEmbedTitle}
-                    className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">Embed Description</label>
+                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Description</label>
                   <textarea 
                     name="statsEmbedDescription"
                     defaultValue={user.statsEmbedDescription}
                     rows={3}
-                    className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                    className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none transition-all"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
                     <Palette size={14} /> Border Color
                   </label>
                   <input 
                     type="color"
                     name="statsEmbedColor"
                     defaultValue={user.statsEmbedColor}
-                    className="w-full h-10 bg-black border border-white/10 rounded-xl px-2 py-1 cursor-pointer"
+                    className="w-full h-10 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-2 py-1 cursor-pointer transition-all"
                   />
                 </div>
               </div>
@@ -279,15 +279,15 @@ export default async function BotSettingsPage() {
                   { label: "Expiration", name: "statsShowExpiration", current: user.statsShowExpiration },
                   { label: "Account Age", name: "statsShowAge", current: user.statsShowAge },
                 ].map((item) => (
-                  <div key={item.name} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                    <p className="text-[11px] font-bold text-white">{item.label}</p>
+                  <div key={item.name} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-white/5 rounded-xl border border-zinc-200 dark:border-white/5">
+                    <p className="text-[11px] font-bold text-zinc-900 dark:text-white">{item.label}</p>
                     <input type="checkbox" name={item.name} defaultChecked={item.current} className="w-4 h-4 accent-blue-500" />
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="pt-4 border-t border-white/5 flex justify-end">
+            <div className="pt-4 border-t border-zinc-200 dark:border-white/5 flex justify-end">
               <button 
                 type="submit"
                 className="bg-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-400 transition-all active:scale-95"
@@ -299,13 +299,13 @@ export default async function BotSettingsPage() {
         </section>
 
         {/* Telegram Bot Section */}
-        <section className="bg-zinc-900/30 border border-white/5 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-white/5 bg-zinc-900/50 flex items-center gap-3">
+        <section className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl overflow-hidden">
+          <div className="p-6 border-b border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/50 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-400">
               <Send size={20} />
             </div>
             <div>
-              <h2 className="font-bold flex items-center gap-2">
+              <h2 className="font-bold flex items-center gap-2 text-zinc-900 dark:text-white">
                 Telegram Configuration
               </h2>
               <p className="text-xs text-zinc-500">Your custom bot instance for Telegram groups.</p>
@@ -314,7 +314,7 @@ export default async function BotSettingsPage() {
           
           <form action={updateBotTokens} className="p-6 space-y-6">
             <div className="space-y-2">
-              <label htmlFor="telegramToken" className="text-sm font-medium text-zinc-300">
+              <label htmlFor="telegramToken" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Bot Token
               </label>
               <input 
@@ -323,7 +323,7 @@ export default async function BotSettingsPage() {
                 name="telegramToken"
                 defaultValue={user?.telegramBotToken || ""}
                 placeholder="123456789:ABC..."
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all font-mono"
+                className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all font-mono"
               />
               <div className="flex items-start gap-2 p-3 bg-sky-500/5 border border-sky-500/10 rounded-lg">
                 <Info size={14} className="text-sky-400 mt-0.5" />
@@ -334,7 +334,7 @@ export default async function BotSettingsPage() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+            <div className="pt-4 border-t border-zinc-200 dark:border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs text-zinc-500">
                 <Shield size={14} className="text-green-500/50" />
                 Encrypted at rest
@@ -342,7 +342,7 @@ export default async function BotSettingsPage() {
               <div className="flex gap-3">
                 <button 
                   type="submit"
-                  className="bg-white text-black px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-200 transition-all active:scale-95"
+                  className="bg-zinc-900 dark:bg-white text-white dark:text-black px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all active:scale-95"
                 >
                   Save Changes
                 </button>
