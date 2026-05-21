@@ -406,15 +406,11 @@ class BotManager {
 
     bot.command('vouch', async (ctx) => {
       const args = ctx.message.text.split(' ').slice(1);
-      if (args.length < 2) {
-        return ctx.reply('❌ Usage: /vouch <rating:1-5> <comment>');
-      }
-
       const rating = parseInt(args[0]);
       const comment = args.slice(1).join(' ');
 
-      if (isNaN(rating) || rating < 1 || rating > 5) {
-        return ctx.reply('❌ Rating must be a number between 1 and 5.');
+      if (isNaN(rating) || rating < 1 || rating > 5 || !comment) {
+        return ctx.reply('❌ **Usage:** `/vouch <rating:1-5> <comment>`\nExample: `/vouch 5 Great service!`', { parse_mode: 'Markdown' });
       }
 
       try {
@@ -426,7 +422,11 @@ class BotManager {
         if (!user) return ctx.reply('❌ User not found.');
 
         if (!user.isPremium && user._count.vouchesReceived >= 50) {
-          return ctx.reply('❌ Vouch limit (50) reached for this account.');
+          return ctx.reply('❌ Vouch limit (50) reached for this account. Upgrade to Premium for unlimited storage.');
+        }
+
+        if (user.vouchRequireProof) {
+          return ctx.reply('❌ This user requires proof. Please send a photo with the caption: `/vouch ' + rating + ' ' + comment + '`');
         }
 
         await prisma.vouch.create({
@@ -442,16 +442,113 @@ class BotManager {
           }
         });
 
-        await ctx.reply(`✅ **Vouch Recorded!** Thanks, ${ctx.from.first_name}.`);
+        const stars = '⭐'.repeat(rating);
+        const responseText = `✅ **Vouch Recorded!**\n\n**Giver:** ${ctx.from.first_name}\n**Rating:** ${stars}\n**Comment:** ${comment}\n\n_${user.vouchEmbedFooter}_`;
+        
+        await ctx.reply(responseText, { parse_mode: 'Markdown' });
       } catch (err) {
         console.error('Error saving Telegram vouch:', err);
         await ctx.reply('❌ Failed to save vouch.');
       }
     });
 
+    // Handle photos sent with /vouch caption
+    bot.on('photo', async (ctx) => {
+      const caption = (ctx.message as any).caption;
+      if (!caption || !caption.startsWith('/vouch')) return;
+
+      const args = caption.split(' ').slice(1);
+      const rating = parseInt(args[0]);
+      const comment = args.slice(1).join(' ');
+
+      if (isNaN(rating) || rating < 1 || rating > 5 || !comment) {
+        return ctx.reply('❌ **Invalid Format.** Use: `/vouch <rating:1-5> <comment>` as the caption for your photo.', { parse_mode: 'Markdown' });
+      }
+
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          include: { _count: { select: { vouchesReceived: true } } }
+        });
+
+        if (!user) return;
+
+        if (!user.isPremium && user._count.vouchesReceived >= 50) {
+          return ctx.reply('❌ Vouch limit (50) reached.');
+        }
+
+        const photo = ctx.message.photo[ctx.message.photo.length - 1];
+        const fileLink = await ctx.telegram.getFileLink(photo.file_id);
+        
+        let proofUrl = fileLink.toString();
+        
+        // Upload to R2 if configured
+        try {
+          const response = await fetch(fileLink.toString());
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const key = `proofs/tg-${uuidv4()}.jpg`;
+          
+          if (process.env.R2_ENDPOINT) {
+            proofUrl = await uploadToR2(buffer, key, 'image/jpeg');
+          }
+        } catch (uploadErr) {
+          console.error('Failed to upload Telegram proof to R2:', uploadErr);
+        }
+
+        await prisma.vouch.create({
+          data: {
+            receiverId: userId,
+            platform: 'telegram',
+            giverId: ctx.from.id.toString(),
+            giverName: ctx.from.username || ctx.from.first_name,
+            sourceId: ctx.chat.id.toString(),
+            rating,
+            comment,
+            proofImageUrl: proofUrl,
+            createdAt: new Date()
+          }
+        });
+
+        const stars = '⭐'.repeat(rating);
+        const responseText = `✅ **Vouch Recorded with Proof!**\n\n**Giver:** ${ctx.from.first_name}\n**Rating:** ${stars}\n**Comment:** ${comment}\n\n_${user.vouchEmbedFooter}_`;
+        
+        await ctx.reply(responseText, { parse_mode: 'Markdown' });
+
+      } catch (err) {
+        console.error('Error saving Telegram photo vouch:', err);
+        await ctx.reply('❌ Failed to save vouch with proof.');
+      }
+    });
+
     bot.command('stats', async (ctx) => {
-      const count = await prisma.vouch.count({ where: { receiverId: userId } });
-      await ctx.reply(`📊 **Vouch Stats:** This user has **${count}** vouches!`);
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          include: { 
+            _count: { select: { vouchesReceived: true } },
+            vouchesReceived: { select: { rating: true } }
+          }
+        });
+
+        if (!user) return ctx.reply('❌ User not found.');
+
+        const count = user._count.vouchesReceived;
+        const totalRating = user.vouchesReceived.reduce((acc, v) => acc + v.rating, 0);
+        const averageRating = count > 0 ? (totalRating / count).toFixed(1) : '0.0';
+
+        const statsText = `📊 **${user.statsEmbedTitle}**\n\n` +
+          `${user.statsEmbedDescription}\n\n` +
+          (user.statsShowCount ? `**Total Vouches:** ${count}\n` : '') +
+          (user.statsShowScore ? `**Average Rating:** ${averageRating} / 5.0\n` : '') +
+          (user.statsShowPlan ? `**Account Plan:** ${user.isPremium ? 'Premium' : 'Free'}\n` : '') +
+          `\n_${user.statsEmbedFooter}_`;
+
+        await ctx.reply(statsText, { parse_mode: 'Markdown' });
+      } catch (err) {
+        console.error('Error fetching Telegram stats:', err);
+        await ctx.reply('❌ Failed to fetch stats.');
+      }
     });
 
     bot.command('restore', async (ctx) => {
@@ -460,7 +557,7 @@ class BotManager {
         return ctx.reply('❌ Only the owner can use this command.');
       }
 
-      await ctx.reply('⏳ Starting restoration...');
+      await ctx.reply('⏳ **Starting restoration...** re-posting all vouches.', { parse_mode: 'Markdown' });
 
       const vouches = await prisma.vouch.findMany({
         where: { receiverId: userId },
@@ -480,10 +577,11 @@ class BotManager {
         } catch (err) {
           console.error('Failed to restore Telegram vouch:', err);
         }
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Slightly faster delay for Telegram
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      await ctx.reply('✅ Restoration complete!');
+      await ctx.reply('✅ **Restoration complete!**');
     });
 
     try {
