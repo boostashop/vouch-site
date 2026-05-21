@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Override Tailwind v4's default media-query dark mode to use the .dark class
+   set by next-themes, so the toggle button actually changes anything. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
