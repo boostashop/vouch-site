@@ -397,8 +397,8 @@ class BotManager {
       return next();
     });
 
-    bot.command('start', async (ctx) => {
-      console.log(`[Telegram] Received /start from ${ctx.from.id} for User ${userId}`);
+    bot.command(['start', 'link'], async (ctx) => {
+      console.log(`[Telegram] Received /start or /link from ${ctx.from.id} for User ${userId}`);
       try {
         await prisma.user.update({
           where: { id: userId },
