@@ -88,7 +88,7 @@ export default async function ProfileSettingsPage() {
                 <label htmlFor="profileTheme" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Theme
                 </label>
-                <select 
+                <select
                   id="profileTheme"
                   name="profileTheme"
                   defaultValue={user?.profileTheme || "dark"}
@@ -101,30 +101,92 @@ export default async function ProfileSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="profileAccentColor" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Accent Color
+                <label htmlFor="profileFontFamily" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Font Style
                 </label>
-                <div className="flex gap-3">
-                  <input 
-                    type="color"
-                    id="profileAccentColor"
-                    name="profileAccentColor"
-                    defaultValue={user?.profileAccentColor || "#6366f1"}
-                    className="w-12 h-12 bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl p-1 cursor-pointer transition-all"
-                  />
-                  <input 
-                    type="text"
-                    id="accent_color_text"
-                    name="profileAccentColor"
-                    defaultValue={user?.profileAccentColor || "#6366f1"}
-                    placeholder="#6366f1"
-                    className="flex-1 bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
-                  />
-                </div>
+                <select
+                  id="profileFontFamily"
+                  name="profileFontFamily"
+                  defaultValue={user?.profileFontFamily || "sans"}
+                  className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
+                >
+                  <option value="sans">Sans-serif (Default)</option>
+                  <option value="serif">Serif (Editorial)</option>
+                  <option value="mono">Monospace (Technical)</option>
+                </select>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <label htmlFor="profileAccentColor" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Accent Color
+              </label>
+              <div className="flex gap-3">
+                <input
+                  type="color"
+                  id="profileAccentColor"
+                  name="profileAccentColor"
+                  defaultValue={user?.profileAccentColor || "#6366f1"}
+                  className="w-12 h-12 bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl p-1 cursor-pointer transition-all"
+                />
+                <input
+                  type="text"
+                  id="accent_color_text"
+                  name="profileAccentColor"
+                  defaultValue={user?.profileAccentColor || "#6366f1"}
+                  placeholder="#6366f1"
+                  className="flex-1 bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="profileBannerImage" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Banner Image URL
+              </label>
+              <input
+                type="url"
+                id="profileBannerImage"
+                name="profileBannerImage"
+                defaultValue={user?.profileBannerImage || ""}
+                placeholder="https://example.com/banner.jpg"
+                className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              />
+              <p className="text-[10px] text-zinc-500">Displays as a full-width header image on your public profile.</p>
+            </div>
+
           </div>
         </section>
+
+        {/* Design Studio CTA */}
+        {user?.isPremium ? (
+          <a
+            href="/dashboard/profile/builder"
+            className="flex items-center justify-between gap-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6 hover:from-indigo-500/15 hover:to-purple-500/15 transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xl group-hover:scale-110 transition-transform">
+                🎨
+              </div>
+              <div>
+                <h3 className="font-extrabold text-zinc-900 dark:text-white">Design Studio</h3>
+                <p className="text-sm text-zinc-500 mt-0.5">Visual editor with live preview — no CSS knowledge needed</p>
+              </div>
+            </div>
+            <span className="text-indigo-500 font-bold text-sm shrink-0">Open →</span>
+          </a>
+        ) : (
+          <div className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl p-6 opacity-70">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-2xl">🔒</div>
+            <div>
+              <h3 className="font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
+                Design Studio
+                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">Premium</span>
+              </h3>
+              <p className="text-sm text-zinc-500 mt-0.5">Visual color & layout editor with live iframe preview</p>
+            </div>
+          </div>
+        )}
 
         {/* SEO & Domain */}
         <section className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm">

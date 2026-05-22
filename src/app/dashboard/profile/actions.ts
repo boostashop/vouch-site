@@ -1,10 +1,11 @@
+"use server"
+
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { DesignTokens } from "@/types/design-tokens"
 
 export async function updateProfile(formData: FormData) {
-  "use server"
-  
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
   
@@ -14,10 +15,16 @@ export async function updateProfile(formData: FormData) {
   const profileMetaTitle = formData.get("profileMetaTitle") as string
   const profileMetaDescription = formData.get("profileMetaDescription") as string
   const profileTheme = formData.get("profileTheme") as string
+  const profileFontFamily = formData.get("profileFontFamily") as string
+  const profileBannerImage = formData.get("profileBannerImage") as string
+  const profileCustomCSS = formData.get("profileCustomCSS") as string
   const customDomain = formData.get("customDomain") as string
-  
+
   // Basic slug validation (lowercase, alphanumeric, hyphens)
   const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "")
+
+  // Only premium users can save custom CSS
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isPremium: true } })
 
   try {
     await prisma.user.update({
@@ -29,6 +36,9 @@ export async function updateProfile(formData: FormData) {
         profileMetaTitle,
         profileMetaDescription,
         profileTheme,
+        profileFontFamily: ["sans", "serif", "mono"].includes(profileFontFamily) ? profileFontFamily : "sans",
+        profileBannerImage: profileBannerImage || null,
+        profileCustomCSS: user?.isPremium ? (profileCustomCSS || null) : undefined,
         customDomain: customDomain || null,
       }
     })
@@ -40,4 +50,23 @@ export async function updateProfile(formData: FormData) {
   
   revalidatePath("/dashboard/profile")
   revalidatePath(`/u/${cleanSlug}`)
+}
+
+export async function saveDesignTokens(tokens: DesignTokens, slug: string) {
+  "use server"
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isPremium: true },
+  })
+  if (!user?.isPremium) throw new Error("Premium required")
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { profileDesignTokens: tokens as object },
+  })
+
+  revalidatePath(`/u/${slug}`)
 }
