@@ -5,7 +5,16 @@ import {
   EmbedBuilder,
   ChatInputCommandInteraction,
   CacheType,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ModalSubmitInteraction,
+  ButtonInteraction,
 } from "discord.js"
+import { v4 as uuidv4 } from "uuid"
 import { prisma } from "../prisma"
 import {
   hasActivePremium,
@@ -22,6 +31,9 @@ import {
   removeVouch,
 } from "../vouch-service"
 import { registerDiscordCommands } from "./commands"
+
+// In-memory cache for pending modal/button vouches to support preview/confirmation
+const pendingDiscordVouches = new Map<string, { receiverId: string; rating: number; comment: string }>()
 
 // Spawn a Discord client for a user's bot token. Returns the logged-in client,
 // or null if login failed (so the manager can back off). The manager owns the
@@ -43,11 +55,22 @@ export async function spawnDiscordBot(userId: string, token: string): Promise<Cl
   })
 
   client.on("interactionCreate", async (interaction) => {
-    if (!interaction.isChatInputCommand()) return
-    console.log(
-      `[Interaction] Received ${interaction.commandName} (ID: ${interaction.id}) from ${interaction.user.tag} for User ${userId}`,
-    )
-    await handleDiscordInteraction(interaction, userId)
+    if (interaction.isChatInputCommand()) {
+      console.log(
+        `[Interaction] Received command ${interaction.commandName} (ID: ${interaction.id}) from ${interaction.user.tag} for User ${userId}`,
+      )
+      await handleDiscordInteraction(interaction, userId)
+    } else if (interaction.isButton()) {
+      console.log(
+        `[Interaction] Received button click ${interaction.customId} from ${interaction.user.tag} for User ${userId}`,
+      )
+      await handleDiscordButton(interaction, userId)
+    } else if (interaction.isModalSubmit()) {
+      console.log(
+        `[Interaction] Received modal submit ${interaction.customId} from ${interaction.user.tag} for User ${userId}`,
+      )
+      await handleDiscordModalSubmit(interaction, userId)
+    }
   })
 
   try {
@@ -83,13 +106,52 @@ async function handleDiscordInteraction(
         { name: "/restore", value: "Owner only — re-post the full vouch history into this channel." },
       )
       .setFooter({ text: "Powered by Vouched.to" })
-    return interaction.reply({ embeds: [embed], ephemeral: true })
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId("vouch_btn")
+        .setLabel("⭐ Leave a Vouch")
+        .setStyle(ButtonStyle.Success)
+    )
+
+    return interaction.reply({ embeds: [embed], components: [row], ephemeral: true })
   }
 
   if (interaction.commandName === "vouch") {
-    const rating = interaction.options.getInteger("rating", true)
-    const comment = interaction.options.getString("comment", true)
+    const rating = interaction.options.getInteger("rating")
+    const comment = interaction.options.getString("comment")
     const proof = interaction.options.getAttachment("proof")
+
+    if (rating === null || comment === null) {
+      const modal = new ModalBuilder()
+        .setCustomId(`vouch_modal_${userId}`)
+        .setTitle("Leave a Vouch")
+
+      const ratingInput = new TextInputBuilder()
+        .setCustomId("rating")
+        .setLabel("Rating (1-5)")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("e.g. 5")
+        .setMinLength(1)
+        .setMaxLength(1)
+        .setRequired(true)
+
+      const commentInput = new TextInputBuilder()
+        .setCustomId("comment")
+        .setLabel("Your Feedback")
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder("Describe your experience with this seller...")
+        .setMinLength(4)
+        .setRequired(true)
+
+      const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(ratingInput)
+      const secondActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(commentInput)
+
+      modal.addComponents(firstActionRow, secondActionRow)
+
+      await interaction.showModal(modal)
+      return
+    }
 
     try {
       const user = await prisma.user.findUnique({
@@ -307,7 +369,14 @@ async function handleDiscordInteraction(
         })
       }
 
-      await interaction.reply({ embeds: [embed] })
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId("vouch_btn")
+          .setLabel("⭐ Leave a Vouch")
+          .setStyle(ButtonStyle.Success)
+      )
+
+      await interaction.reply({ embeds: [embed], components: [row] })
     } catch (err) {
       console.error("Error fetching stats:", err)
       await interaction.reply({ content: "❌ Failed to fetch stats.", ephemeral: true })
@@ -487,3 +556,272 @@ async function handleDiscordInteraction(
     }
   }
 }
+
+async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, botUserId: string) {
+  if (interaction.customId === "vouch_btn") {
+    // Open the modal
+    const modal = new ModalBuilder()
+      .setCustomId(`vouch_modal_${botUserId}`)
+      .setTitle("Leave a Vouch")
+
+    const ratingInput = new TextInputBuilder()
+      .setCustomId("rating")
+      .setLabel("Rating (1-5)")
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder("e.g. 5")
+      .setMinLength(1)
+      .setMaxLength(1)
+      .setRequired(true)
+
+    const commentInput = new TextInputBuilder()
+      .setCustomId("comment")
+      .setLabel("Your Feedback")
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder("Describe your experience with this seller...")
+      .setMinLength(4)
+      .setRequired(true)
+
+    const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(ratingInput)
+    const secondActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(commentInput)
+
+    modal.addComponents(firstActionRow, secondActionRow)
+
+    await interaction.showModal(modal)
+    return
+  }
+
+  if (interaction.customId.startsWith("confirm_vouch_")) {
+    const pendingId = interaction.customId.split("confirm_vouch_")[1]
+    const pending = pendingDiscordVouches.get(pendingId)
+
+    if (!pending) {
+      return interaction.update({
+        content: "❌ This vouch preview has expired. Please try leaving a vouch again.",
+        embeds: [],
+        components: [],
+      })
+    }
+
+    const { receiverId, rating, comment } = pending
+
+    try {
+      // Re-run validation rules to prevent race conditions
+      await validateVouchRules({
+        receiverId,
+        giverId: interaction.user.id,
+        platform: "discord",
+        comment,
+      })
+    } catch (err: any) {
+      pendingDiscordVouches.delete(pendingId)
+      return interaction.update({
+        content: `❌ Validation failed: ${err.message}`,
+        embeds: [],
+        components: [],
+      })
+    }
+
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: receiverId },
+        include: {
+          _count: { select: { vouchesReceived: true } },
+        },
+      })
+
+      if (!user) {
+        pendingDiscordVouches.delete(pendingId)
+        return interaction.update({
+          content: "❌ Seller profile not found.",
+          embeds: [],
+          components: [],
+        })
+      }
+
+      // Check premium vouch limit
+      const premium = hasActivePremium(user)
+      if (!premium && user._count.vouchesReceived >= FREE_VOUCH_LIMIT) {
+        pendingDiscordVouches.delete(pendingId)
+        return interaction.update({
+          content: `❌ Vouch limit (${FREE_VOUCH_LIMIT}) reached.`,
+          embeds: [],
+          components: [],
+        })
+      }
+
+      // Create vouch
+      const createdVouch = await prisma.vouch.create({
+        data: {
+          receiverId,
+          platform: "discord",
+          giverId: interaction.user.id,
+          giverName: interaction.user.username,
+          sourceId: interaction.guildId || "DM",
+          sourceName: interaction.guild?.name ?? null,
+          rating,
+          comment,
+          createdAt: new Date(),
+        },
+      })
+
+      pendingDiscordVouches.delete(pendingId)
+
+      // Generate permalink
+      const baseUrl = process.env.AUTH_URL || "https://vouched.to"
+      const permalink = user.slug ? `${baseUrl}/u/${user.slug}#vouch-${createdVouch.id}` : null
+
+      // Build Embed
+      const stars = "⭐".repeat(rating)
+      const embed = new EmbedBuilder()
+        .setTitle(user.vouchEmbedTitle)
+        .setColor(user.vouchEmbedColor as any)
+        .setFooter({ text: `${user.vouchEmbedFooter} • ID: ${createdVouch.id}` })
+        .setTimestamp()
+        .addFields({ name: "Vouch:", value: comment }, { name: "Rating:", value: stars, inline: true })
+
+      if (permalink) {
+        embed.setURL(permalink)
+      }
+
+      if (user.vouchShowCount) {
+        embed.addFields({
+          name: "Vouch Nº:",
+          value: `${user._count.vouchesReceived + 1}`,
+          inline: true,
+        })
+      }
+
+      if (user.vouchTagUser) {
+        embed.addFields({ name: "Vouched by:", value: `<@${interaction.user.id}>`, inline: true })
+      }
+
+      // Handle Custom Channel/Role/Emoji for Premium
+      let responseContent = "✅ **Vouch Recorded!**"
+      if (premium && user.vouchEmoji) {
+        responseContent = `${user.vouchEmoji} **Vouch Recorded!**`
+      }
+
+      const roleMention = premium && user.vouchRoleId ? `<@&${user.vouchRoleId}>` : ""
+      const roleAllowedMentions = roleMention ? { roles: [user.vouchRoleId!] } : undefined
+
+      let announcedToChannel = false
+      if (premium && user.vouchChannelId) {
+        try {
+          const channel = await interaction.client.channels.fetch(user.vouchChannelId)
+          if (channel && channel.isTextBased()) {
+            await (channel as any).send({
+              content: roleMention || undefined,
+              embeds: [embed],
+              allowedMentions: roleAllowedMentions,
+            })
+            announcedToChannel = true
+          }
+        } catch (err) {
+          console.error("Failed to send vouch to custom channel:", err)
+        }
+      }
+
+      // Update preview interaction to show vouch recorded
+      await interaction.update({
+        content: "✅ Vouch submitted successfully!",
+        embeds: [],
+        components: [],
+      })
+
+      // If it wasn't announced to a dedicated channel (or we want to post it in the current channel too),
+      // we send it to the channel where it was initiated. Since the preview is ephemeral, we send a new message.
+      if (!announcedToChannel) {
+        const channel = interaction.channel
+        if (channel && "send" in channel) {
+          await (channel as any).send({
+            content: roleMention || undefined,
+            embeds: [embed],
+            allowedMentions: roleAllowedMentions,
+          })
+        }
+      }
+    } catch (err) {
+      console.error("Error finalizing vouch button confirm:", err)
+      return interaction.followUp({
+        content: "❌ An error occurred while saving your vouch.",
+        ephemeral: true,
+      })
+    }
+    return
+  }
+
+  if (interaction.customId.startsWith("cancel_vouch_")) {
+    const pendingId = interaction.customId.split("cancel_vouch_")[1]
+    pendingDiscordVouches.delete(pendingId)
+    await interaction.update({
+      content: "❌ Vouch cancelled.",
+      embeds: [],
+      components: [],
+    })
+  }
+}
+
+async function handleDiscordModalSubmit(interaction: ModalSubmitInteraction<CacheType>, botUserId: string) {
+  if (interaction.customId.startsWith("vouch_modal_")) {
+    const receiverId = interaction.customId.split("vouch_modal_")[1]
+    const ratingStr = interaction.fields.getTextInputValue("rating")
+    const comment = interaction.fields.getTextInputValue("comment")
+    const rating = parseInt(ratingStr)
+
+    if (isNaN(rating) || rating < 1 || rating > 5) {
+      return interaction.reply({
+        content: "❌ Invalid rating. Please enter a number between 1 and 5.",
+        ephemeral: true,
+      })
+    }
+
+    try {
+      // Run validation rules
+      await validateVouchRules({
+        receiverId,
+        giverId: interaction.user.id,
+        platform: "discord",
+        comment,
+      })
+    } catch (err: any) {
+      return interaction.reply({
+        content: `❌ ${err.message}`,
+        ephemeral: true,
+      })
+    }
+
+    // Save pending vouch
+    const pendingId = uuidv4()
+    pendingDiscordVouches.set(pendingId, { receiverId, rating, comment })
+
+    // Build Preview Embed
+    const stars = "⭐".repeat(rating)
+    const previewEmbed = new EmbedBuilder()
+      .setTitle("📝 Vouch Preview")
+      .setColor("#F59E0B")
+      .setDescription("Please review your vouch before submitting.")
+      .addFields(
+        { name: "Rating:", value: stars, inline: true },
+        { name: "Feedback:", value: comment }
+      )
+      .setFooter({ text: "This is a preview. Click Confirm to post it." })
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`confirm_vouch_${pendingId}`)
+        .setLabel("Confirm Vouch")
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`cancel_vouch_${pendingId}`)
+        .setLabel("Cancel")
+        .setStyle(ButtonStyle.Danger)
+    )
+
+    await interaction.reply({
+      embeds: [previewEmbed],
+      components: [row],
+      ephemeral: true,
+    })
+  }
+}
+

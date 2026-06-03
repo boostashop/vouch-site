@@ -1,4 +1,4 @@
-import { Telegraf } from "telegraf"
+import { Telegraf, Scenes, session } from "telegraf"
 import { prisma } from "../prisma"
 import {
   hasActivePremium,
@@ -37,12 +37,193 @@ const HELP_TEXT =
   "*/link* — link this Telegram account to your dashboard.\n\n" +
   "_Powered by Vouched.to_"
 
+interface BotContext extends Scenes.WizardContext {}
+
+const vouchWizard = new Scenes.WizardScene<BotContext>(
+  "vouch-wizard",
+  async (ctx) => {
+    const state = ctx.wizard.state as any
+    state.receiverId = (ctx.scene.state as any).receiverId
+    await ctx.reply("⭐ *Leave a Vouch*\n\nPlease select a rating from 1 to 5:", {
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "1 ⭐", callback_data: "rate_1" },
+            { text: "2 ⭐", callback_data: "rate_2" },
+            { text: "3 ⭐", callback_data: "rate_3" },
+            { text: "4 ⭐", callback_data: "rate_4" },
+            { text: "5 ⭐", callback_data: "rate_5" },
+          ],
+        ],
+      },
+    })
+    return ctx.wizard.next()
+  },
+  async (ctx) => {
+    if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
+      const data = ctx.callbackQuery.data
+      if (data.startsWith("rate_")) {
+        const rating = parseInt(data.split("_")[1])
+        const state = ctx.wizard.state as any
+        state.rating = rating
+        await ctx.answerCbQuery()
+        await ctx.reply(`You chose *${rating} ⭐*.\n\nNow, please send your vouch comment/feedback (minimum 4 characters):`, {
+          parse_mode: "Markdown",
+        })
+        return ctx.wizard.next()
+      }
+    }
+    await ctx.reply("Please select a rating by tapping one of the stars above.")
+  },
+  async (ctx) => {
+    const text = ctx.message && 'text' in ctx.message ? ctx.message.text : null
+    if (!text || text.trim().length < 4) {
+      await ctx.reply("❌ Feedback comment must be at least 4 characters long. Please send a valid comment:")
+      return
+    }
+    const state = ctx.wizard.state as any
+    state.comment = text
+    await ctx.reply("Got it! Do you want to attach a photo as proof? Send the photo now, or tap the button below to skip proof.", {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "Skip Proof", callback_data: "skip_proof" }],
+        ],
+      },
+    })
+    return ctx.wizard.next()
+  },
+  async (ctx) => {
+    const state = ctx.wizard.state as any
+
+    if (ctx.callbackQuery && 'data' in ctx.callbackQuery && ctx.callbackQuery.data === "skip_proof") {
+      await ctx.answerCbQuery()
+      state.proofUrl = null
+    } else if (ctx.message && 'photo' in ctx.message) {
+      const photo = ctx.message.photo[ctx.message.photo.length - 1]
+      try {
+        const fileLink = await ctx.telegram.getFileLink(photo.file_id)
+        const key = proofKey("telegram", "jpg")
+        const proofUrl = await persistProofToR2(fileLink.toString(), key, "image/jpeg")
+        if (!proofUrl) {
+          await ctx.reply("❌ Storage unavailable for proof. We will continue without proof.")
+        }
+        state.proofUrl = proofUrl
+      } catch (err) {
+        console.error("Error processing proof photo in wizard:", err)
+        await ctx.reply("❌ Error downloading photo. We will continue without proof.")
+        state.proofUrl = null
+      }
+    } else {
+      await ctx.reply("Please upload a photo, or tap 'Skip Proof' to continue.")
+      return
+    }
+
+    try {
+      await validateVouchRules({
+        receiverId: state.receiverId,
+        giverId: ctx.from!.id.toString(),
+        platform: "telegram",
+        comment: state.comment,
+      })
+    } catch (err: any) {
+      await ctx.reply(`❌ Validation failed: ${err.message}`)
+      return ctx.scene.leave()
+    }
+
+    const stars = "⭐".repeat(state.rating)
+    let previewText = `📝 *Vouch Preview*\n\n*Rating:* ${stars}\n*Comment:* ${state.comment}\n`
+    if (state.proofUrl) {
+      previewText += `*Proof:* Included 🖼️\n`
+    } else {
+      previewText += `*Proof:* None\n`
+    }
+    previewText += `\nDo you want to submit this vouch?`
+
+    await ctx.reply(previewText, {
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "Confirm", callback_data: "confirm_vouch" },
+            { text: "Cancel", callback_data: "cancel_vouch" },
+          ],
+        ],
+      },
+    })
+    return ctx.wizard.next()
+  },
+  async (ctx) => {
+    const state = ctx.wizard.state as any
+    if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
+      const data = ctx.callbackQuery.data
+      await ctx.answerCbQuery()
+
+      if (data === "confirm_vouch") {
+        try {
+          await validateVouchRules({
+            receiverId: state.receiverId,
+            giverId: ctx.from!.id.toString(),
+            platform: "telegram",
+            comment: state.comment,
+          })
+
+          const createdVouch = await prisma.vouch.create({
+            data: {
+              receiverId: state.receiverId,
+              platform: "telegram",
+              giverId: ctx.from!.id.toString(),
+              giverName: ctx.from!.username || ctx.from!.first_name,
+              sourceId: ctx.chat!.id.toString(),
+              sourceName: (ctx.chat as any).title ?? null,
+              rating: state.rating,
+              comment: state.comment,
+              proofImageUrl: state.proofUrl,
+              createdAt: new Date(),
+            },
+          })
+
+          const user = await prisma.user.findUnique({
+            where: { id: state.receiverId },
+          })
+          const baseUrl = process.env.AUTH_URL || "https://vouched.to"
+          const permalink = user?.slug ? `${baseUrl}/u/${user.slug}#vouch-${createdVouch.id}` : null
+
+          const stars = "⭐".repeat(state.rating)
+          let responseText = `✅ *Vouch Recorded!*\n\n*Giver:* ${ctx.from!.first_name}\n*Rating:* ${stars}\n*Comment:* ${state.comment}`
+          if (permalink) {
+            responseText += `\n[🔗 Verify Vouch](${permalink})`
+          }
+          responseText += `\n\n_ID: ${createdVouch.id} • ${user?.vouchEmbedFooter || "Powered by Vouched.to"}_`
+
+          await ctx.reply(responseText, { parse_mode: "Markdown" })
+        } catch (err: any) {
+          await ctx.reply(`❌ Failed to record vouch: ${err.message}`)
+        }
+      } else {
+        await ctx.reply("❌ Vouch cancelled.")
+      }
+      return ctx.scene.leave()
+    }
+    await ctx.reply("Please tap Confirm or Cancel.")
+  }
+)
+
+vouchWizard.command("cancel", async (ctx) => {
+  await ctx.reply("❌ Vouch wizard cancelled.")
+  return ctx.scene.leave()
+})
+
 // Spawn a Telegram bot for a user's token. Returns the running bot, or null if
 // the token is invalid (validated via getMe before launch).
-export async function spawnTelegramBot(userId: string, token: string): Promise<Telegraf | null> {
+export async function spawnTelegramBot(userId: string, token: string): Promise<Telegraf<BotContext> | null> {
   console.log(`Spawning Telegram bot for User ID: ${userId}`)
 
-  const bot = new Telegraf(token)
+  const bot = new Telegraf<BotContext>(token)
+
+  const stage = new Scenes.Stage<BotContext>([vouchWizard])
+  bot.use(session())
+  bot.use(stage.middleware())
 
   bot.command(["start", "link"], async (ctx) => {
     console.log(`[Telegram] Received /start or /link from ${ctx.from.id} for User ${userId}`)
@@ -67,84 +248,8 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
   })
 
   bot.command("vouch", async (ctx) => {
-    console.log(`[Telegram] Received /vouch from ${ctx.from.id} for User ${userId}`)
-    const args = ctx.message.text.split(" ").slice(1)
-    const rating = parseInt(args[0])
-    const comment = args.slice(1).join(" ")
-
-    if (isNaN(rating) || rating < 1 || rating > 5 || !comment) {
-      return ctx.reply(
-        "❌ **Usage:** `/vouch <rating:1-5> <comment>`\nExample: `/vouch 5 Great service!`",
-        { parse_mode: "Markdown" },
-      )
-    }
-
-    try {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { _count: { select: { vouchesReceived: true } } },
-      })
-
-      if (!user) return ctx.reply("❌ User not found.")
-
-      if (!hasActivePremium(user) && user._count.vouchesReceived >= FREE_VOUCH_LIMIT) {
-        return ctx.reply(
-          `❌ Vouch limit (${FREE_VOUCH_LIMIT}) reached for this account. Upgrade to Premium for unlimited storage.`,
-        )
-      }
-
-      if (user.vouchRequireProof) {
-        return ctx.reply(
-          "❌ This user requires proof. Please send a photo with the caption: `/vouch " +
-            rating +
-            " " +
-            comment +
-            "`",
-        )
-      }
-
-      // Run validation rules (self-vouch block, blacklist, rate limit, comment length)
-      try {
-        await validateVouchRules({
-          receiverId: userId,
-          giverId: ctx.from.id.toString(),
-          platform: "telegram",
-          comment,
-        })
-      } catch (validationErr: any) {
-        return ctx.reply(`❌ ${validationErr.message}`)
-      }
-
-      const createdVouch = await prisma.vouch.create({
-        data: {
-          receiverId: userId,
-          platform: "telegram",
-          giverId: ctx.from.id.toString(),
-          giverName: ctx.from.username || ctx.from.first_name,
-          sourceId: ctx.chat.id.toString(),
-          sourceName: (ctx.chat as any).title ?? null,
-          rating,
-          comment,
-          createdAt: new Date(),
-        },
-      })
-
-      // Generate verification permalink
-      const baseUrl = process.env.AUTH_URL || "https://vouched.to"
-      const permalink = user.slug ? `${baseUrl}/u/${user.slug}#vouch-${createdVouch.id}` : null
-
-      const stars = "⭐".repeat(rating)
-      let responseText = `✅ **Vouch Recorded!**\n\n**Giver:** ${ctx.from.first_name}\n**Rating:** ${stars}\n**Comment:** ${comment}`
-      if (permalink) {
-        responseText += `\n[🔗 Verify Vouch](${permalink})`
-      }
-      responseText += `\n\n_ID: ${createdVouch.id} • ${user.vouchEmbedFooter}_`
-
-      await ctx.reply(responseText, { parse_mode: "Markdown" })
-    } catch (err) {
-      console.error("Error saving Telegram vouch:", err)
-      await ctx.reply("❌ Failed to save vouch.")
-    }
+    console.log(`[Telegram] Starting vouch wizard from /vouch command for User ${userId}`)
+    await ctx.scene.enter("vouch-wizard", { receiverId: userId })
   })
 
   // Handle photos sent with /vouch caption

@@ -9,12 +9,12 @@ export function buildDiscordCommands() {
         opt
           .setName("rating")
           .setDescription("Rating from 1 to 5")
-          .setRequired(true)
+          .setRequired(false)
           .setMinValue(1)
           .setMaxValue(5),
       )
       .addStringOption((opt) =>
-        opt.setName("comment").setDescription("Your feedback").setRequired(true),
+        opt.setName("comment").setDescription("Your feedback").setRequired(false),
       )
       .addAttachmentOption((opt) =>
         opt.setName("proof").setDescription("Upload a screenshot as proof").setRequired(false),

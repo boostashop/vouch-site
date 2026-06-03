@@ -198,9 +198,9 @@ Architecture / library notes:
 - [x] Per-vouch web permalink on cards.
 
 ### Phase 2 — Frictionless input
-- [ ] Discord button + modal vouch flow.
-- [ ] Telegram wizard (inline rating keyboard → comment → optional photo).
-- [ ] Confirmation/preview step.
+- [x] Discord button + modal vouch flow.
+- [x] Telegram wizard (inline rating keyboard → comment → optional photo).
+- [x] Confirmation/preview step.
 
 ### Phase 3 — Discovery & engagement
 - [ ] `/profile`, `/leaderboard`, `/recent`, `/find`.

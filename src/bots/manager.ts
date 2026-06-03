@@ -16,7 +16,7 @@ const SPAWN_RETRY_BACKOFF_MS = 5 * 60 * 1000
 // respawn with the new token.
 export class BotManager {
   private discordClients: Map<string, { client: Client; token: string }> = new Map()
-  private telegramBots: Map<string, { bot: Telegraf; token: string }> = new Map()
+  private telegramBots: Map<string, { bot: Telegraf<any>; token: string }> = new Map()
   private failedSpawns: Map<string, { token: string; at: number }> = new Map()
 
   async start() {
