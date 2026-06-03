@@ -1,7 +1,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import crypto from "node:crypto"
-import { verifyWebhookSignature, getCheckoutUrl } from "./payments.ts"
+import { verifyWebhookSignature, getCheckoutUrl } from "./payments"
 
 const SECRET = "test-secret"
 const nowTs = () => Math.floor(Date.now() / 1000).toString()

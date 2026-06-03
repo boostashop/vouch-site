@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { sanitizeStyleContent, configToCSS, defaultDarkConfig } from "./design-tokens.ts"
+import { sanitizeStyleContent, configToCSS, defaultDarkConfig } from "./design-tokens"
 
 test("sanitizeStyleContent strips the </style breakout sequence", () => {
   const out = sanitizeStyleContent("a{}</style><script>x</script>")

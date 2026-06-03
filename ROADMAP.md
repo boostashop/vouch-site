@@ -135,8 +135,9 @@ Living checklist of outstanding work, derived from the full-project review on
       `get-token.js` — dumps a token —, `promote-user.js`, etc.).
 - [ ] Consolidate the overlapping docs (`PLAN.md`, `CHECKLIST.md`, `GEMINI.md`,
       `SESSION_SUMMARY.md`, `DEPLOY.md`) — several are stale/contradictory.
-- [ ] Add dark-mode variants to admin pages (`admin/settings`, `admin/users` are
-      hardcoded dark).
+- [x] **Admin pages support light mode** — `admin/users` and `admin/settings`
+      were hardcoded dark (broken under the admin theme toggle); both now have
+      proper light/dark variants matching the rest of admin.
 - [x] **First test suite added** — `npm test` (node:test + tsx, no new deps)
       covers `verifyWebhookSignature` (valid/tampered/stale/missing), `getCheckoutUrl`,
       `hasActivePremium`, and the `</style` XSS sanitizer. 15 tests passing.
