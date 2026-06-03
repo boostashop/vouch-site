@@ -31,11 +31,17 @@ export default async function DashboardPage() {
     }
   })
 
-  const recentVouches = await prisma.vouch.findMany({
-    where: { receiverId: session.user.id },
-    orderBy: { createdAt: 'desc' },
-    take: 5
-  })
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  const [recentVouches, vouchesThisWeek] = await Promise.all([
+    prisma.vouch.findMany({
+      where: { receiverId: session.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+    prisma.vouch.count({
+      where: { receiverId: session.user.id, createdAt: { gte: weekAgo } },
+    }),
+  ])
 
   const vouchCount = user?._count.vouchesReceived || 0;
   const isPremium = hasActivePremium(user);
@@ -70,7 +76,7 @@ export default async function DashboardPage() {
           label="Total Vouches"
           value={vouchCount}
           description="Verified testimonials"
-          trend="+0 this week"
+          trend={`+${vouchesThisWeek} this week`}
           color="indigo"
         />
         <StatCard 

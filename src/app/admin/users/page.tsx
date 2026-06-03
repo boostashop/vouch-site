@@ -1,9 +1,24 @@
 import { prisma } from "@/lib/prisma"
-import { Users, Shield, Zap, Search, MoreVertical, Check, X, ShieldAlert, ShieldCheck } from "lucide-react"
+import { Zap, Search } from "lucide-react"
 import { toggleUserPremium, toggleUserRole } from "../actions"
 
-export default async function AdminUsersPage() {
+export default async function AdminUsersPage(props: {
+  searchParams: Promise<{ q?: string }>
+}) {
+  const { q } = await props.searchParams
+  const query = q?.trim()
+
   const users = await prisma.user.findMany({
+    where: query
+      ? {
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { email: { contains: query, mode: "insensitive" } },
+            { username: { contains: query, mode: "insensitive" } },
+            { slug: { contains: query, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
     orderBy: { email: 'asc' },
     include: {
       _count: {
@@ -20,14 +35,16 @@ export default async function AdminUsersPage() {
           <p className="text-zinc-500 mt-2 font-medium">Oversee all registered accounts and their status.</p>
         </div>
         
-        <div className="relative w-full md:w-64">
+        <form method="get" className="relative w-full md:w-64">
            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-           <input 
-             type="text" 
-             placeholder="Search users..." 
+           <input
+             type="text"
+             name="q"
+             defaultValue={query || ""}
+             placeholder="Search users..."
              className="w-full bg-zinc-900/50 border border-white/5 rounded-xl pl-12 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all outline-none"
            />
-        </div>
+        </form>
       </div>
 
       <div className="bg-zinc-900/30 border border-white/5 rounded-[32px] overflow-hidden">
@@ -39,8 +56,7 @@ export default async function AdminUsersPage() {
                 <th className="px-6 py-5">Role</th>
                 <th className="px-6 py-5">Premium</th>
                 <th className="px-6 py-5 text-center">Vouches</th>
-                <th className="px-6 py-5">Bot Status</th>
-                <th className="px-8 py-5 text-right">Actions</th>
+                <th className="px-8 py-5">Bot Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -66,18 +82,13 @@ export default async function AdminUsersPage() {
                   <td className="px-6 py-5 text-center font-bold text-sm text-zinc-400">
                     {user._count.vouchesReceived}
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-8 py-5">
                     <div className="flex items-center gap-2">
-                       <div className={`w-1.5 h-1.5 rounded-full ${user.discordBotToken ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-700'}`} />
+                       <div className={`w-1.5 h-1.5 rounded-full ${user.discordBotToken || user.telegramBotToken ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-700'}`} />
                        <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
-                         {user.discordBotToken ? 'Active' : 'No Bot'}
+                         {user.discordBotToken && user.telegramBotToken ? 'Both' : user.discordBotToken ? 'Discord' : user.telegramBotToken ? 'Telegram' : 'No Bot'}
                        </span>
                     </div>
-                  </td>
-                  <td className="px-8 py-5 text-right">
-                    <button className="p-2 text-zinc-500 hover:text-white transition-colors">
-                      <MoreVertical size={18} />
-                    </button>
                   </td>
                 </tr>
               ))}

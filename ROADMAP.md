@@ -80,8 +80,11 @@ Living checklist of outstanding work, derived from the full-project review on
 - [x] **`vouchRoleId` wired** — pings the configured role on the vouch
       announcement (premium).
 - [x] **`statsShowLeaderboard` wired** — `/stats` shows the user's global rank.
-- [ ] **Admin Users**: search box and the `⋮` row menu are non-functional.
-- [ ] **Dashboard "+0 this week"** is hardcoded — compute real weekly trend.
+- [x] **Admin Users search works** — server-side filter on name/email/username/
+      slug via `?q=`; removed the dead `⋮` button (Role/Premium toggles already
+      provide the actions). Bot Status column now reflects Telegram too.
+- [x] **Dashboard weekly trend is real** — "Total Vouches" shows the actual count
+      of vouches received in the last 7 days.
 - [ ] Roadmap gaps from `PLAN.md`: website-based vouching, vouch import/scrape
       tool, spam protection (blacklist / rate limiting), support/ticket system.
 
