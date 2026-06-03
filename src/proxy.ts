@@ -16,6 +16,7 @@ function isMainHost(hostname: string): boolean {
     try {
       const authHost = new URL(process.env.AUTH_URL).hostname
       if (hostname === authHost) return true
+      if (hostname === `www.${authHost}`) return true
     } catch {}
   }
   return false

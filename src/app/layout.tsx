@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://vouched.to"),
   title: "Vouched.to | Secure Your Reputation",
   description: "The ultimate insurance policy for your reputation. Automatically back up testimonials from Discord and Telegram.",
 };
