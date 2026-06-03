@@ -42,6 +42,12 @@ enum Role {
   ADMIN
 }
 
+enum VouchStatus {
+  ACTIVE
+  FLAGGED
+  REMOVED
+}
+
 model User {
   id               String    @id @default(cuid())
   name             String?
@@ -120,7 +126,13 @@ model Vouch {
   rating          Int      // 1-5
   comment         String?
   proofImageUrl   String?  // Cloudflare R2 URL
+  status          VouchStatus @default(ACTIVE) // ACTIVE | FLAGGED | REMOVED (soft-delete)
+  type            String?  // sale | service | trade | other
+  sourceName      String?  // server / group name for context
+  editedAt        DateTime?
   createdAt       DateTime @default(now())
 
   receiver        User     @relation("ReceivedVouches", fields: [receiverId], references: [id])
+
+  @@index([receiverId, createdAt])
 }
