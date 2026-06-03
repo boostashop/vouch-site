@@ -123,3 +123,35 @@ export async function updateStatsSettings(formData: FormData) {
   
   revalidatePath("/dashboard/bot")
 }
+
+export async function getBotGuildChannels(guildId: string) {
+  "use server"
+
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id }
+  })
+  if (!user || !user.discordBotToken) throw new Error("Bot not configured")
+
+  try {
+    const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
+      headers: {
+        Authorization: `Bot ${user.discordBotToken}`
+      }
+    })
+    if (!response.ok) {
+      throw new Error("Failed to fetch channels")
+    }
+    const channels = await response.json()
+    // Filter for text channels (type 0) and sort by name
+    return channels
+      .filter((c: any) => c.type === 0)
+      .map((c: any) => ({ id: c.id, name: c.name }))
+      .sort((a: any, b: any) => a.name.localeCompare(b.name))
+  } catch (err) {
+    console.error("Error fetching channels:", err)
+    return []
+  }
+}

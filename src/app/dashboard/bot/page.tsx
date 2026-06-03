@@ -4,6 +4,7 @@ import { updateBotTokens, updateVouchSettings, updateStatsSettings, removeBotTok
 import { hasActivePremium } from "@/lib/premium"
 import { Shield, Info, Bot, Send, ExternalLink, CheckCircle2, MessageSquare, BarChart3, Lock, Settings2, Palette } from "lucide-react"
 import Link from "next/link"
+import { DiscordChannelSelector } from "./DiscordChannelSelector"
 
 export default async function BotSettingsPage(props: {
   searchParams: Promise<{ tab?: string }>
@@ -19,6 +20,61 @@ export default async function BotSettingsPage(props: {
   if (!user) return null
 
   const isPremium = hasActivePremium(user)
+
+  let guilds: any[] = []
+  let initialGuildId = ""
+  let initialChannels: any[] = []
+
+  if (user.discordBotToken && isPremium) {
+    try {
+      const response = await fetch("https://discord.com/api/v10/users/@me/guilds", {
+        headers: {
+          Authorization: `Bot ${user.discordBotToken}`
+        },
+        next: { revalidate: 60 }
+      })
+      if (response.ok) {
+        guilds = await response.json()
+      }
+    } catch (err) {
+      console.error("Failed to fetch bot guilds:", err)
+    }
+
+    if (user.vouchChannelId) {
+      try {
+        const chanResponse = await fetch(`https://discord.com/api/v10/channels/${user.vouchChannelId}`, {
+          headers: {
+            Authorization: `Bot ${user.discordBotToken}`
+          }
+        })
+        if (chanResponse.ok) {
+          const chanData = await chanResponse.json()
+          initialGuildId = chanData.guild_id || ""
+        }
+      } catch (err) {
+        console.error("Failed to fetch initial channel:", err)
+      }
+
+      if (initialGuildId) {
+        try {
+          const chansResponse = await fetch(`https://discord.com/api/v10/guilds/${initialGuildId}/channels`, {
+            headers: {
+              Authorization: `Bot ${user.discordBotToken}`
+            }
+          })
+          if (chansResponse.ok) {
+            const channels = await chansResponse.json()
+            initialChannels = channels
+              .filter((c: any) => c.type === 0)
+              .map((c: any) => ({ id: c.id, name: c.name }))
+              .sort((a: any, b: any) => a.name.localeCompare(b.name))
+          }
+        } catch (err) {
+          console.error("Failed to fetch initial channels:", err)
+        }
+      }
+    }
+  }
 
   return (
     <div className="max-w-4xl space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -222,36 +278,35 @@ export default async function BotSettingsPage(props: {
                 <h3 className="text-xs font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
                   Premium Features {!isPremium && <Lock size={12} className="text-amber-500" />}
                 </h3>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className={`space-y-2 ${!isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Vouch Channel ID</label>
-                    <input 
-                      name="vouchChannelId"
-                      defaultValue={user.vouchChannelId || ""}
-                      placeholder="123456789..."
-                      disabled={!isPremium}
-                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none"
-                    />
-                  </div>
-                  <div className={`space-y-2 ${!isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Mention Role ID</label>
-                    <input 
-                      name="vouchRoleId"
-                      defaultValue={user.vouchRoleId || ""}
-                      placeholder="123456789..."
-                      disabled={!isPremium}
-                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none"
-                    />
-                  </div>
-                  <div className={`space-y-2 ${!isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Success Emoji</label>
-                    <input 
-                      name="vouchEmoji"
-                      defaultValue={user.vouchEmoji || "✅"}
-                      placeholder="✅"
-                      disabled={!isPremium}
-                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none"
-                    />
+                <div className="space-y-4">
+                  <DiscordChannelSelector
+                    guilds={guilds}
+                    initialGuildId={initialGuildId}
+                    initialChannels={initialChannels}
+                    initialChannelId={user.vouchChannelId || ""}
+                    isPremium={isPremium}
+                  />
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className={`space-y-2 ${!isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Mention Role ID</label>
+                      <input 
+                        name="vouchRoleId"
+                        defaultValue={user.vouchRoleId || ""}
+                        placeholder="123456789..."
+                        disabled={!isPremium}
+                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none"
+                      />
+                    </div>
+                    <div className={`space-y-2 ${!isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Success Emoji</label>
+                      <input 
+                        name="vouchEmoji"
+                        defaultValue={user.vouchEmoji || "✅"}
+                        placeholder="✅"
+                        disabled={!isPremium}
+                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none"
+                      />
+                    </div>
                   </div>
                 </div>
                 {!isPremium && (
