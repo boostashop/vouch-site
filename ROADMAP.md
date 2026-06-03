@@ -119,9 +119,11 @@ Living checklist of outstanding work, derived from the full-project review on
 
 ## 🟢 Scalability
 
-- [ ] **Leaderboard & public profile load all rating rows into memory** and
-      don't paginate — contradicts "unlimited vouches". Use `_avg`/`_count`
-      aggregations + paginate the wall of vouches.
+- [x] **Leaderboard & profile no longer scan all rows** — leaderboard uses a
+      `vouch.groupBy` (count + avg, top 50) instead of loading every user and
+      rating; the public profile aggregates count/avg in the DB and paginates
+      the wall (30/page, page-relative links that work on custom domains); the
+      OG image uses `count`/`aggregate` instead of loading all ratings.
 - [ ] **Single-process bot manager is a SPOF** — no health checks, backoff, or
       per-tenant isolation; one crash drops every user's bot.
 

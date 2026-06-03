@@ -19,8 +19,11 @@ import { Metadata } from "next"
 import { tokensToCSS, sanitizeStyleContent, DesignTokens } from "@/types/design-tokens"
 import { hasActivePremium } from "@/lib/premium"
 
+const VOUCHES_PER_PAGE = 30
+
 interface PublicProfileProps {
   params: Promise<{ slug: string }>
+  searchParams?: Promise<{ page?: string }>
 }
 
 export async function generateMetadata({ params }: PublicProfileProps): Promise<Metadata> {
@@ -36,25 +39,30 @@ export async function generateMetadata({ params }: PublicProfileProps): Promise<
   }
 }
 
-export default async function PublicProfilePage({ params }: PublicProfileProps) {
+export default async function PublicProfilePage({ params, searchParams }: PublicProfileProps) {
   const { slug } = await params
+  const sp = searchParams ? await searchParams : {}
+  const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1)
 
-  const user = await prisma.user.findUnique({
-    where: { slug },
-    include: {
-      vouchesReceived: { orderBy: { createdAt: "desc" } },
-      _count: { select: { vouchesReceived: true } },
-    },
-  })
-
+  const user = await prisma.user.findUnique({ where: { slug } })
   if (!user) notFound()
 
-  const vouchCount = user._count.vouchesReceived
+  // Count + average are aggregated in the DB; only one page of vouches is loaded
+  // (premium accounts can have thousands).
+  const [vouchCount, ratingAgg, vouches] = await Promise.all([
+    prisma.vouch.count({ where: { receiverId: user.id } }),
+    prisma.vouch.aggregate({ where: { receiverId: user.id }, _avg: { rating: true } }),
+    prisma.vouch.findMany({
+      where: { receiverId: user.id },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * VOUCHES_PER_PAGE,
+      take: VOUCHES_PER_PAGE,
+    }),
+  ])
+
   const isPremium = hasActivePremium(user)
-  const avgRating =
-    vouchCount > 0
-      ? user.vouchesReceived.reduce((acc: number, v: any) => acc + v.rating, 0) / vouchCount
-      : 0
+  const avgRating = ratingAgg._avg.rating ?? 0
+  const totalPages = Math.max(1, Math.ceil(vouchCount / VOUCHES_PER_PAGE))
 
   const accentColor = user.profileAccentColor || "#6366f1"
   const theme = user.profileTheme || "dark"
@@ -204,13 +212,13 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
             </span>
           </div>
 
-          {user.vouchesReceived.length === 0 ? (
+          {vouchCount === 0 ? (
             <div className={`border ${cardBg} rounded-3xl p-12 text-center`}>
               <p className={`${faintText} font-medium`}>No vouches recorded yet.</p>
             </div>
           ) : (
             <div className="grid gap-5">
-              {user.vouchesReceived.map((vouch) => (
+              {vouches.map((vouch) => (
                 <div
                   key={vouch.id}
                   className={`vc-card border ${cardBg} ${cardHover} rounded-[28px] p-6 md:p-8 space-y-4 transition-all group`}
@@ -253,6 +261,24 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              {page > 1 ? (
+                <a href={`?page=${page - 1}`} className={`px-4 py-2 rounded-xl border text-xs font-bold ${tagBg} ${cardHover} transition-all`}>
+                  ← Newer
+                </a>
+              ) : <span />}
+              <span className={`text-xs font-bold ${faintText} uppercase tracking-widest`}>
+                Page {page} of {totalPages}
+              </span>
+              {page < totalPages ? (
+                <a href={`?page=${page + 1}`} className={`px-4 py-2 rounded-xl border text-xs font-bold ${tagBg} ${cardHover} transition-all`}>
+                  Older →
+                </a>
+              ) : <span />}
             </div>
           )}
         </div>

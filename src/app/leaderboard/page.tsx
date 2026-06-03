@@ -7,10 +7,18 @@ import { hasActivePremium } from "@/lib/premium"
 export const dynamic = "force-dynamic"
 
 export default async function LeaderboardPage() {
-  const topUsers = await prisma.user.findMany({
-    where: {
-      vouchesReceived: { some: {} }
-    },
+  // Aggregate the top 50 receivers in the DB (count + avg rating), instead of
+  // pulling every user and every rating row into memory.
+  const top = await prisma.vouch.groupBy({
+    by: ["receiverId"],
+    _count: { _all: true },
+    _avg: { rating: true },
+    orderBy: { _count: { receiverId: "desc" } },
+    take: 50,
+  })
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: top.map((t) => t.receiverId) } },
     select: {
       id: true,
       name: true,
@@ -19,23 +27,21 @@ export default async function LeaderboardPage() {
       image: true,
       isPremium: true,
       premiumExpiresAt: true,
-      _count: {
-        select: { vouchesReceived: true }
-      },
-      vouchesReceived: {
-        select: { rating: true }
-      }
-    }
+    },
   })
+  const userMap = new Map(users.map((u) => [u.id, u]))
 
-  // Calculate average ratings and sort by vouch count
-  const rankedUsers = topUsers.map(user => {
-    const totalVouches = user._count.vouchesReceived
-    const avgRating = totalVouches > 0 
-      ? user.vouchesReceived.reduce((acc, v) => acc + v.rating, 0) / totalVouches
-      : 0
-    return { ...user, totalVouches, avgRating, premium: hasActivePremium(user) }
-  }).sort((a, b) => b.totalVouches - a.totalVouches).slice(0, 50)
+  // Preserve the groupBy ordering (already sorted by vouch count desc).
+  const rankedUsers = top.flatMap((t) => {
+    const user = userMap.get(t.receiverId)
+    if (!user) return []
+    return [{
+      ...user,
+      totalVouches: t._count._all,
+      avgRating: t._avg.rating ?? 0,
+      premium: hasActivePremium(user),
+    }]
+  })
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-white font-sans selection:bg-indigo-500/30">

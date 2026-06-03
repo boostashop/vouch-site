@@ -10,20 +10,22 @@ export default async function Image({ params }: { params: Promise<{ slug: string
 
   const user = await prisma.user.findUnique({
     where: { slug },
-    select: {
-      name: true,
-      profileAccentColor: true,
-      vouchesReceived: { select: { rating: true } },
-    },
+    select: { id: true, name: true, profileAccentColor: true },
   })
+
+  let vouchCount = 0
+  let avgRating: string | null = null
+  if (user) {
+    const [count, agg] = await Promise.all([
+      prisma.vouch.count({ where: { receiverId: user.id } }),
+      prisma.vouch.aggregate({ where: { receiverId: user.id }, _avg: { rating: true } }),
+    ])
+    vouchCount = count
+    avgRating = agg._avg.rating != null ? agg._avg.rating.toFixed(1) : null
+  }
 
   const accent = user?.profileAccentColor || "#6366f1"
   const name = user?.name || slug
-  const vouchCount = user?.vouchesReceived.length ?? 0
-  const avgRating =
-    vouchCount > 0
-      ? (user!.vouchesReceived.reduce((a, v) => a + v.rating, 0) / vouchCount).toFixed(1)
-      : null
 
   return new ImageResponse(
     (
