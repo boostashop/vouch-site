@@ -72,8 +72,12 @@ Living checklist of outstanding work, derived from the full-project review on
 
 ## 🟠 Unfinished features
 
-- [ ] **Admin Settings page is all dead UI** (`admin/settings/page.tsx`): Global
-      Bot Sync, Prune Sessions, Maintenance Mode, API key — no handlers.
+- [~] **Admin Settings page** — "Prune Stale Auth Rows" is now a real action
+      (deletes expired sessions + magic-link verification tokens, with a result
+      banner). "Bot Sync" is shown as informational (bots auto-sync every 60s).
+      Maintenance Mode + Global API key are honestly marked "Coming soon" rather
+      than faking interactivity. _Remaining:_ build Maintenance Mode (needs a
+      settings store + middleware) and the API key if/when needed.
 - [x] **`profileCustomCSS` wired** — added a premium Custom CSS textarea on the
       Profile Settings page and render it on the public profile (sanitized via
       `sanitizeStyleContent`, gated to active premium), applied on top of theme.

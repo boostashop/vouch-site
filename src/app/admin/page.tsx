@@ -248,8 +248,8 @@ export default async function AdminPulsePage() {
           />
           <AdminAction
             icon={<ShieldCheck className="text-emerald-400" />}
-            title="Global Bot Sync"
-            description="Force restart and sync all active bot instances."
+            title="System Maintenance"
+            description="Prune stale auth rows and review bot sync status."
             href="/admin/settings"
           />
         </div>
