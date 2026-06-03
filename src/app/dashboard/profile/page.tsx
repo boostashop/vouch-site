@@ -1,6 +1,8 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { updateProfile } from "./actions"
+import { hasActivePremium } from "@/lib/premium"
+import { getCheckoutUrl } from "@/lib/payments"
 import { User, Link as LinkIcon, Shield, CheckCircle, Palette, Globe, Search } from "lucide-react"
 
 export default async function ProfileSettingsPage() {
@@ -8,6 +10,9 @@ export default async function ProfileSettingsPage() {
   const user = await prisma.user.findUnique({
     where: { id: session?.user?.id }
   })
+
+  const isPremium = hasActivePremium(user)
+  const checkoutUrl = (session?.user?.id && getCheckoutUrl(session.user.id)) || null
 
   return (
     <div className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -159,7 +164,7 @@ export default async function ProfileSettingsPage() {
         </section>
 
         {/* Design Studio CTA */}
-        {user?.isPremium ? (
+        {isPremium ? (
           <a
             href="/dashboard/profile/builder"
             className="flex items-center justify-between gap-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6 hover:from-indigo-500/15 hover:to-purple-500/15 transition-all group"
@@ -176,16 +181,22 @@ export default async function ProfileSettingsPage() {
             <span className="text-indigo-500 font-bold text-sm shrink-0">Open →</span>
           </a>
         ) : (
-          <div className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl p-6 opacity-70">
-            <div className="w-12 h-12 rounded-2xl bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-2xl">🔒</div>
-            <div>
-              <h3 className="font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
-                Design Studio
-                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">Premium</span>
-              </h3>
-              <p className="text-sm text-zinc-500 mt-0.5">Visual color & layout editor with live iframe preview</p>
+          <a
+            href={checkoutUrl ?? "#"}
+            className="flex items-center justify-between gap-4 bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl p-6 hover:border-zinc-300 dark:hover:border-white/10 transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-2xl">🔒</div>
+              <div>
+                <h3 className="font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
+                  Design Studio
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">Premium</span>
+                </h3>
+                <p className="text-sm text-zinc-500 mt-0.5">Visual color & layout editor with live iframe preview</p>
+              </div>
             </div>
-          </div>
+            {checkoutUrl && <span className="text-emerald-500 font-bold text-sm shrink-0">Upgrade →</span>}
+          </a>
         )}
 
         {/* SEO & Domain */}
@@ -236,7 +247,7 @@ export default async function ProfileSettingsPage() {
               <div className="space-y-2 pt-4">
                 <label htmlFor="customDomain" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
                   Custom Domain
-                  {!user?.isPremium && <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Premium</span>}
+                  {!isPremium && <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Premium</span>}
                 </label>
                 <div className="relative">
                    <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
@@ -245,7 +256,7 @@ export default async function ProfileSettingsPage() {
                     id="customDomain"
                     name="customDomain"
                     defaultValue={user?.customDomain || ""}
-                    disabled={!user?.isPremium}
+                    disabled={!isPremium}
                     placeholder="vouch.yourname.com"
                     className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   />

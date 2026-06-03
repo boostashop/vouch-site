@@ -14,13 +14,12 @@ export default async function Home() {
           <div className="flex justify-between h-16 items-center">
             <Link href="/" className="flex items-center gap-2.5 group">
               <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl group-hover:scale-105 transition-transform shadow-lg shadow-indigo-600/20">V</div>
-              <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">Vouched.to</span>
+              <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">Vouched.to</span>
             </Link>
             
             <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-              <a href="#features" className="hover:text-white transition-colors">Features</a>
-              <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-              <Link href="/leaderboard" className="hover:text-white transition-colors">Leaderboard</Link>
+              <a href="#features" className="hover:text-zinc-900 dark:hover:text-white transition-colors">Features</a>
+              <Link href="/leaderboard" className="hover:text-zinc-900 dark:hover:text-white transition-colors">Leaderboard</Link>
             </div>
 
             <div className="flex items-center gap-3">
@@ -204,7 +203,7 @@ export default async function Home() {
             </div>
             
             <div className="flex flex-wrap justify-center gap-8 md:gap-16">
-              <FooterColumn title="Product" links={["Features", "Pricing", "API Docs"]} />
+              <FooterColumn title="Product" links={["Features", "Leaderboard", "API Docs"]} />
               <FooterColumn title="Legal" links={["Privacy", "Terms", "Cookies"]} />
               <FooterColumn title="Social" links={["Twitter", "Discord", "GitHub"]} />
             </div>

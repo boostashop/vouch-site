@@ -12,6 +12,7 @@ import {
 import { Telegraf, Context } from 'telegraf';
 import { PrismaClient } from '@prisma/client';
 import { uploadToR2 } from './lib/s3';
+import { hasActivePremium } from './lib/premium';
 import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
@@ -194,7 +195,9 @@ class BotManager {
           return interaction.reply({ content: '❌ User not found.', ephemeral: true });
         }
 
-        if (!user.isPremium && user._count.vouchesReceived >= 50) {
+        const premium = hasActivePremium(user);
+
+        if (!premium && user._count.vouchesReceived >= 50) {
           return interaction.reply({ 
             content: '❌ This user has reached the maximum limit of 50 vouches for free accounts. They need to upgrade to Premium to receive more.',
             ephemeral: true 
@@ -263,12 +266,12 @@ class BotManager {
 
         // Handle Custom Channel/Role/Emoji for Premium
         let responseContent = '✅ **Vouch Recorded!**';
-        if (user.isPremium && user.vouchEmoji) {
+        if (premium && user.vouchEmoji) {
           responseContent = `${user.vouchEmoji} **Vouch Recorded!**`;
         }
 
         // If a specific channel is set and user is premium, send there too
-        if (user.isPremium && user.vouchChannelId) {
+        if (premium && user.vouchChannelId) {
           try {
             const channel = await interaction.client.channels.fetch(user.vouchChannelId);
             if (channel && channel.isTextBased()) {
@@ -325,7 +328,11 @@ class BotManager {
         }
 
         if (user.statsShowPlan) {
-          embed.addFields({ name: 'Plan:', value: user.isPremium ? 'Premium Plan' : 'Free Plan', inline: true });
+          embed.addFields({ name: 'Plan:', value: hasActivePremium(user) ? 'Premium Plan' : 'Free Plan', inline: true });
+        }
+
+        if (user.statsShowExpiration && user.premiumExpiresAt) {
+          embed.addFields({ name: 'Renews/Expires:', value: user.premiumExpiresAt.toLocaleDateString(), inline: true });
         }
 
         if (user.statsShowAge) {
@@ -430,7 +437,7 @@ class BotManager {
 
         if (!user) return ctx.reply('❌ User not found.');
 
-        if (!user.isPremium && user._count.vouchesReceived >= 50) {
+        if (!hasActivePremium(user) && user._count.vouchesReceived >= 50) {
           return ctx.reply('❌ Vouch limit (50) reached for this account. Upgrade to Premium for unlimited storage.');
         }
 
@@ -482,7 +489,7 @@ class BotManager {
 
         if (!user) return;
 
-        if (!user.isPremium && user._count.vouchesReceived >= 50) {
+        if (!hasActivePremium(user) && user._count.vouchesReceived >= 50) {
           return ctx.reply('❌ Vouch limit (50) reached.');
         }
 
@@ -550,7 +557,8 @@ class BotManager {
           `${user.statsEmbedDescription}\n\n` +
           (user.statsShowCount ? `**Total Vouches:** ${count}\n` : '') +
           (user.statsShowScore ? `**Average Rating:** ${averageRating} / 5.0\n` : '') +
-          (user.statsShowPlan ? `**Account Plan:** ${user.isPremium ? 'Premium' : 'Free'}\n` : '') +
+          (user.statsShowPlan ? `**Account Plan:** ${hasActivePremium(user) ? 'Premium' : 'Free'}\n` : '') +
+          (user.statsShowExpiration && user.premiumExpiresAt ? `**Renews/Expires:** ${user.premiumExpiresAt.toLocaleDateString()}\n` : '') +
           `\n_${user.statsEmbedFooter}_`;
 
         await ctx.reply(statsText, { parse_mode: 'Markdown' });

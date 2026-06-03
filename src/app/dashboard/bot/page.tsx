@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { updateBotTokens, updateVouchSettings, updateStatsSettings } from "./actions"
+import { hasActivePremium } from "@/lib/premium"
 import { Shield, Info, Bot, Send, ExternalLink, CheckCircle2, MessageSquare, BarChart3, Lock, Settings2, Palette } from "lucide-react"
 import Link from "next/link"
 
@@ -16,6 +17,8 @@ export default async function BotSettingsPage(props: {
   })
 
   if (!user) return null
+
+  const isPremium = hasActivePremium(user)
 
   return (
     <div className="max-w-4xl space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -197,41 +200,41 @@ export default async function BotSettingsPage(props: {
               {/* Premium Features */}
               <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-white/5">
                 <h3 className="text-xs font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                  Premium Features {!user.isPremium && <Lock size={12} className="text-amber-500" />}
+                  Premium Features {!isPremium && <Lock size={12} className="text-amber-500" />}
                 </h3>
                 <div className="grid md:grid-cols-3 gap-4">
-                  <div className={`space-y-2 ${!user.isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <div className={`space-y-2 ${!isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Vouch Channel ID</label>
                     <input 
                       name="vouchChannelId"
                       defaultValue={user.vouchChannelId || ""}
                       placeholder="123456789..."
-                      disabled={!user.isPremium}
+                      disabled={!isPremium}
                       className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none"
                     />
                   </div>
-                  <div className={`space-y-2 ${!user.isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <div className={`space-y-2 ${!isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Mention Role ID</label>
                     <input 
                       name="vouchRoleId"
                       defaultValue={user.vouchRoleId || ""}
                       placeholder="123456789..."
-                      disabled={!user.isPremium}
+                      disabled={!isPremium}
                       className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none"
                     />
                   </div>
-                  <div className={`space-y-2 ${!user.isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <div className={`space-y-2 ${!isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Success Emoji</label>
                     <input 
                       name="vouchEmoji"
                       defaultValue={user.vouchEmoji || "✅"}
                       placeholder="✅"
-                      disabled={!user.isPremium}
+                      disabled={!isPremium}
                       className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none"
                     />
                   </div>
                 </div>
-                {!user.isPremium && (
+                {!isPremium && (
                   <p className="text-[10px] text-amber-500/80 font-medium">Upgrade to Premium to unlock custom channels, role mentions, and custom emojis.</p>
                 )}
               </div>

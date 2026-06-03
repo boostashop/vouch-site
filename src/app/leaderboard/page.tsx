@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { ShieldCheck, MessageSquare, Star, Trophy, Award, TrendingUp, User as UserIcon, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { hasActivePremium } from "@/lib/premium"
 
 export const dynamic = "force-dynamic"
 
@@ -17,6 +18,7 @@ export default async function LeaderboardPage() {
       slug: true,
       image: true,
       isPremium: true,
+      premiumExpiresAt: true,
       _count: {
         select: { vouchesReceived: true }
       },
@@ -32,7 +34,7 @@ export default async function LeaderboardPage() {
     const avgRating = totalVouches > 0 
       ? user.vouchesReceived.reduce((acc, v) => acc + v.rating, 0) / totalVouches
       : 0
-    return { ...user, totalVouches, avgRating }
+    return { ...user, totalVouches, avgRating, premium: hasActivePremium(user) }
   }).sort((a, b) => b.totalVouches - a.totalVouches).slice(0, 50)
 
   return (
@@ -112,7 +114,7 @@ export default async function LeaderboardPage() {
                              <p className="font-black text-zinc-900 dark:text-white text-sm md:text-base truncate max-w-[120px] md:max-w-none">
                                {user.name || user.username}
                              </p>
-                             {user.isPremium && <ShieldCheck size={14} className="text-indigo-600 dark:text-indigo-400" />}
+                             {user.premium && <ShieldCheck size={14} className="text-indigo-600 dark:text-indigo-400" />}
                           </div>
                           <p className="text-[10px] text-zinc-400 font-bold">{user.slug ? `/u/${user.slug}` : "No public profile"}</p>
                        </div>

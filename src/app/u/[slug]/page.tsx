@@ -17,6 +17,7 @@ import {
 import Link from "next/link"
 import { Metadata } from "next"
 import { tokensToCSS, DesignTokens } from "@/types/design-tokens"
+import { hasActivePremium } from "@/lib/premium"
 
 interface PublicProfileProps {
   params: Promise<{ slug: string }>
@@ -51,6 +52,7 @@ export default async function PublicProfilePage({ params, searchParams }: Public
   if (!user) notFound()
 
   const vouchCount = user._count.vouchesReceived
+  const isPremium = hasActivePremium(user)
   const avgRating =
     vouchCount > 0
       ? user.vouchesReceived.reduce((acc: number, v: any) => acc + v.rating, 0) / vouchCount
@@ -149,7 +151,7 @@ export default async function PublicProfilePage({ params, searchParams }: Public
                   <ShieldCheck size={13} style={{ color: accentColor }} />
                   Verified Profile
                 </span>
-                {user.isPremium && (
+                {isPremium && (
                   <span className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 px-3 py-1 rounded-full text-xs font-bold">
                     <Zap size={13} fill="currentColor" />
                     Premium
@@ -271,7 +273,7 @@ export default async function PublicProfilePage({ params, searchParams }: Public
               {vouchCount >= 50 && <Badge icon={<ShieldCheck size={14} />} label="Trusted Seller" color="#6366f1" badgeBg={badgeBg} />}
               {vouchCount >= 100 && <Badge icon={<Trophy size={14} />} label="Hall of Fame" color="#f59e0b" badgeBg={badgeBg} />}
               {avgRating >= 4.8 && vouchCount >= 5 && <Badge icon={<Flame size={14} />} label="Top Rated" color="#f97316" badgeBg={badgeBg} />}
-              {user.isPremium && <Badge icon={<Zap size={14} />} label="Premium Member" color="#a855f7" badgeBg={badgeBg} />}
+              {isPremium && <Badge icon={<Zap size={14} />} label="Premium Member" color="#a855f7" badgeBg={badgeBg} />}
             </div>
           </div>
         )}

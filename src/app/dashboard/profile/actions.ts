@@ -4,6 +4,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { DesignTokens } from "@/types/design-tokens"
+import { hasActivePremium } from "@/lib/premium"
 
 export async function updateProfile(formData: FormData) {
   const session = await auth()
@@ -23,8 +24,9 @@ export async function updateProfile(formData: FormData) {
   // Basic slug validation (lowercase, alphanumeric, hyphens)
   const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "")
 
-  // Only premium users can save custom CSS
-  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isPremium: true } })
+  // Only premium users can save custom CSS / custom domain
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isPremium: true, premiumExpiresAt: true } })
+  const isPremium = hasActivePremium(user)
 
   try {
     await prisma.user.update({
@@ -38,8 +40,8 @@ export async function updateProfile(formData: FormData) {
         profileTheme,
         profileFontFamily: ["sans", "serif", "mono"].includes(profileFontFamily) ? profileFontFamily : "sans",
         profileBannerImage: profileBannerImage || null,
-        profileCustomCSS: user?.isPremium ? (profileCustomCSS || null) : undefined,
-        customDomain: customDomain || null,
+        profileCustomCSS: isPremium ? (profileCustomCSS || null) : undefined,
+        customDomain: isPremium ? (customDomain || null) : undefined,
       }
     })
   } catch (err) {
@@ -59,9 +61,9 @@ export async function saveDesignTokens(tokens: DesignTokens, slug: string) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { isPremium: true },
+    select: { isPremium: true, premiumExpiresAt: true },
   })
-  if (!user?.isPremium) throw new Error("Premium required")
+  if (!hasActivePremium(user)) throw new Error("Premium required")
 
   await prisma.user.update({
     where: { id: session.user.id },

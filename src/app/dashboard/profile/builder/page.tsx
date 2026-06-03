@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { ProfileBuilder } from "./ProfileBuilder"
 import { defaultDarkConfig, defaultLightConfig, ProfileDesignConfig } from "@/types/design-tokens"
+import { hasActivePremium } from "@/lib/premium"
 
 export default async function DesignStudioPage() {
   const session = await auth()
@@ -12,13 +13,14 @@ export default async function DesignStudioPage() {
     where: { id: session.user.id },
     select: {
       isPremium: true,
+      premiumExpiresAt: true,
       slug: true,
       profileTheme: true,
       profileDesignTokens: true,
     },
   })
 
-  if (!user?.isPremium) redirect("/dashboard/profile")
+  if (!hasActivePremium(user)) redirect("/dashboard/profile")
 
   if (!user?.slug) {
     return (
