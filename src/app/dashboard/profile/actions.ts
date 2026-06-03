@@ -28,6 +28,10 @@ export async function updateProfile(formData: FormData) {
   const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isPremium: true, premiumExpiresAt: true } })
   const isPremium = hasActivePremium(user)
 
+  // 'glass' is a premium-only theme; everyone else is limited to dark/light.
+  const allowedThemes = isPremium ? ["dark", "light", "glass"] : ["dark", "light"]
+  const theme = allowedThemes.includes(profileTheme) ? profileTheme : "dark"
+
   try {
     await prisma.user.update({
       where: { id: session.user.id },
@@ -37,7 +41,7 @@ export async function updateProfile(formData: FormData) {
         profileAccentColor,
         profileMetaTitle,
         profileMetaDescription,
-        profileTheme,
+        profileTheme: theme,
         profileFontFamily: ["sans", "serif", "mono"].includes(profileFontFamily) ? profileFontFamily : "sans",
         profileBannerImage: profileBannerImage || null,
         profileCustomCSS: isPremium ? (profileCustomCSS || null) : undefined,

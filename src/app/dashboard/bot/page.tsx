@@ -68,8 +68,8 @@ export default async function BotSettingsPage(props: {
               </div>
               <div className="space-y-3">
                 <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-black text-sm">2</div>
-                <h3 className="font-bold text-sm text-zinc-900 dark:text-white uppercase tracking-wider">Enable Intents</h3>
-                <p className="text-xs text-zinc-500 leading-relaxed">Scroll down to <strong>Privileged Gateway Intents</strong>. You <u>must</u> enable <strong>Server Members</strong> and <strong>Message Content</strong>.</p>
+                <h3 className="font-bold text-sm text-zinc-900 dark:text-white uppercase tracking-wider">Copy Token</h3>
+                <p className="text-xs text-zinc-500 leading-relaxed">Click <strong>Reset Token</strong> to reveal it, then paste it below. No privileged intents are required — vouches use slash commands.</p>
               </div>
               <div className="space-y-3">
                 <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-black text-sm">3</div>
@@ -107,8 +107,8 @@ export default async function BotSettingsPage(props: {
                 <div className="flex items-start gap-2 p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-lg">
                   <Info size={14} className="text-indigo-400 mt-0.5" />
                   <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-normal">
-                    You can find your token in the <strong>Discord Developer Portal</strong> under the &quot;Bot&quot; section. 
-                    Ensure the &quot;Message Content Intent&quot; is enabled.
+                    You can find your token in the <strong>Discord Developer Portal</strong> under the &quot;Bot&quot; section.
+                    Make sure you invite the bot with the <code>applications.commands</code> scope.
                   </p>
                 </div>
               </div>

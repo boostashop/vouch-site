@@ -63,7 +63,7 @@ model User {
   paymentCustomerId String?  @unique // customer id from the external payments site
   discordBotToken  String?
   telegramBotToken String?
-  customDomain     String?
+  customDomain     String?  @unique
   vouchesReceived  Vouch[]   @relation("ReceivedVouches")
 
   // Bot Customization - Vouch Command

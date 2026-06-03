@@ -101,7 +101,7 @@ export default async function ProfileSettingsPage() {
                 >
                   <option value="dark">Midnight (Dark)</option>
                   <option value="light">Daylight (Light)</option>
-                  <option value="glass">Glassmorphism - Premium</option>
+                  <option value="glass" disabled={!isPremium}>Glassmorphism{isPremium ? "" : " — Premium"}</option>
                 </select>
               </div>
 

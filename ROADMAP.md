@@ -94,12 +94,14 @@ Living checklist of outstanding work, derived from the full-project review on
       change bypasses immediately) instead of retrying every 60s and risking a
       rate-limit/ban. Telegram tokens are validated with `getMe` before launch
       (no more unhandled rejections from `launch()`).
-- [ ] **Discord intents vs setup guide mismatch** — guide tells users to enable
-      Message Content / Server Members; bot requests neither and doesn't need
-      them. Fix the guide copy.
-- [ ] **'glass' profile theme isn't premium-gated** despite its "Premium" label.
-- [ ] **`customDomain` lacks `@unique`** in the schema but is resolved with
-      `findFirst` — two users could claim the same domain.
+- [x] **Discord setup guide copy fixed** — no longer instructs users to enable
+      privileged Message Content / Server Members intents the bot doesn't use
+      (which also gate-keep verified bots); step now covers token + commands scope.
+- [x] **'glass' theme premium-gated** — `updateProfile` only accepts it for
+      premium users (others coerced to dark), and the option is disabled in the UI.
+- [x] **`customDomain` is now `@unique`** — matches the `findFirst` lookup and
+      the error message that already claimed uniqueness. _(Needs `prisma db push`
+      on deploy — see deploy steps above.)_
 - [ ] **Free-tier 50-vouch limit is racy** (count-then-create not atomic).
 - [ ] **`debug: true` in `auth.ts`** + very chatty bot logging (logs every
       Telegram update) — quiet down for production.
