@@ -1,10 +1,10 @@
+"use server"
+
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 
 export async function updateBotTokens(formData: FormData) {
-  "use server"
-
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
@@ -33,8 +33,6 @@ export async function updateBotTokens(formData: FormData) {
 }
 
 export async function removeBotToken(formData: FormData) {
-  "use server"
-
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
@@ -55,8 +53,6 @@ export async function removeBotToken(formData: FormData) {
 }
 
 export async function updateVouchSettings(formData: FormData) {
-  "use server"
-  
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
   
@@ -89,8 +85,6 @@ export async function updateVouchSettings(formData: FormData) {
 }
 
 export async function updateStatsSettings(formData: FormData) {
-  "use server"
-  
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
   
@@ -125,8 +119,6 @@ export async function updateStatsSettings(formData: FormData) {
 }
 
 export async function getBotGuildChannels(guildId: string) {
-  "use server"
-
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
