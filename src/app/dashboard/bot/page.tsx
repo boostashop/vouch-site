@@ -1,6 +1,6 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { updateBotTokens, updateVouchSettings, updateStatsSettings } from "./actions"
+import { updateBotTokens, updateVouchSettings, updateStatsSettings, removeBotToken } from "./actions"
 import { hasActivePremium } from "@/lib/premium"
 import { Shield, Info, Bot, Send, ExternalLink, CheckCircle2, MessageSquare, BarChart3, Lock, Settings2, Palette } from "lucide-react"
 import Link from "next/link"
@@ -96,12 +96,12 @@ export default async function BotSettingsPage(props: {
                 <label htmlFor="discordToken" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Bot Token
                 </label>
-                <input 
+                <input
                   type="password"
                   id="discordToken"
                   name="discordToken"
-                  defaultValue={user?.discordBotToken || ""}
-                  placeholder="MTAyN..."
+                  autoComplete="off"
+                  placeholder={user.discordBotToken ? "•••••••••• — paste a new token to replace" : "MTAyN..."}
                   className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono"
                 />
                 <div className="flex items-start gap-2 p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-lg">
@@ -115,10 +115,19 @@ export default async function BotSettingsPage(props: {
 
               <div className="pt-4 border-t border-zinc-200 dark:border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs text-zinc-500">
-                  <Shield size={14} className="text-green-500/50" />
-                  Encrypted at rest
+                  {user.discordBotToken ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Token connected · hidden for security
+                    </>
+                  ) : (
+                    <>
+                      <Shield size={14} className="text-zinc-400" />
+                      Write-only · never shown after saving
+                    </>
+                  )}
                 </div>
-                <button 
+                <button
                   type="submit"
                   className="bg-zinc-900 dark:bg-white text-white dark:text-black px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all active:scale-95"
                 >
@@ -126,6 +135,17 @@ export default async function BotSettingsPage(props: {
                 </button>
               </div>
             </form>
+
+            {user.discordBotToken && (
+              <div className="px-6 pb-6">
+                <form action={removeBotToken}>
+                  <input type="hidden" name="platform" value="discord" />
+                  <button type="submit" className="text-xs font-bold text-red-500 hover:text-red-400 transition-colors">
+                    Disconnect Discord bot
+                  </button>
+                </form>
+              </div>
+            )}
           </section>
 
           {/* Vouch Command Customization */}
@@ -364,12 +384,12 @@ export default async function BotSettingsPage(props: {
                 <label htmlFor="telegramToken" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Bot Token
                 </label>
-                <input 
+                <input
                   type="password"
                   id="telegramToken"
                   name="telegramToken"
-                  defaultValue={user?.telegramBotToken || ""}
-                  placeholder="123456789:ABC..."
+                  autoComplete="off"
+                  placeholder={user.telegramBotToken ? "•••••••••• — paste a new token to replace" : "123456789:ABC..."}
                   className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all font-mono"
                 />
                 <div className="flex items-start gap-2 p-3 bg-sky-500/5 border border-sky-500/10 rounded-lg">
@@ -383,11 +403,20 @@ export default async function BotSettingsPage(props: {
 
               <div className="pt-4 border-t border-zinc-200 dark:border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs text-zinc-500">
-                  <Shield size={14} className="text-green-500/50" />
-                  Encrypted at rest
+                  {user.telegramBotToken ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Token connected · hidden for security
+                    </>
+                  ) : (
+                    <>
+                      <Shield size={14} className="text-zinc-400" />
+                      Write-only · never shown after saving
+                    </>
+                  )}
                 </div>
                 <div className="flex gap-3">
-                  <button 
+                  <button
                     type="submit"
                     className="bg-zinc-900 dark:bg-white text-white dark:text-black px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all active:scale-95"
                   >
@@ -396,6 +425,17 @@ export default async function BotSettingsPage(props: {
                 </div>
               </div>
             </form>
+
+            {user.telegramBotToken && (
+              <div className="px-6 pb-2">
+                <form action={removeBotToken}>
+                  <input type="hidden" name="platform" value="telegram" />
+                  <button type="submit" className="text-xs font-bold text-red-500 hover:text-red-400 transition-colors">
+                    Disconnect Telegram bot
+                  </button>
+                </form>
+              </div>
+            )}
 
             {user?.telegramBotToken && !user.telegramId && (
               <div className="px-6 pb-6">

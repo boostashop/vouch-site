@@ -4,21 +4,53 @@ import { revalidatePath } from "next/cache"
 
 export async function updateBotTokens(formData: FormData) {
   "use server"
-  
+
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
-  
-  const discordToken = formData.get("discordToken") as string
-  const telegramToken = formData.get("telegramToken") as string
-  
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: {
-      discordBotToken: discordToken || null,
-      telegramBotToken: telegramToken || null,
-    }
-  })
-  
+
+  // Tokens are never echoed back to the client, so we can't treat a blank field
+  // as "clear" — that would wipe the token every save. Only fields that are
+  // present in *this* submission and non-empty are written; a blank field means
+  // "leave unchanged". (Each tab submits only its own field, so this also stops
+  // saving Discord from nulling the Telegram token and vice versa.) Use the
+  // explicit disconnect action to remove a token.
+  const data: { discordBotToken?: string; telegramBotToken?: string } = {}
+
+  if (formData.has("discordToken")) {
+    const v = (formData.get("discordToken") as string).trim()
+    if (v) data.discordBotToken = v
+  }
+  if (formData.has("telegramToken")) {
+    const v = (formData.get("telegramToken") as string).trim()
+    if (v) data.telegramBotToken = v
+  }
+
+  if (Object.keys(data).length > 0) {
+    await prisma.user.update({ where: { id: session.user.id }, data })
+  }
+
+  revalidatePath("/dashboard/bot")
+}
+
+export async function removeBotToken(formData: FormData) {
+  "use server"
+
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const platform = formData.get("platform")
+  if (platform === "discord") {
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { discordBotToken: null },
+    })
+  } else if (platform === "telegram") {
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { telegramBotToken: null },
+    })
+  }
+
   revalidatePath("/dashboard/bot")
 }
 

@@ -53,10 +53,15 @@ Living checklist of outstanding work, derived from the full-project review on
       user's saved Custom CSS can't break out of the `<style>` element either.
 - [x] **`postMessage` listener origin check** — preview-CSS listener now ignores
       cross-origin messages (`u/[slug]/page.tsx`).
-- [ ] **Bot tokens echoed to the browser** (`dashboard/bot/page.tsx` renders the
-      saved token as `defaultValue` in a password field) and stored plaintext.
-      Show a masked "configured" state; consider encrypting at rest.
-      (Note: the bot page also falsely claims "Encrypted at rest".)
+- [x] **Bot tokens no longer echoed to the browser** — the bot page stopped
+      pre-filling the saved token; it shows a "connected · hidden" state with a
+      dynamic placeholder and an explicit "Disconnect" action. Removed the false
+      "Encrypted at rest" label. Also fixed a data-loss bug: each tab posted only
+      its own field, so saving one platform's token nulled the other's — the
+      action now only writes fields present and non-empty in the submission.
+- [ ] **Encrypt bot tokens at rest** (still plaintext in Postgres). Needs an
+      encryption key, encrypt-on-write in the action, decrypt-on-read in
+      `bot-manager.ts`, and a migration path for existing plaintext rows.
 - [x] **Telegram/Discord proof URLs** — proofs are now only ever persisted via
       R2 (`persistProofToR2`); we never store the source URL (Telegram's embeds
       the bot token, Discord's is a short-lived CDN link). If a required proof
