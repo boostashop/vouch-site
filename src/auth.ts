@@ -6,6 +6,7 @@ import Credentials from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 
 import Resend from "next-auth/providers/resend"
+import { magicLinkEmail } from "@/lib/email"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -14,6 +15,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Resend({
       apiKey: process.env.AUTH_RESEND_KEY,
       from: process.env.EMAIL_FROM || "onboarding@resend.dev",
+      async sendVerificationRequest({ identifier: to, url, provider }) {
+        const { subject, html, text } = magicLinkEmail(url, to)
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${provider.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ from: provider.from, to, subject, html, text }),
+        })
+        if (!res.ok) {
+          throw new Error("Resend error: " + JSON.stringify(await res.json()))
+        }
+      },
     }),
     Credentials({
       name: "credentials",
