@@ -17,6 +17,24 @@ import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
 
+// Persist a remote proof image to R2 and return its public URL, or null if R2
+// isn't configured or the upload fails. We deliberately never fall back to the
+// source URL: Discord CDN links are short-lived, and Telegram file links embed
+// the bot token (`/file/bot<TOKEN>/…`) — storing either would break the image or
+// leak the token on the public profile.
+async function persistProofToR2(sourceUrl: string, key: string, contentType: string): Promise<string | null> {
+  if (!process.env.R2_ENDPOINT) return null;
+  try {
+    const response = await fetch(sourceUrl);
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return await uploadToR2(buffer, key, contentType);
+  } catch (err) {
+    console.error('Failed to persist proof to R2:', err);
+    return null;
+  }
+}
+
 // Multi-tenant manager to keep track of active bot instances
 class BotManager {
   private discordClients: Map<string, Client> = new Map();
@@ -208,21 +226,17 @@ class BotManager {
           return interaction.reply({ content: '❌ This user requires proof (screenshot) for every vouch.', ephemeral: true });
         }
 
-        let proofUrl = proof?.url || null;
+        let proofUrl: string | null = null;
 
         if (proof) {
-          try {
-            const response = await fetch(proof.url);
-            const arrayBuffer = await response.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            const fileExtension = proof.name.split('.').pop() || 'png';
-            const key = `proofs/${uuidv4()}.${fileExtension}`;
-            
-            if (process.env.R2_ENDPOINT) {
-              proofUrl = await uploadToR2(buffer, key, proof.contentType || 'image/png');
-            }
-          } catch (uploadErr) {
-            console.error('Failed to upload proof to R2:', uploadErr);
+          const fileExtension = proof.name.split('.').pop() || 'png';
+          const key = `proofs/${uuidv4()}.${fileExtension}`;
+          proofUrl = await persistProofToR2(proof.url, key, proof.contentType || 'image/png');
+
+          // If proof is mandatory but we couldn't store it, don't save a
+          // proofless vouch — ask them to retry rather than silently dropping it.
+          if (user.vouchRequireProof && !proofUrl) {
+            return interaction.reply({ content: '❌ Could not save your proof image right now (storage unavailable). Please try again later.', ephemeral: true });
           }
         }
 
@@ -495,21 +509,14 @@ class BotManager {
 
         const photo = ctx.message.photo[ctx.message.photo.length - 1];
         const fileLink = await ctx.telegram.getFileLink(photo.file_id);
-        
-        let proofUrl = fileLink.toString();
-        
-        // Upload to R2 if configured
-        try {
-          const response = await fetch(fileLink.toString());
-          const arrayBuffer = await response.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          const key = `proofs/tg-${uuidv4()}.jpg`;
-          
-          if (process.env.R2_ENDPOINT) {
-            proofUrl = await uploadToR2(buffer, key, 'image/jpeg');
-          }
-        } catch (uploadErr) {
-          console.error('Failed to upload Telegram proof to R2:', uploadErr);
+        const key = `proofs/tg-${uuidv4()}.jpg`;
+        const proofUrl = await persistProofToR2(fileLink.toString(), key, 'image/jpeg');
+
+        // The photo IS the proof here, so if we can't store it, don't save a
+        // "with proof" vouch — and never persist the Telegram link (it embeds
+        // the bot token).
+        if (!proofUrl) {
+          return ctx.reply('❌ Could not save your proof image right now (storage unavailable). Please try again later.');
         }
 
         await prisma.vouch.create({

@@ -57,9 +57,11 @@ Living checklist of outstanding work, derived from the full-project review on
       saved token as `defaultValue` in a password field) and stored plaintext.
       Show a masked "configured" state; consider encrypting at rest.
       (Note: the bot page also falsely claims "Encrypted at rest".)
-- [ ] **Telegram proof URLs leak the bot token** when R2 is unconfigured
-      (`bot-manager.ts` stores the `api.telegram.org/file/bot<TOKEN>/…` URL).
-      Require R2 for proofs; drop proof on upload failure.
+- [x] **Telegram/Discord proof URLs** — proofs are now only ever persisted via
+      R2 (`persistProofToR2`); we never store the source URL (Telegram's embeds
+      the bot token, Discord's is a short-lived CDN link). If a required proof
+      can't be stored, the vouch is rejected with a retry message rather than
+      saved proofless or with a leaky link.
 
 ---
 
