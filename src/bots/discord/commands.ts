@@ -132,6 +132,28 @@ export function buildDiscordCommands() {
       .setName("export")
       .setDescription("Export all vouch data as JSON (Owner only, Premium)")
       .toJSON(),
+    new SlashCommandBuilder()
+      .setName("reply")
+      .setDescription("Reply to a specific vouch (Owner only)")
+      .addStringOption((opt) =>
+        opt.setName("vouch_id").setDescription("ID of the vouch to reply to").setRequired(true),
+      )
+      .addStringOption((opt) =>
+        opt.setName("response").setDescription("Your reply to the vouch").setRequired(true),
+      )
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName("import")
+      .setDescription("Import existing vouches from this text channel (Owner only)")
+      .addIntegerOption((opt) =>
+        opt
+          .setName("limit")
+          .setDescription("Maximum number of messages to scan (default 100, max 500)")
+          .setRequired(false)
+          .setMinValue(1)
+          .setMaxValue(500),
+      )
+      .toJSON(),
   ]
 }
 

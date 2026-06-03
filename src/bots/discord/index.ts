@@ -809,9 +809,14 @@ async function handleDiscordInteraction(
 
       recentVouches.forEach((v, index) => {
         const stars = "⭐".repeat(v.rating)
+        let val = `"${v.comment || "No comment"}"`
+        if (v.sellerReply) {
+          val += `\n↳ *Response:* "${v.sellerReply}"`
+        }
+        val += `\n_Date: ${v.createdAt.toLocaleDateString()}_`
         embed.addFields({
           name: `Vouch #${index + 1} from ${v.giverName} (${stars})`,
-          value: `"${v.comment || "No comment"}"\n_Date: ${v.createdAt.toLocaleDateString()}_`
+          value: val
         })
       })
 
@@ -856,9 +861,14 @@ async function handleDiscordInteraction(
 
       results.forEach((v, index) => {
         const stars = "⭐".repeat(v.rating)
+        let val = `"${v.comment || "No comment"}"`
+        if (v.sellerReply) {
+          val += `\n↳ *Response:* "${v.sellerReply}"`
+        }
+        val += `\n_ID: ${v.id} • ${v.createdAt.toLocaleDateString()}_`
         embed.addFields({
           name: `Result #${index + 1} | By: ${v.giverName} (${stars})`,
-          value: `"${v.comment || "No comment"}"\n_ID: ${v.id} • ${v.createdAt.toLocaleDateString()}_`
+          value: val
         })
       })
 
@@ -985,6 +995,146 @@ async function handleDiscordInteraction(
       console.error("Failed to export vouches:", err)
       return interaction.editReply({
         content: "❌ Failed to export vouch data.",
+      })
+    }
+  }
+
+  if (interaction.commandName === "reply") {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.discordId !== interaction.user.id) {
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+    }
+
+    const vouchId = interaction.options.getString("vouch_id", true)
+    const response = interaction.options.getString("response", true)
+
+    try {
+      const vouch = await prisma.vouch.findUnique({
+        where: { id: vouchId },
+      })
+
+      if (!vouch || vouch.receiverId !== userId) {
+        return interaction.reply({ content: "❌ Vouch not found or unauthorized.", ephemeral: true })
+      }
+
+      await prisma.vouch.update({
+        where: { id: vouchId },
+        data: { sellerReply: response },
+      })
+
+      if (interaction.guildId) {
+        await updatePinnedLiveCard(interaction.client, userId, interaction.guildId)
+      }
+
+      return interaction.reply({
+        content: `✅ Successfully replied to vouch \`${vouchId}\`!\n\n**Reply:** "${response}"`,
+        ephemeral: true,
+      })
+    } catch (err: any) {
+      return interaction.reply({
+        content: `❌ Error: ${err.message}`,
+        ephemeral: true,
+      })
+    }
+  }
+
+  if (interaction.commandName === "import") {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.discordId !== interaction.user.id) {
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+    }
+
+    const limit = interaction.options.getInteger("limit") || 100
+    await interaction.deferReply({ ephemeral: true })
+
+    try {
+      let messagesList: any[] = []
+      let lastId = undefined
+      let remaining = limit
+
+      while (remaining > 0) {
+        const fetchLimit = Math.min(remaining, 100)
+        const options: any = { limit: fetchLimit }
+        if (lastId) {
+          options.before = lastId
+        }
+        const batch: any = await interaction.channel?.messages.fetch(options)
+        if (!batch || batch.size === 0) break
+
+        messagesList = messagesList.concat(Array.from(batch.values()))
+        lastId = batch.lastKey()
+        remaining -= batch.size
+        if (batch.size < fetchLimit) break
+      }
+
+      let importedCount = 0
+      for (const msg of messagesList) {
+        if (msg.author.bot) continue
+
+        const cleanContent = msg.content?.trim() || ""
+        if (cleanContent.length < 4) continue
+
+        const dup = await prisma.vouch.findFirst({
+          where: {
+            receiverId: userId,
+            platform: "discord",
+            giverId: msg.author.id,
+            comment: cleanContent,
+          }
+        })
+        if (dup) continue
+
+        let rating = 5
+        const starCount = (cleanContent.match(/⭐|🌟/g) || []).length
+        if (starCount >= 1 && starCount <= 5) {
+          rating = starCount
+        } else {
+          const matchFraction = cleanContent.match(/([1-5])\/5/)
+          if (matchFraction) {
+            rating = parseInt(matchFraction[1])
+          }
+        }
+
+        let proofUrl = null
+        const firstAttachment = msg.attachments.first()
+        if (firstAttachment) {
+          try {
+            const ext = firstAttachment.name.split(".").pop() || "png"
+            const key = proofKey("discord", ext)
+            proofUrl = await persistProofToR2(firstAttachment.url, key, firstAttachment.contentType || "image/png")
+          } catch (err) {
+            console.error("Failed to upload import attachment:", err)
+          }
+        }
+
+        await prisma.vouch.create({
+          data: {
+            receiverId: userId,
+            platform: "discord",
+            giverId: msg.author.id,
+            giverName: msg.author.username,
+            sourceId: interaction.guildId || "DM",
+            sourceName: interaction.guild?.name ?? null,
+            rating,
+            comment: cleanContent,
+            proofImageUrl: proofUrl,
+            createdAt: msg.createdAt,
+          }
+        })
+        importedCount++
+      }
+
+      if (interaction.guildId) {
+        await updatePinnedLiveCard(interaction.client, userId, interaction.guildId)
+      }
+
+      return interaction.editReply({
+        content: `✅ Successfully imported **${importedCount}** vouches from this channel's history!`,
+      })
+    } catch (err: any) {
+      console.error("Import failed:", err)
+      return interaction.editReply({
+        content: `❌ Import failed: ${err.message}`,
       })
     }
   }

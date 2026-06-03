@@ -129,6 +129,7 @@ model Vouch {
   status          VouchStatus @default(ACTIVE) // ACTIVE | FLAGGED | REMOVED (soft-delete)
   type            String?  // sale | service | trade | other
   sourceName      String?  // server / group name for context
+  sellerReply     String?
   editedAt        DateTime?
   createdAt       DateTime @default(now())
 

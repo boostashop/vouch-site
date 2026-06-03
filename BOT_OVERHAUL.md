@@ -214,9 +214,9 @@ Architecture / library notes:
 - [x] Role rewards [P].
 
 ### Phase 5 — Migration & growth
-- [ ] Import existing vouches from channel/chat history.
-- [ ] Negative-review + seller-reply flow.
-- [ ] Weekly summary [P].
+- [x] Import existing vouches from channel/chat history.
+- [x] Negative-review + seller-reply flow.
+- [x] Weekly summary [P].
 
 ---
 

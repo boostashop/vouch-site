@@ -690,8 +690,11 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
       let text = `🕒 *Recent Vouches for ${user.name || user.username || "Seller"}*\n\n`
       recentVouches.forEach((v, index) => {
         text += `*Vouch #${index + 1} from ${v.giverName}* (${"⭐".repeat(v.rating)})\n` +
-                `_"${v.comment || "No comment"}"_\n` +
-                `_Date: ${v.createdAt.toLocaleDateString()}_\n\n`
+                `_"${v.comment || "No comment"}"_\n`
+        if (v.sellerReply) {
+          text += `↳ *Response:* _"${v.sellerReply}"_\n`
+        }
+        text += `_Date: ${v.createdAt.toLocaleDateString()}_\n\n`
       })
 
       await ctx.reply(text, { parse_mode: "Markdown" })
@@ -817,6 +820,52 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
       console.error("Failed to export Telegram vouches:", err)
       return ctx.reply("❌ Failed to export vouch data.")
     }
+  })
+
+  bot.command("reply", async (ctx) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.telegramId !== ctx.from.id.toString()) {
+      return ctx.reply("❌ Only the owner can use this command.")
+    }
+
+    const args = ctx.message.text.split(" ").slice(1)
+    const vouchId = args[0]
+    const response = args.slice(1).join(" ")
+
+    if (!vouchId || !response) {
+      return ctx.reply("❌ **Usage:** `/reply <vouch_id> <your reply text>`", { parse_mode: "Markdown" })
+    }
+
+    try {
+      const vouch = await prisma.vouch.findUnique({
+        where: { id: vouchId },
+      })
+
+      if (!vouch || vouch.receiverId !== userId) {
+        return ctx.reply("❌ Vouch not found or unauthorized.")
+      }
+
+      await prisma.vouch.update({
+        where: { id: vouchId },
+        data: { sellerReply: response },
+      })
+
+      return ctx.reply(`✅ Successfully replied to vouch \`${vouchId}\`!\n\n**Reply:** "${response}"`)
+    } catch (err: any) {
+      return ctx.reply(`❌ Error: ${err.message}`)
+    }
+  })
+
+  bot.command("import", async (ctx) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.telegramId !== ctx.from.id.toString()) {
+      return ctx.reply("❌ Only the owner can use this command.")
+    }
+
+    return ctx.reply(
+      "❌ **Telegram Bot API Limitation:** Standard bots cannot fetch chat history. " +
+      "To import existing vouches on Telegram, please contact support or use the web importer."
+    )
   })
 
   // Validate the token before committing — getMe throws on a bad/revoked

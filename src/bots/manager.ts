@@ -1,8 +1,9 @@
-import { Client } from "discord.js"
+import { Client, EmbedBuilder } from "discord.js"
 import { Telegraf } from "telegraf"
 import { prisma } from "./prisma"
 import { spawnDiscordBot } from "./discord"
 import { spawnTelegramBot } from "./telegram"
+import { hasActivePremium } from "./vouch-service"
 
 // After a spawn fails for a given token, wait this long before retrying that
 // same token — otherwise a bad/revoked token gets retried every poll (60s) and
@@ -28,10 +29,14 @@ export class BotManager {
     // Poll for new tokens every 60 seconds (or use a DB trigger/event in a real prod env)
     const interval = setInterval(() => this.syncBots(), 60000)
 
+    // Check every hour for weekly summary sending time
+    const summaryInterval = setInterval(() => this.sendWeeklySummaries(), 3600000)
+
     // Enable graceful stop
     const shutdown = async (signal: string) => {
       console.log(`Received ${signal}. Shutting down Bot Manager...`)
       clearInterval(interval)
+      clearInterval(summaryInterval)
 
       for (const [userId, { client }] of this.discordClients) {
         console.log(`Destroying Discord client for ${userId}`)
@@ -108,6 +113,91 @@ export class BotManager {
         existingTelegram.bot.stop("SIGTERM")
         this.telegramBots.delete(user.id)
         this.failedSpawns.delete(telegramKey)
+      }
+    }
+  }
+
+  async sendWeeklySummaries() {
+    const now = new Date()
+    // Trigger weekly summary on Sunday at 18:00 (6 PM) local time
+    if (now.getDay() !== 0 || now.getHours() !== 18) {
+      return
+    }
+
+    console.log("Generating weekly reputation summaries for premium users...")
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [{ discordBotToken: { not: null } }, { telegramBotToken: { not: null } }],
+      },
+    })
+
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+    for (const user of users) {
+      const isPremium = hasActivePremium(user)
+      if (!isPremium) continue // premium-gated
+
+      try {
+        // Fetch new vouches in last 7 days
+        const newVouches = await prisma.vouch.findMany({
+          where: {
+            receiverId: user.id,
+            status: "ACTIVE",
+            createdAt: { gte: sevenDaysAgo },
+          },
+        })
+
+        const totalVouches = await prisma.vouch.count({
+          where: { receiverId: user.id, status: "ACTIVE" },
+        })
+
+        const newCount = newVouches.length
+        const newAverage = newCount > 0
+          ? (newVouches.reduce((acc, v) => acc + v.rating, 0) / newCount).toFixed(1)
+          : "0.0"
+
+        const summaryTitle = "📊 Your Weekly Reputation Summary"
+        const summaryDesc = `Here is your Vouched.to performance overview for the past 7 days:\n\n` +
+          `• **New Reviews:** \`${newCount}\`\n` +
+          `• **Weekly Avg Rating:** \`⭐ ${newAverage} / 5.0\`\n` +
+          `• **Total Reviews Overall:** \`${totalVouches}\`\n\n` +
+          `Keep up the great work! 🚀`
+
+        // Send via Discord DM if possible
+        if (user.discordId) {
+          const discordClientInfo = this.discordClients.get(user.id)
+          if (discordClientInfo) {
+            try {
+              const ownerUser = await discordClientInfo.client.users.fetch(user.discordId)
+              if (ownerUser) {
+                const embed = new EmbedBuilder()
+                  .setTitle(summaryTitle)
+                  .setColor("#10B981")
+                  .setDescription(summaryDesc)
+                  .setFooter({ text: "Vouched.to • Weekly Summary" })
+                  .setTimestamp()
+                await ownerUser.send({ embeds: [embed] })
+              }
+            } catch (err) {
+              console.error(`Failed to send weekly summary Discord DM to ${user.id}:`, err)
+            }
+          }
+        }
+
+        // Send via Telegram message if possible
+        if (user.telegramId) {
+          const telegramBotInfo = this.telegramBots.get(user.id)
+          if (telegramBotInfo) {
+            try {
+              const text = `📊 *${summaryTitle}*\n\n${summaryDesc.replace(/• \*\*/g, '• *').replace(/\*\*/g, '*')}`
+              await telegramBotInfo.bot.telegram.sendMessage(user.telegramId, text, { parse_mode: "Markdown" })
+            } catch (err) {
+              console.error(`Failed to send weekly summary Telegram message to ${user.id}:`, err)
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to process weekly summary for user ${user.id}:`, err)
       }
     }
   }
