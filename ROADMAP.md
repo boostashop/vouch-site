@@ -137,5 +137,6 @@ Living checklist of outstanding work, derived from the full-project review on
       `SESSION_SUMMARY.md`, `DEPLOY.md`) — several are stale/contradictory.
 - [ ] Add dark-mode variants to admin pages (`admin/settings`, `admin/users` are
       hardcoded dark).
-- [ ] No tests anywhere — add at least webhook-signature + `hasActivePremium`
-      coverage.
+- [x] **First test suite added** — `npm test` (node:test + tsx, no new deps)
+      covers `verifyWebhookSignature` (valid/tampered/stale/missing), `getCheckoutUrl`,
+      `hasActivePremium`, and the `</style` XSS sanitizer. 15 tests passing.
