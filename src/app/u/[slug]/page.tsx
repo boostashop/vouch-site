@@ -16,8 +16,9 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { Metadata } from "next"
-import { tokensToCSS, sanitizeStyleContent, DesignTokens } from "@/types/design-tokens"
+import { tokensToCSS, sanitizeStyleContent, DesignTokens, defaultLightTokens, defaultDarkTokens } from "@/types/design-tokens"
 import { hasActivePremium } from "@/lib/premium"
+import { getSignedProofUrl } from "@/lib/proof-url"
 
 const VOUCHES_PER_PAGE = 30
 
@@ -71,8 +72,10 @@ export default async function PublicProfilePage({ params, searchParams }: Public
   const bannerImage = user.profileBannerImage || null
 
   // Design token CSS from the user's saved tokens (sanitized in tokensToCSS).
-  const activeTokens = (user.profileDesignTokens as unknown as DesignTokens) || null
-  const tokenCSS = activeTokens ? tokensToCSS(activeTokens) : null
+  const defaults = theme === "light" ? defaultLightTokens : defaultDarkTokens
+  const saved = user.profileDesignTokens as Record<string, unknown> | null
+  const activeTokens = saved && "pageBgType" in saved ? (saved as unknown as DesignTokens) : defaults
+  const tokenCSS = tokensToCSS(activeTokens)
 
   const fontMap: Record<string, string> = {
     sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -253,7 +256,7 @@ export default async function PublicProfilePage({ params, searchParams }: Public
                   {vouch.proofImageUrl && (
                     <div className={`rounded-2xl overflow-hidden border ${divider}`}>
                       <img
-                        src={vouch.proofImageUrl}
+                        src={getSignedProofUrl(vouch.proofImageUrl) || undefined}
                         alt="Proof"
                         className="w-full max-h-[400px] object-contain"
                       />

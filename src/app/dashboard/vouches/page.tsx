@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { MessageSquare, Star, ExternalLink, Calendar } from "lucide-react"
+import { getSignedProofUrl } from "@/lib/proof-url"
 
 export default async function VouchesPage() {
   const session = await auth()
@@ -47,7 +48,7 @@ export default async function VouchesPage() {
                      {new Date(vouch.createdAt).toLocaleDateString()}
                    </div>
                    {vouch.proofImageUrl && (
-                     <a href={vouch.proofImageUrl} target="_blank" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors">
+                     <a href={getSignedProofUrl(vouch.proofImageUrl) || undefined} target="_blank" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors">
                        View Proof <ExternalLink size={10} />
                      </a>
                    )}

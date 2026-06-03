@@ -147,3 +147,34 @@ export async function getBotGuildChannels(guildId: string) {
     return []
   }
 }
+
+export async function getBotGuildRoles(guildId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id }
+  })
+  if (!user || !user.discordBotToken) throw new Error("Bot not configured")
+
+  try {
+    const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
+      headers: {
+        Authorization: `Bot ${user.discordBotToken}`
+      }
+    })
+    if (!response.ok) {
+      throw new Error("Failed to fetch roles")
+    }
+    const roles = await response.json()
+    // Filter out @everyone (role ID == guild ID) and managed roles, then sort by name
+    return roles
+      .filter((r: any) => r.id !== guildId && !r.managed)
+      .map((r: any) => ({ id: r.id, name: r.name }))
+      .sort((a: any, b: any) => a.name.localeCompare(b.name))
+  } catch (err) {
+    console.error("Error fetching roles:", err)
+    return []
+  }
+}
+

@@ -5,20 +5,21 @@ import type { NextRequest } from "next/server"
 
 const { auth } = NextAuth(authConfig)
 
+let authHost = ""
+if (process.env.AUTH_URL) {
+  try {
+    authHost = new URL(process.env.AUTH_URL).hostname
+  } catch {}
+}
+
 // Hosts that are the main app (not custom domains)
 function isMainHost(hostname: string): boolean {
   if (hostname.startsWith("localhost")) return true
   if (hostname.match(/^\d+\.\d+\.\d+\.\d+/)) return true // IP addresses
   const appHost = process.env.NEXT_PUBLIC_APP_HOST
   if (appHost && hostname === appHost) return true
-  // Derive from AUTH_URL if set
-  if (process.env.AUTH_URL) {
-    try {
-      const authHost = new URL(process.env.AUTH_URL).hostname
-      if (hostname === authHost) return true
-      if (hostname === `www.${authHost}`) return true
-    } catch {}
-  }
+  if (authHost && hostname === authHost) return true
+  if (authHost && hostname === `www.${authHost}`) return true
   return false
 }
 

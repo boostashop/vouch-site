@@ -16,6 +16,7 @@ import {
   isMilestone,
   getActiveConfig,
 } from "../vouch-service"
+import { getSignedProofUrl } from "../../lib/proof-url"
 
 const TELEGRAM_COMMANDS = [
   { command: "vouch", description: "Leave a vouch: /vouch <1-5> <comment>" },
@@ -430,7 +431,12 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
 
       try {
         if (vouch.proofImageUrl) {
-          await ctx.replyWithPhoto(vouch.proofImageUrl, { caption: text, parse_mode: "Markdown" })
+          const signedUrl = getSignedProofUrl(vouch.proofImageUrl)
+          if (signedUrl) {
+            await ctx.replyWithPhoto(signedUrl, { caption: text, parse_mode: "Markdown" })
+          } else {
+            await ctx.reply(text, { parse_mode: "Markdown" })
+          }
         } else {
           await ctx.reply(text, { parse_mode: "Markdown" })
         }

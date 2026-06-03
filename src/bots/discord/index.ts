@@ -33,6 +33,7 @@ import {
   getActiveConfig,
 } from "../vouch-service"
 import { registerDiscordCommands } from "./commands"
+import { getSignedProofUrl } from "../../lib/proof-url"
 
 // In-memory cache for pending modal/button vouches to support preview/confirmation
 const pendingDiscordVouches = new Map<string, { receiverId: string; rating: number; comment: string }>()
@@ -285,7 +286,7 @@ async function handleDiscordInteraction(
       }
 
       if (proofUrl) {
-        embed.setImage(proofUrl)
+        embed.setImage(getSignedProofUrl(proofUrl)!)
       }
 
       // Handle Custom Channel/Role/Emoji for Premium
@@ -500,7 +501,10 @@ async function handleDiscordInteraction(
 
       const messageOptions: { content: string; files?: string[] } = { content }
       if (vouch.proofImageUrl) {
-        messageOptions.files = [vouch.proofImageUrl]
+        const signedUrl = getSignedProofUrl(vouch.proofImageUrl)
+        if (signedUrl) {
+          messageOptions.files = [signedUrl]
+        }
       }
 
       try {

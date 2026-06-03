@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { MessageSquare, Trash2, ExternalLink, Calendar, Star, User, ShieldAlert } from "lucide-react"
 import { deleteVouch } from "../actions"
+import { getSignedProofUrl } from "@/lib/proof-url"
 
 export default async function AdminVouchesPage() {
   const vouches = await prisma.vouch.findMany({
@@ -68,7 +69,7 @@ export default async function AdminVouchesPage() {
                       </div>
                       {vouch.proofImageUrl && (
                         <a 
-                          href={vouch.proofImageUrl} 
+                          href={getSignedProofUrl(vouch.proofImageUrl) || undefined} 
                           target="_blank" 
                           className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all"
                         >
