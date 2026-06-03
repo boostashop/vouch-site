@@ -136,3 +136,23 @@ model Vouch {
 
   @@index([receiverId, createdAt])
 }
+
+model Blacklist {
+  id        String   @id @default(cuid())
+  userId    String   // owner
+  platform  String   // discord | telegram
+  blockedId String   // giver id
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, platform, blockedId])
+}
+
+model VouchReport {
+  id         String   @id @default(cuid())
+  vouchId    String
+  reporterId String
+  reason     String?
+  createdAt  DateTime @default(now())
+}
+

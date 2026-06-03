@@ -185,17 +185,17 @@ Architecture / library notes:
 ## 5. Phased rollout (prioritised)
 
 ### Phase 0 — Foundations (do first)
-- [ ] Refactor `bot-manager.ts` into `discord/`, `telegram/`, shared
+- [x] Refactor `bot-manager.ts` into `discord/`, `telegram/`, shared
       `vouch-service.ts`.
-- [ ] Schema: `Vouch.status` + soft-delete, `editedAt`, `type`, `sourceName`,
+- [x] Schema: `Vouch.status` + soft-delete, `editedAt`, `type`, `sourceName`,
       `@@index([receiverId, createdAt])`. Migrate (`prisma db push` on VPS).
-- [ ] Telegram `setMyCommands`; add `/help` on both platforms.
+- [x] Telegram `setMyCommands`; add `/help` on both platforms.
 
 ### Phase 1 — Anti-abuse & integrity (highest trust ROI)
-- [ ] Self-vouch block, rate limit/cooldown, min comment length.
-- [ ] `Blacklist` model + `/blacklist add|remove`.
-- [ ] Report flow (`VouchReport`) + `/moderate` queue + vouch `status`.
-- [ ] Per-vouch web permalink on cards.
+- [x] Self-vouch block, rate limit/cooldown, min comment length.
+- [x] `Blacklist` model + `/blacklist add|remove`.
+- [x] Report flow (`VouchReport`) + `/moderate` queue + vouch `status`.
+- [x] Per-vouch web permalink on cards.
 
 ### Phase 2 — Frictionless input
 - [ ] Discord button + modal vouch flow.

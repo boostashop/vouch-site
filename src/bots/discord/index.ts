@@ -13,6 +13,13 @@ import {
   getLeaderboardRank,
   proofKey,
   FREE_VOUCH_LIMIT,
+  validateVouchRules,
+  addToBlacklist,
+  removeFromBlacklist,
+  reportVouch,
+  getPendingReports,
+  approveVouch,
+  removeVouch,
 } from "../vouch-service"
 import { registerDiscordCommands } from "./commands"
 
@@ -70,6 +77,9 @@ async function handleDiscordInteraction(
       .addFields(
         { name: "/vouch", value: "Leave a vouch: a 1–5 rating, a comment, and an optional proof screenshot." },
         { name: "/stats", value: "View this profile's vouch count, average score, and leaderboard rank." },
+        { name: "/report <vouch_id> [reason]", value: "Report a vouch to the owner for moderation." },
+        { name: "/blacklist <add|remove> <user_id> [reason]", value: "Owner only — Manage blacklisted users." },
+        { name: "/moderate <list|approve|remove>", value: "Owner only — Manage reported/flagged vouches." },
         { name: "/restore", value: "Owner only — re-post the full vouch history into this channel." },
       )
       .setFooter({ text: "Powered by Vouched.to" })
@@ -109,6 +119,21 @@ async function handleDiscordInteraction(
         })
       }
 
+      // Run Phase 1 anti-abuse and validation rules
+      try {
+        await validateVouchRules({
+          receiverId: userId,
+          giverId: interaction.user.id,
+          platform: "discord",
+          comment,
+        })
+      } catch (validationErr: any) {
+        return interaction.reply({
+          content: `❌ ${validationErr.message}`,
+          ephemeral: true,
+        })
+      }
+
       let proofUrl: string | null = null
 
       if (proof) {
@@ -126,7 +151,7 @@ async function handleDiscordInteraction(
         }
       }
 
-      await prisma.vouch.create({
+      const createdVouch = await prisma.vouch.create({
         data: {
           receiverId: userId,
           platform: "discord",
@@ -141,14 +166,22 @@ async function handleDiscordInteraction(
         },
       })
 
+      // Generate permalink
+      const baseUrl = process.env.AUTH_URL || "https://vouched.to"
+      const permalink = user.slug ? `${baseUrl}/u/${user.slug}#vouch-${createdVouch.id}` : null
+
       // Build Custom Embed
       const stars = "⭐".repeat(rating)
       const embed = new EmbedBuilder()
         .setTitle(user.vouchEmbedTitle)
         .setColor(user.vouchEmbedColor as any)
-        .setFooter({ text: user.vouchEmbedFooter })
+        .setFooter({ text: `${user.vouchEmbedFooter} • ID: ${createdVouch.id}` })
         .setTimestamp()
         .addFields({ name: "Vouch:", value: comment }, { name: "Rating:", value: stars, inline: true })
+
+      if (permalink) {
+        embed.setURL(permalink)
+      }
 
       if (user.vouchShowCount) {
         embed.addFields({
@@ -321,5 +354,136 @@ async function handleDiscordInteraction(
     }
 
     await interaction.followUp({ content: "✅ Restoration complete!", ephemeral: true })
+  }
+
+  if (interaction.commandName === "blacklist") {
+    // Check if it's the owner
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.discordId !== interaction.user.id) {
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+    }
+
+    const subcommand = interaction.options.getSubcommand()
+    const targetUserId = interaction.options.getString("user_id", true)
+
+    if (subcommand === "add") {
+      const reason = interaction.options.getString("reason")
+      await addToBlacklist({
+        userId,
+        platform: "discord",
+        blockedId: targetUserId,
+        reason,
+      })
+      return interaction.reply({
+        content: `✅ User with ID \`${targetUserId}\` has been blacklisted.`,
+        ephemeral: true,
+      })
+    } else if (subcommand === "remove") {
+      const success = await removeFromBlacklist({
+        userId,
+        platform: "discord",
+        blockedId: targetUserId,
+      })
+      if (success) {
+        return interaction.reply({
+          content: `✅ User with ID \`${targetUserId}\` has been removed from the blacklist.`,
+          ephemeral: true,
+        })
+      } else {
+        return interaction.reply({
+          content: `❌ User with ID \`${targetUserId}\` was not on the blacklist.`,
+          ephemeral: true,
+        })
+      }
+    }
+  }
+
+  if (interaction.commandName === "report") {
+    const vouchId = interaction.options.getString("vouch_id", true)
+    const reason = interaction.options.getString("reason")
+
+    try {
+      await reportVouch({
+        vouchId,
+        reporterId: interaction.user.id,
+        reason,
+      })
+      return interaction.reply({
+        content: `⚠️ Vouch \`${vouchId}\` has been reported to the seller for moderation.`,
+        ephemeral: true,
+      })
+    } catch (err: any) {
+      return interaction.reply({
+        content: `❌ Error: ${err.message}`,
+        ephemeral: true,
+      })
+    }
+  }
+
+  if (interaction.commandName === "moderate") {
+    // Check if it's the owner
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.discordId !== interaction.user.id) {
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+    }
+
+    const subcommand = interaction.options.getSubcommand()
+
+    if (subcommand === "list") {
+      const reports = await getPendingReports(userId)
+      if (reports.length === 0) {
+        return interaction.reply({ content: "✅ No pending reports in your moderation queue.", ephemeral: true })
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle("⚠️ Pending Vouch Moderation Queue")
+        .setColor("#F59E0B")
+        .setDescription("The following vouches have been flagged. Use `/moderate approve <vouch_id>` or `/moderate remove <vouch_id>` to resolve them.")
+
+      reports.slice(0, 10).forEach((v, index) => {
+        embed.addFields({
+          name: `Report #${index + 1} (ID: ${v.id})`,
+          value: `**Giver:** ${v.giverName} (${v.giverId})\n**Rating:** ${"⭐".repeat(v.rating)}\n**Comment:** ${v.comment || "No comment"}\n**Date:** ${v.createdAt.toLocaleDateString()}`,
+        })
+      })
+
+      if (reports.length > 10) {
+        embed.setFooter({ text: `Showing first 10 of ${reports.length} pending reports.` })
+      }
+
+      return interaction.reply({ embeds: [embed], ephemeral: true })
+    }
+
+    if (subcommand === "approve") {
+      const vouchId = interaction.options.getString("vouch_id", true)
+      try {
+        await approveVouch(userId, vouchId)
+        return interaction.reply({
+          content: `✅ Vouch \`${vouchId}\` has been approved and marked active.`,
+          ephemeral: true,
+        })
+      } catch (err: any) {
+        return interaction.reply({
+          content: `❌ Error: ${err.message}`,
+          ephemeral: true,
+        })
+      }
+    }
+
+    if (subcommand === "remove") {
+      const vouchId = interaction.options.getString("vouch_id", true)
+      try {
+        await removeVouch(userId, vouchId)
+        return interaction.reply({
+          content: `✅ Vouch \`${vouchId}\` has been soft-deleted and removed from public profile.`,
+          ephemeral: true,
+        })
+      } catch (err: any) {
+        return interaction.reply({
+          content: `❌ Error: ${err.message}`,
+          ephemeral: true,
+        })
+      }
+    }
   }
 }

@@ -26,6 +26,62 @@ export function buildDiscordCommands() {
       .setDescription("Restore all vouches to this channel (Owner only)")
       .toJSON(),
     new SlashCommandBuilder().setName("help").setDescription("How to use this vouch bot").toJSON(),
+    new SlashCommandBuilder()
+      .setName("blacklist")
+      .setDescription("Manage seller blacklist (Owner only)")
+      .addSubcommand((sub) =>
+        sub
+          .setName("add")
+          .setDescription("Add a user to the blacklist")
+          .addStringOption((opt) =>
+            opt.setName("user_id").setDescription("Platform User ID to blacklist").setRequired(true),
+          )
+          .addStringOption((opt) =>
+            opt.setName("reason").setDescription("Reason for blacklist").setRequired(false),
+          ),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("remove")
+          .setDescription("Remove a user from the blacklist")
+          .addStringOption((opt) =>
+            opt.setName("user_id").setDescription("Platform User ID to remove").setRequired(true),
+          ),
+      )
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName("report")
+      .setDescription("Report a vouch for moderation")
+      .addStringOption((opt) =>
+        opt.setName("vouch_id").setDescription("ID of the vouch to report").setRequired(true),
+      )
+      .addStringOption((opt) =>
+        opt.setName("reason").setDescription("Reason for reporting").setRequired(false),
+      )
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName("moderate")
+      .setDescription("Manage reported vouches (Owner only)")
+      .addSubcommand((sub) =>
+        sub.setName("list").setDescription("List all pending reports"),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("approve")
+          .setDescription("Approve a vouch (marks active and clears reports)")
+          .addStringOption((opt) =>
+            opt.setName("vouch_id").setDescription("ID of the vouch to approve").setRequired(true),
+          ),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("remove")
+          .setDescription("Remove a vouch (soft-delete)")
+          .addStringOption((opt) =>
+            opt.setName("vouch_id").setDescription("ID of the vouch to remove").setRequired(true),
+          ),
+      )
+      .toJSON(),
   ]
 }
 

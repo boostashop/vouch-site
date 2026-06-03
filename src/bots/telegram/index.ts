@@ -6,11 +6,21 @@ import {
   getLeaderboardRank,
   proofKey,
   FREE_VOUCH_LIMIT,
+  validateVouchRules,
+  addToBlacklist,
+  removeFromBlacklist,
+  reportVouch,
+  getPendingReports,
+  approveVouch,
+  removeVouch,
 } from "../vouch-service"
 
 const TELEGRAM_COMMANDS = [
   { command: "vouch", description: "Leave a vouch: /vouch <1-5> <comment>" },
   { command: "stats", description: "View vouch statistics" },
+  { command: "report", description: "Report a vouch: /report <vouch_id> [reason]" },
+  { command: "blacklist", description: "Manage blacklist: /blacklist <add|remove> <user_id> [reason] (owner only)" },
+  { command: "moderate", description: "Moderate vouches: /moderate <list|approve|remove> [vouch_id] (owner only)" },
   { command: "restore", description: "Re-post all vouches (owner only)" },
   { command: "link", description: "Link this account to your dashboard" },
   { command: "help", description: "How to use this bot" },
@@ -20,6 +30,9 @@ const HELP_TEXT =
   "🤖 *Vouched.to Bot*\n\n" +
   "*/vouch <rating 1-5> <comment>* — leave a vouch. Attach a photo with that caption to include proof.\n" +
   "*/stats* — view vouch count, average score, and leaderboard rank.\n" +
+  "*/report <vouch_id> [reason]* — report a vouch to the seller for moderation.\n" +
+  "*/blacklist <add|remove> <user_id> [reason]* — owner only: manage blacklist.\n" +
+  "*/moderate <list|approve|remove> [vouch_id]* — owner only: moderate flagged/reported vouches.\n" +
   "*/restore* — owner only: re-post your full vouch history here.\n" +
   "*/link* — link this Telegram account to your dashboard.\n\n" +
   "_Powered by Vouched.to_"
@@ -90,7 +103,19 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
         )
       }
 
-      await prisma.vouch.create({
+      // Run validation rules (self-vouch block, blacklist, rate limit, comment length)
+      try {
+        await validateVouchRules({
+          receiverId: userId,
+          giverId: ctx.from.id.toString(),
+          platform: "telegram",
+          comment,
+        })
+      } catch (validationErr: any) {
+        return ctx.reply(`❌ ${validationErr.message}`)
+      }
+
+      const createdVouch = await prisma.vouch.create({
         data: {
           receiverId: userId,
           platform: "telegram",
@@ -104,8 +129,16 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
         },
       })
 
+      // Generate verification permalink
+      const baseUrl = process.env.AUTH_URL || "https://vouched.to"
+      const permalink = user.slug ? `${baseUrl}/u/${user.slug}#vouch-${createdVouch.id}` : null
+
       const stars = "⭐".repeat(rating)
-      const responseText = `✅ **Vouch Recorded!**\n\n**Giver:** ${ctx.from.first_name}\n**Rating:** ${stars}\n**Comment:** ${comment}\n\n_${user.vouchEmbedFooter}_`
+      let responseText = `✅ **Vouch Recorded!**\n\n**Giver:** ${ctx.from.first_name}\n**Rating:** ${stars}\n**Comment:** ${comment}`
+      if (permalink) {
+        responseText += `\n[🔗 Verify Vouch](${permalink})`
+      }
+      responseText += `\n\n_ID: ${createdVouch.id} • ${user.vouchEmbedFooter}_`
 
       await ctx.reply(responseText, { parse_mode: "Markdown" })
     } catch (err) {
@@ -142,6 +175,18 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
         return ctx.reply(`❌ Vouch limit (${FREE_VOUCH_LIMIT}) reached.`)
       }
 
+      // Run validation rules
+      try {
+        await validateVouchRules({
+          receiverId: userId,
+          giverId: ctx.from.id.toString(),
+          platform: "telegram",
+          comment,
+        })
+      } catch (validationErr: any) {
+        return ctx.reply(`❌ ${validationErr.message}`)
+      }
+
       const photo = ctx.message.photo[ctx.message.photo.length - 1]
       const fileLink = await ctx.telegram.getFileLink(photo.file_id)
       const key = proofKey("telegram", "jpg")
@@ -156,7 +201,7 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
         )
       }
 
-      await prisma.vouch.create({
+      const createdVouch = await prisma.vouch.create({
         data: {
           receiverId: userId,
           platform: "telegram",
@@ -171,8 +216,16 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
         },
       })
 
+      // Generate verification permalink
+      const baseUrl = process.env.AUTH_URL || "https://vouched.to"
+      const permalink = user.slug ? `${baseUrl}/u/${user.slug}#vouch-${createdVouch.id}` : null
+
       const stars = "⭐".repeat(rating)
-      const responseText = `✅ **Vouch Recorded with Proof!**\n\n**Giver:** ${ctx.from.first_name}\n**Rating:** ${stars}\n**Comment:** ${comment}\n\n_${user.vouchEmbedFooter}_`
+      let responseText = `✅ **Vouch Recorded with Proof!**\n\n**Giver:** ${ctx.from.first_name}\n**Rating:** ${stars}\n**Comment:** ${comment}`
+      if (permalink) {
+        responseText += `\n[🔗 Verify Vouch](${permalink})`
+      }
+      responseText += `\n\n_ID: ${createdVouch.id} • ${user.vouchEmbedFooter}_`
 
       await ctx.reply(responseText, { parse_mode: "Markdown" })
     } catch (err) {
@@ -250,6 +303,128 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
     }
 
     await ctx.reply("✅ **Restoration complete!**")
+  })
+
+  bot.command("blacklist", async (ctx) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.telegramId !== ctx.from.id.toString()) {
+      return ctx.reply("❌ Only the owner can use this command.")
+    }
+
+    const args = ctx.message.text.split(" ").slice(1)
+    const subcommand = args[0]?.toLowerCase()
+    const targetUserId = args[1]
+    const reason = args.slice(2).join(" ") || null
+
+    if (!subcommand || !["add", "remove"].includes(subcommand) || !targetUserId) {
+      return ctx.reply(
+        "❌ **Usage:**\n`/blacklist add <user_id> [reason]`\n`/blacklist remove <user_id>`",
+        { parse_mode: "Markdown" }
+      )
+    }
+
+    if (subcommand === "add") {
+      await addToBlacklist({
+        userId,
+        platform: "telegram",
+        blockedId: targetUserId,
+        reason,
+      })
+      return ctx.reply(`✅ User with ID \`${targetUserId}\` has been blacklisted.`, { parse_mode: "Markdown" })
+    } else {
+      const success = await removeFromBlacklist({
+        userId,
+        platform: "telegram",
+        blockedId: targetUserId,
+      })
+      if (success) {
+        return ctx.reply(`✅ User with ID \`${targetUserId}\` has been removed from the blacklist.`, { parse_mode: "Markdown" })
+      } else {
+        return ctx.reply(`❌ User with ID \`${targetUserId}\` was not on the blacklist.`, { parse_mode: "Markdown" })
+      }
+    }
+  })
+
+  bot.command("report", async (ctx) => {
+    const args = ctx.message.text.split(" ").slice(1)
+    const vouchId = args[0]
+    const reason = args.slice(1).join(" ") || null
+
+    if (!vouchId) {
+      return ctx.reply(
+        "❌ **Usage:** `/report <vouch_id> [reason]`",
+        { parse_mode: "Markdown" }
+      )
+    }
+
+    try {
+      await reportVouch({
+        vouchId,
+        reporterId: ctx.from.id.toString(),
+        reason,
+      })
+      return ctx.reply(`⚠️ Vouch \`${vouchId}\` has been reported to the seller for moderation.`, { parse_mode: "Markdown" })
+    } catch (err: any) {
+      return ctx.reply(`❌ Error: ${err.message}`)
+    }
+  })
+
+  bot.command("moderate", async (ctx) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.telegramId !== ctx.from.id.toString()) {
+      return ctx.reply("❌ Only the owner can use this command.")
+    }
+
+    const args = ctx.message.text.split(" ").slice(1)
+    const subcommand = args[0]?.toLowerCase()
+    const vouchId = args[1]
+
+    if (!subcommand || !["list", "approve", "remove"].includes(subcommand)) {
+      return ctx.reply(
+        "❌ **Usage:**\n`/moderate list`\n`/moderate approve <vouch_id>`\n`/moderate remove <vouch_id>`",
+        { parse_mode: "Markdown" }
+      )
+    }
+
+    if (subcommand === "list") {
+      const reports = await getPendingReports(userId)
+      if (reports.length === 0) {
+        return ctx.reply("✅ No pending reports in your moderation queue.")
+      }
+
+      let text = "⚠️ **Pending Vouch Moderation Queue**\n\nThe following vouches have been flagged. Use `/moderate approve <vouch_id>` or `/moderate remove <vouch_id>` to resolve them.\n\n"
+      reports.slice(0, 10).forEach((v, index) => {
+        text += `**Report #${index + 1}**\n**ID:** \`${v.id}\`\n**Giver:** ${v.giverName} (${v.giverId})\n**Rating:** ${"⭐".repeat(v.rating)}\n**Comment:** ${v.comment || "No comment"}\n**Date:** ${v.createdAt.toLocaleDateString()}\n\n`
+      })
+
+      if (reports.length > 10) {
+        text += `_Showing first 10 of ${reports.length} pending reports._`
+      }
+
+      return ctx.reply(text, { parse_mode: "Markdown" })
+    }
+
+    if (!vouchId) {
+      return ctx.reply(`❌ Please specify a vouch ID: \`/moderate ${subcommand} <vouch_id>\``, { parse_mode: "Markdown" })
+    }
+
+    if (subcommand === "approve") {
+      try {
+        await approveVouch(userId, vouchId)
+        return ctx.reply(`✅ Vouch \`${vouchId}\` has been approved and marked active.`, { parse_mode: "Markdown" })
+      } catch (err: any) {
+        return ctx.reply(`❌ Error: ${err.message}`)
+      }
+    }
+
+    if (subcommand === "remove") {
+      try {
+        await removeVouch(userId, vouchId)
+        return ctx.reply(`✅ Vouch \`${vouchId}\` has been soft-deleted and removed from public profile.`, { parse_mode: "Markdown" })
+      } catch (err: any) {
+        return ctx.reply(`❌ Error: ${err.message}`)
+      }
+    }
   })
 
   // Validate the token before committing — getMe throws on a bad/revoked
