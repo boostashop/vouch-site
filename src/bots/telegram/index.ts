@@ -13,6 +13,7 @@ import {
   getPendingReports,
   approveVouch,
   removeVouch,
+  isMilestone,
 } from "../vouch-service"
 
 const TELEGRAM_COMMANDS = [
@@ -196,7 +197,32 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
           }
           responseText += `\n\n_ID: ${createdVouch.id} • ${user?.vouchEmbedFooter || "Powered by Vouched.to"}_`
 
-          await ctx.reply(responseText, { parse_mode: "Markdown" })
+          const replyMarkup = permalink ? {
+            inline_keyboard: [
+              [{ text: "🌐 View Profile", url: `${baseUrl}/u/${user?.slug}` }]
+            ]
+          } : undefined
+
+          await ctx.reply(responseText, { parse_mode: "Markdown", reply_markup: replyMarkup })
+
+          // Owner DM
+          if (user?.telegramId) {
+            try {
+              const dmText = `🔔 *New Vouch Received!*\n\nYou received a new vouch from *${ctx.from!.first_name}*!\n\n*Rating:* ${stars}\n*Comment:* ${state.comment}\n\n_ID: ${createdVouch.id}_`
+              await ctx.telegram.sendMessage(user.telegramId, dmText, { parse_mode: "Markdown" })
+            } catch (dmErr) {
+              console.error("Failed to DM Telegram bot owner:", dmErr)
+            }
+          }
+
+          // Milestone Announcement
+          const totalVouches = await prisma.vouch.count({
+            where: { receiverId: state.receiverId, status: "ACTIVE" },
+          })
+          if (isMilestone(totalVouches)) {
+            const milestoneText = `🎉 *Vouch Milestone Reached!*\n\n🚀 *${user?.name || user?.username || "Seller"}* has reached *${totalVouches}* verified vouches!`
+            await ctx.reply(milestoneText, { parse_mode: "Markdown" })
+          }
         } catch (err: any) {
           await ctx.reply(`❌ Failed to record vouch: ${err.message}`)
         }
@@ -529,6 +555,141 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
       } catch (err: any) {
         return ctx.reply(`❌ Error: ${err.message}`)
       }
+    }
+  })
+
+  bot.command("profile", async (ctx) => {
+    const args = ctx.message.text.split(" ").slice(1)
+    let targetId = userId
+    if (args[0]) {
+      const inputUsername = args[0].replace("@", "").trim()
+      const u = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { username: { equals: inputUsername, mode: "insensitive" } },
+            { slug: { equals: inputUsername, mode: "insensitive" } },
+          ]
+        }
+      })
+      if (!u) {
+        return ctx.reply("❌ User profile not found on Vouched.to.")
+      }
+      targetId = u.id
+    }
+
+    try {
+      const profileUser = await prisma.user.findUnique({
+        where: { id: targetId },
+        include: {
+          _count: { select: { vouchesReceived: true } },
+          vouchesReceived: { select: { rating: true } },
+        }
+      })
+      if (!profileUser) return ctx.reply("❌ Profile not found.")
+
+      const count = profileUser._count.vouchesReceived
+      const totalRating = profileUser.vouchesReceived.reduce((acc, v) => acc + v.rating, 0)
+      const averageRating = count > 0 ? (totalRating / count).toFixed(1) : "0.0"
+      const rank = await getLeaderboardRank(count)
+
+      const text =
+        `👤 *${profileUser.name || profileUser.username || "Seller"}'s Profile*\n\n` +
+        `*Score:* ⭐ ${averageRating} / 5.0\n` +
+        `*Total Reviews:* 📝 ${count}\n` +
+        `*Leaderboard Rank:* 🏆 ${rank > 0 ? `#${rank}` : "Unranked"}\n\n` +
+        `_${profileUser.profileMetaDescription || "Check out my verified reputation!"}_`
+
+      const baseUrl = process.env.AUTH_URL || "https://vouched.to"
+      const replyMarkup = profileUser.slug ? {
+        inline_keyboard: [
+          [{ text: "🌐 View Full Profile", url: `${baseUrl}/u/${profileUser.slug}` }]
+        ]
+      } : undefined
+
+      await ctx.reply(text, { parse_mode: "Markdown", reply_markup: replyMarkup })
+    } catch (err) {
+      console.error(err)
+      await ctx.reply("❌ Error fetching profile.")
+    }
+  })
+
+  bot.command("leaderboard", async (ctx) => {
+    const args = ctx.message.text.split(" ").slice(1)
+    const scope = args[0]?.toLowerCase() === "server" ? "server" : "global"
+    let topSellers = []
+
+    try {
+      if (scope === "server" && ctx.chat) {
+        topSellers = await prisma.vouch.groupBy({
+          by: ['receiverId'],
+          where: {
+            sourceId: ctx.chat.id.toString(),
+            status: "ACTIVE"
+          },
+          _count: { id: true },
+          orderBy: { _count: { id: 'desc' } },
+          take: 5
+        })
+      } else {
+        topSellers = await prisma.vouch.groupBy({
+          by: ['receiverId'],
+          where: { status: "ACTIVE" },
+          _count: { id: true },
+          orderBy: { _count: { id: 'desc' } },
+          take: 5
+        })
+      }
+
+      if (topSellers.length === 0) {
+        return ctx.reply("ℹ️ No vouches recorded yet.")
+      }
+
+      let text = `🏆 *${scope === "server" ? "Group" : "Global"} Leaderboard*\n\nTop sellers ranked by verified vouch count:\n\n`
+
+      for (let i = 0; i < topSellers.length; i++) {
+        const sellerId = topSellers[i].receiverId
+        const sellerCount = topSellers[i]._count.id
+        const sellerUser = await prisma.user.findUnique({ where: { id: sellerId } })
+        if (sellerUser) {
+          const name = sellerUser.name || sellerUser.username || "Anonymous Seller"
+          const baseUrl = process.env.AUTH_URL || "https://vouched.to"
+          text += `*#${i + 1} - ${name}*\nTotal Vouches: *${sellerCount}* ${sellerUser.slug ? `| [Profile](${baseUrl}/u/${sellerUser.slug})` : ""}\n\n`
+        }
+      }
+
+      await ctx.reply(text, { parse_mode: "Markdown" })
+    } catch (err) {
+      console.error(err)
+      await ctx.reply("❌ Error fetching leaderboard.")
+    }
+  })
+
+  bot.command("recent", async (ctx) => {
+    try {
+      const user = await prisma.user.findUnique({ where: { id: userId } })
+      if (!user) return ctx.reply("❌ Profile not found.")
+
+      const recentVouches = await prisma.vouch.findMany({
+        where: { receiverId: userId, status: "ACTIVE" },
+        orderBy: { createdAt: "desc" },
+        take: 3
+      })
+
+      if (recentVouches.length === 0) {
+        return ctx.reply("ℹ️ No vouches recorded for this profile yet.")
+      }
+
+      let text = `🕒 *Recent Vouches for ${user.name || user.username || "Seller"}*\n\n`
+      recentVouches.forEach((v, index) => {
+        text += `*Vouch #${index + 1} from ${v.giverName}* (${"⭐".repeat(v.rating)})\n` +
+                `_"${v.comment || "No comment"}"_\n` +
+                `_Date: ${v.createdAt.toLocaleDateString()}_\n\n`
+      })
+
+      await ctx.reply(text, { parse_mode: "Markdown" })
+    } catch (err) {
+      console.error(err)
+      await ctx.reply("❌ Error fetching recent vouches.")
     }
   })
 

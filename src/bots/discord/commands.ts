@@ -82,6 +82,32 @@ export function buildDiscordCommands() {
           ),
       )
       .toJSON(),
+    new SlashCommandBuilder()
+      .setName("profile")
+      .setDescription("View a Vouched.to seller profile card")
+      .addUserOption((opt) =>
+        opt.setName("user").setDescription("User to look up (defaults to bot owner)").setRequired(false),
+      )
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName("leaderboard")
+      .setDescription("Show the top sellers by vouch count")
+      .addStringOption((opt) =>
+        opt
+          .setName("scope")
+          .setDescription("Scope of the leaderboard (server or global)")
+          .setRequired(false)
+          .addChoices({ name: "Server", value: "server" }, { name: "Global", value: "global" }),
+      )
+      .toJSON(),
+    new SlashCommandBuilder().setName("recent").setDescription("Show recent vouches for this seller").toJSON(),
+    new SlashCommandBuilder()
+      .setName("find")
+      .setDescription("Search for vouches by comment keyword or rating")
+      .addStringOption((opt) =>
+        opt.setName("query").setDescription("Keyword or rating (1-5) to search for").setRequired(true),
+      )
+      .toJSON(),
   ]
 }
 

@@ -203,9 +203,9 @@ Architecture / library notes:
 - [x] Confirmation/preview step.
 
 ### Phase 3 — Discovery & engagement
-- [ ] `/profile`, `/leaderboard`, `/recent`, `/find`.
-- [ ] Richer embeds/cards with profile-link buttons.
-- [ ] New-vouch DM + milestone announcements.
+- [x] `/profile`, `/leaderboard`, `/recent`, `/find`.
+- [x] Richer embeds/cards with profile-link buttons.
+- [x] New-vouch DM + milestone announcements.
 
 ### Phase 4 — Owner power tools
 - [ ] `/config` (in-chat setup) + per-guild `GuildConfig`.

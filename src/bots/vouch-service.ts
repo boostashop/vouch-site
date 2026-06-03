@@ -255,3 +255,9 @@ export async function removeVouch(userId: string, vouchId: string) {
   })
 }
 
+export function isMilestone(vouchCount: number): boolean {
+  const milestones = [5, 10, 25, 50, 100, 250, 500, 1000]
+  return milestones.includes(vouchCount) || (vouchCount > 100 && vouchCount % 100 === 0)
+}
+
+

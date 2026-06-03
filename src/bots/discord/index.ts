@@ -29,6 +29,7 @@ import {
   getPendingReports,
   approveVouch,
   removeVouch,
+  isMilestone,
 } from "../vouch-service"
 import { registerDiscordCommands } from "./commands"
 
@@ -275,6 +276,16 @@ async function handleDiscordInteraction(
 
       // If a specific channel is set and user is premium, send there too
       let announcedToChannel = false
+      const profileRow = new ActionRowBuilder<ButtonBuilder>()
+      if (permalink) {
+        profileRow.addComponents(
+          new ButtonBuilder()
+            .setLabel("🌐 View Profile")
+            .setStyle(ButtonStyle.Link)
+            .setURL(`${baseUrl}/u/${user.slug}`)
+        )
+      }
+
       if (premium && user.vouchChannelId) {
         try {
           const channel = await interaction.client.channels.fetch(user.vouchChannelId)
@@ -282,6 +293,7 @@ async function handleDiscordInteraction(
             await (channel as any).send({
               content: roleMention || undefined,
               embeds: [embed],
+              components: permalink ? [profileRow] : [],
               allowedMentions: roleAllowedMentions,
             })
             announcedToChannel = true
@@ -295,9 +307,62 @@ async function handleDiscordInteraction(
         content:
           roleMention && !announcedToChannel ? `${roleMention} ${responseContent}` : responseContent,
         embeds: [embed],
+        components: permalink ? [profileRow] : [],
         allowedMentions: roleMention && !announcedToChannel ? roleAllowedMentions : undefined,
         ephemeral: false,
       })
+
+      // Phase 3: Owner DM
+      if (user.discordId) {
+        try {
+          const ownerUser = await interaction.client.users.fetch(user.discordId)
+          if (ownerUser) {
+            const dmEmbed = new EmbedBuilder()
+              .setTitle("🔔 New Vouch Received!")
+              .setColor("#10B981")
+              .setDescription(`You received a new vouch from **${interaction.user.username}**!`)
+              .addFields(
+                { name: "Rating:", value: "⭐".repeat(rating), inline: true },
+                { name: "Comment:", value: comment }
+              )
+              .setFooter({ text: `Vouch ID: ${createdVouch.id}` })
+              .setTimestamp()
+            await ownerUser.send({ embeds: [dmEmbed] })
+          }
+        } catch (dmErr) {
+          console.error("Failed to DM owner about new vouch in Discord:", dmErr)
+        }
+      }
+
+      // Phase 3: Milestone Announcement
+      const totalVouches = await prisma.vouch.count({
+        where: { receiverId: userId, status: "ACTIVE" },
+      })
+      if (isMilestone(totalVouches)) {
+        const milestoneEmbed = new EmbedBuilder()
+          .setTitle("🎉 Vouch Milestone Reached!")
+          .setColor("#3B82F6")
+          .setDescription(`🚀 **${user.name || user.username}** has reached **${totalVouches}** verified vouches!`)
+          .setFooter({ text: "Verify all reviews on Vouched.to" })
+
+        const destChannels = []
+        destChannels.push(interaction.channel)
+        if (premium && user.vouchChannelId && user.vouchChannelId !== interaction.channelId) {
+          try {
+            const ch = await interaction.client.channels.fetch(user.vouchChannelId)
+            if (ch && ch.isTextBased()) destChannels.push(ch)
+          } catch {}
+        }
+        for (const ch of destChannels) {
+          if (ch) {
+            try {
+              await (ch as any).send({ embeds: [milestoneEmbed] })
+            } catch (err) {
+              console.error("Failed to post milestone to channel:", err)
+            }
+          }
+        }
+      }
     } catch (err) {
       console.error("Error saving vouch:", err)
       await interaction.reply({
@@ -555,6 +620,226 @@ async function handleDiscordInteraction(
       }
     }
   }
+
+  if (interaction.commandName === "profile") {
+    const targetUser = interaction.options.getUser("user")
+    let targetId = userId
+    if (targetUser) {
+      const u = await prisma.user.findUnique({
+        where: { discordId: targetUser.id }
+      })
+      if (!u) {
+        return interaction.reply({
+          content: `❌ This user does not have a Vouched.to seller profile linked.`,
+          ephemeral: true
+        })
+      }
+      targetId = u.id
+    }
+
+    try {
+      const profileUser = await prisma.user.findUnique({
+        where: { id: targetId },
+        include: {
+          _count: { select: { vouchesReceived: true } },
+          vouchesReceived: { select: { rating: true } }
+        }
+      })
+      if (!profileUser) {
+        return interaction.reply({ content: "❌ Profile not found.", ephemeral: true })
+      }
+      const count = profileUser._count.vouchesReceived
+      const totalRating = profileUser.vouchesReceived.reduce((acc, v) => acc + v.rating, 0)
+      const averageRating = count > 0 ? (totalRating / count).toFixed(1) : "0.0"
+      const rank = await getLeaderboardRank(count)
+
+      const embed = new EmbedBuilder()
+        .setTitle(`👤 ${profileUser.name || profileUser.username || "Seller"}'s Profile`)
+        .setColor((profileUser.vouchEmbedColor as any) || "#6366f1")
+        .setDescription(profileUser.profileMetaDescription || "Check out my verified reputation!")
+        .addFields(
+          { name: "Score:", value: `⭐ ${averageRating} / 5.0`, inline: true },
+          { name: "Total Reviews:", value: `📝 ${count}`, inline: true },
+          { name: "Rank:", value: `🏆 ${rank > 0 ? `#${rank}` : "Unranked"}`, inline: true }
+        )
+        .setFooter({ text: "Verified by Vouched.to" })
+        .setTimestamp()
+
+      const row = new ActionRowBuilder<ButtonBuilder>()
+      const baseUrl = process.env.AUTH_URL || "https://vouched.to"
+      if (profileUser.slug) {
+        row.addComponents(
+          new ButtonBuilder()
+            .setLabel("🌐 View Full Profile")
+            .setStyle(ButtonStyle.Link)
+            .setURL(`${baseUrl}/u/${profileUser.slug}`),
+          new ButtonBuilder()
+            .setCustomId("vouch_btn")
+            .setLabel("⭐ Leave a Vouch")
+            .setStyle(ButtonStyle.Success)
+        )
+      } else {
+        row.addComponents(
+          new ButtonBuilder()
+            .setCustomId("vouch_btn")
+            .setLabel("⭐ Leave a Vouch")
+            .setStyle(ButtonStyle.Success)
+        )
+      }
+      return interaction.reply({ embeds: [embed], components: [row] })
+    } catch (err) {
+      console.error("Error fetching profile:", err)
+      return interaction.reply({ content: "❌ Failed to fetch profile.", ephemeral: true })
+    }
+  }
+
+  if (interaction.commandName === "leaderboard") {
+    const scope = interaction.options.getString("scope") || "global"
+    let topSellers = []
+
+    try {
+      if (scope === "server" && interaction.guildId) {
+        topSellers = await prisma.vouch.groupBy({
+          by: ['receiverId'],
+          where: {
+            sourceId: interaction.guildId,
+            status: "ACTIVE"
+          },
+          _count: { id: true },
+          orderBy: { _count: { id: 'desc' } },
+          take: 10
+        })
+      } else {
+        topSellers = await prisma.vouch.groupBy({
+          by: ['receiverId'],
+          where: { status: "ACTIVE" },
+          _count: { id: true },
+          orderBy: { _count: { id: 'desc' } },
+          take: 10
+        })
+      }
+
+      if (topSellers.length === 0) {
+        return interaction.reply({ content: "ℹ️ No vouches recorded yet.", ephemeral: true })
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🏆 ${scope === "server" ? "Server" : "Global"} Leaderboard`)
+        .setColor("#F59E0B")
+        .setDescription("Top sellers ranked by verified vouch count.")
+
+      for (let i = 0; i < topSellers.length; i++) {
+        const sellerId = topSellers[i].receiverId
+        const sellerCount = topSellers[i]._count.id
+        const sellerUser = await prisma.user.findUnique({
+          where: { id: sellerId }
+        })
+        if (sellerUser) {
+          const sellerName = sellerUser.name || sellerUser.username || "Anonymous Seller"
+          const baseUrl = process.env.AUTH_URL || "https://vouched.to"
+          embed.addFields({
+            name: `#${i + 1} - ${sellerName}`,
+            value: `Total Vouches: **${sellerCount}** • ${sellerUser.slug ? `[View Profile](${baseUrl}/u/${sellerUser.slug})` : "No profile slug"}`,
+          })
+        }
+      }
+
+      return interaction.reply({ embeds: [embed] })
+    } catch (err) {
+      console.error("Error fetching leaderboard:", err)
+      return interaction.reply({ content: "❌ Failed to fetch leaderboard.", ephemeral: true })
+    }
+  }
+
+  if (interaction.commandName === "recent") {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      })
+      if (!user) {
+        return interaction.reply({ content: "❌ Seller profile not found.", ephemeral: true })
+      }
+
+      const recentVouches = await prisma.vouch.findMany({
+        where: {
+          receiverId: userId,
+          status: "ACTIVE"
+        },
+        orderBy: {
+          createdAt: "desc"
+        },
+        take: 3
+      })
+
+      if (recentVouches.length === 0) {
+        return interaction.reply({ content: "ℹ️ No vouches recorded for this profile yet.", ephemeral: true })
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🕒 Recent Vouches for ${user.name || user.username || "Seller"}`)
+        .setColor("#6366f1")
+
+      recentVouches.forEach((v, index) => {
+        const stars = "⭐".repeat(v.rating)
+        embed.addFields({
+          name: `Vouch #${index + 1} from ${v.giverName} (${stars})`,
+          value: `"${v.comment || "No comment"}"\n_Date: ${v.createdAt.toLocaleDateString()}_`
+        })
+      })
+
+      return interaction.reply({ embeds: [embed] })
+    } catch (err) {
+      console.error("Error in recent command:", err)
+      return interaction.reply({ content: "❌ Error fetching recent vouches.", ephemeral: true })
+    }
+  }
+
+  if (interaction.commandName === "find") {
+    const query = interaction.options.getString("query", true)
+    const isRating = /^[1-5]$/.test(query.trim())
+    const searchRating = isRating ? parseInt(query.trim()) : undefined
+
+    try {
+      const results = await prisma.vouch.findMany({
+        where: {
+          receiverId: userId,
+          status: "ACTIVE",
+          OR: searchRating
+            ? [{ rating: searchRating }]
+            : [
+                { comment: { contains: query, mode: "insensitive" } },
+                { giverName: { contains: query, mode: "insensitive" } },
+              ],
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 5,
+      })
+
+      if (results.length === 0) {
+        return interaction.reply({ content: `ℹ️ No active vouches found matching \`${query}\`.`, ephemeral: true })
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🔍 Search Results for "${query}"`)
+        .setColor("#10B981")
+        .setDescription(`Showing up to 5 matching vouches.`)
+
+      results.forEach((v, index) => {
+        const stars = "⭐".repeat(v.rating)
+        embed.addFields({
+          name: `Result #${index + 1} | By: ${v.giverName} (${stars})`,
+          value: `"${v.comment || "No comment"}"\n_ID: ${v.id} • ${v.createdAt.toLocaleDateString()}_`
+        })
+      })
+
+      return interaction.reply({ embeds: [embed] })
+    } catch (err) {
+      console.error("Error searching vouches:", err)
+      return interaction.reply({ content: "❌ Error searching vouches.", ephemeral: true })
+    }
+  }
 }
 
 async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, botUserId: string) {
@@ -705,6 +990,16 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
       const roleAllowedMentions = roleMention ? { roles: [user.vouchRoleId!] } : undefined
 
       let announcedToChannel = false
+      const profileRow = new ActionRowBuilder<ButtonBuilder>()
+      if (permalink) {
+        profileRow.addComponents(
+          new ButtonBuilder()
+            .setLabel("🌐 View Profile")
+            .setStyle(ButtonStyle.Link)
+            .setURL(`${baseUrl}/u/${user.slug}`)
+        )
+      }
+
       if (premium && user.vouchChannelId) {
         try {
           const channel = await interaction.client.channels.fetch(user.vouchChannelId)
@@ -712,6 +1007,7 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
             await (channel as any).send({
               content: roleMention || undefined,
               embeds: [embed],
+              components: permalink ? [profileRow] : [],
               allowedMentions: roleAllowedMentions,
             })
             announcedToChannel = true
@@ -736,8 +1032,61 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
           await (channel as any).send({
             content: roleMention || undefined,
             embeds: [embed],
+            components: permalink ? [profileRow] : [],
             allowedMentions: roleAllowedMentions,
           })
+        }
+      }
+
+      // Phase 3: Owner DM
+      if (user.discordId) {
+        try {
+          const ownerUser = await interaction.client.users.fetch(user.discordId)
+          if (ownerUser) {
+            const dmEmbed = new EmbedBuilder()
+              .setTitle("🔔 New Vouch Received!")
+              .setColor("#10B981")
+              .setDescription(`You received a new vouch from **${interaction.user.username}**!`)
+              .addFields(
+                { name: "Rating:", value: "⭐".repeat(rating), inline: true },
+                { name: "Comment:", value: comment }
+              )
+              .setFooter({ text: `Vouch ID: ${createdVouch.id}` })
+              .setTimestamp()
+            await ownerUser.send({ embeds: [dmEmbed] })
+          }
+        } catch (dmErr) {
+          console.error("Failed to DM owner about new vouch in Discord:", dmErr)
+        }
+      }
+
+      // Phase 3: Milestone Announcement
+      const totalVouches = await prisma.vouch.count({
+        where: { receiverId, status: "ACTIVE" },
+      })
+      if (isMilestone(totalVouches)) {
+        const milestoneEmbed = new EmbedBuilder()
+          .setTitle("🎉 Vouch Milestone Reached!")
+          .setColor("#3B82F6")
+          .setDescription(`🚀 **${user.name || user.username}** has reached **${totalVouches}** verified vouches!`)
+          .setFooter({ text: "Verify all reviews on Vouched.to" })
+
+        const destChannels = []
+        destChannels.push(interaction.channel)
+        if (premium && user.vouchChannelId && user.vouchChannelId !== interaction.channelId) {
+          try {
+            const ch = await interaction.client.channels.fetch(user.vouchChannelId)
+            if (ch && ch.isTextBased()) destChannels.push(ch)
+          } catch {}
+        }
+        for (const ch of destChannels) {
+          if (ch) {
+            try {
+              await (ch as any).send({ embeds: [milestoneEmbed] })
+            } catch (err) {
+              console.error("Failed to post milestone to channel:", err)
+            }
+          }
         }
       }
     } catch (err) {
