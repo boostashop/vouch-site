@@ -88,10 +88,12 @@ Living checklist of outstanding work, derived from the full-project review on
 
 ## 🟡 Bugs / correctness
 
-- [ ] **Bot manager ignores token changes** — only spawns "if not exists"; edits
-      don't take effect until a full restart, and a bad token is retried every
-      60s forever (rate-limit risk). Track the token used to spawn; respawn on
-      change; back off on auth failure.
+- [x] **Bot manager now handles token changes & bad tokens** — each client
+      remembers the token it was spawned with, so a dashboard edit triggers a
+      respawn with the new token. Failed spawns back off for 5 min (a token
+      change bypasses immediately) instead of retrying every 60s and risking a
+      rate-limit/ban. Telegram tokens are validated with `getMe` before launch
+      (no more unhandled rejections from `launch()`).
 - [ ] **Discord intents vs setup guide mismatch** — guide tells users to enable
       Message Content / Server Members; bot requests neither and doesn't need
       them. Fix the guide copy.

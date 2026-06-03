@@ -35,10 +35,19 @@ async function persistProofToR2(sourceUrl: string, key: string, contentType: str
   }
 }
 
-// Multi-tenant manager to keep track of active bot instances
+// After a spawn fails for a given token, wait this long before retrying that
+// same token — otherwise a bad/revoked token gets retried every poll (60s) and
+// can get the IP rate-limited or banned by Discord/Telegram. A token change
+// bypasses the backoff immediately.
+const SPAWN_RETRY_BACKOFF_MS = 5 * 60 * 1000;
+
+// Multi-tenant manager to keep track of active bot instances. We remember the
+// token each client was spawned with so we can detect dashboard edits and
+// respawn with the new token.
 class BotManager {
-  private discordClients: Map<string, Client> = new Map();
-  private telegramBots: Map<string, Telegraf> = new Map();
+  private discordClients: Map<string, { client: Client; token: string }> = new Map();
+  private telegramBots: Map<string, { bot: Telegraf; token: string }> = new Map();
+  private failedSpawns: Map<string, { token: string; at: number }> = new Map();
 
   async start() {
     console.log('Starting Bot Manager Service...');
@@ -54,12 +63,12 @@ class BotManager {
       console.log(`Received ${signal}. Shutting down Bot Manager...`);
       clearInterval(interval);
       
-      for (const [userId, client] of this.discordClients) {
+      for (const [userId, { client }] of this.discordClients) {
         console.log(`Destroying Discord client for ${userId}`);
         client.destroy();
       }
-      
-      for (const [userId, bot] of this.telegramBots) {
+
+      for (const [userId, { bot }] of this.telegramBots) {
         console.log(`Stopping Telegram bot for ${userId}`);
         bot.stop(signal);
       }
@@ -82,44 +91,67 @@ class BotManager {
     });
 
     for (const user of users) {
-      // Discord Sync
+      // --- Discord Sync ---
+      const discordKey = `discord:${user.id}`;
       const existingDiscord = this.discordClients.get(user.id);
       if (user.discordBotToken) {
-        // If no client exists OR token has changed, (re)spawn
-        // Note: In a real app we might store the token hash to compare easily
-        // but here we'll just check if the client's token matches (if we can)
-        // or just restart if we don't have a way to verify without storing token.
-        // For simplicity, let's just spawn if not exists for now.
-        // To handle updates, we'd need to track the token we used to spawn.
-        if (!existingDiscord) {
-          await this.spawnDiscordBot(user.id, user.discordBotToken);
+        // Token replaced in the dashboard → tear down the stale client so we
+        // respawn with the new one below.
+        if (existingDiscord && existingDiscord.token !== user.discordBotToken) {
+          console.log(`Discord token changed for ${user.id}; respawning.`);
+          existingDiscord.client.destroy();
+          this.discordClients.delete(user.id);
+        }
+        if (!this.discordClients.has(user.id) && this.shouldAttemptSpawn(discordKey, user.discordBotToken)) {
+          const ok = await this.spawnDiscordBot(user.id, user.discordBotToken);
+          if (ok) this.failedSpawns.delete(discordKey);
+          else this.failedSpawns.set(discordKey, { token: user.discordBotToken, at: Date.now() });
         }
       } else if (existingDiscord) {
-        // Token was removed
         console.log(`Stopping Discord bot for ${user.id} (token removed)`);
-        existingDiscord.destroy();
+        existingDiscord.client.destroy();
         this.discordClients.delete(user.id);
+        this.failedSpawns.delete(discordKey);
       }
 
-      // Telegram Sync
+      // --- Telegram Sync ---
+      const telegramKey = `telegram:${user.id}`;
       const existingTelegram = this.telegramBots.get(user.id);
       if (user.telegramBotToken) {
-        if (!existingTelegram) {
-          await this.spawnTelegramBot(user.id, user.telegramBotToken);
+        if (existingTelegram && existingTelegram.token !== user.telegramBotToken) {
+          console.log(`Telegram token changed for ${user.id}; respawning.`);
+          existingTelegram.bot.stop('SIGTERM');
+          this.telegramBots.delete(user.id);
+        }
+        if (!this.telegramBots.has(user.id) && this.shouldAttemptSpawn(telegramKey, user.telegramBotToken)) {
+          const ok = await this.spawnTelegramBot(user.id, user.telegramBotToken);
+          if (ok) this.failedSpawns.delete(telegramKey);
+          else this.failedSpawns.set(telegramKey, { token: user.telegramBotToken, at: Date.now() });
         }
       } else if (existingTelegram) {
         console.log(`Stopping Telegram bot for ${user.id} (token removed)`);
-        existingTelegram.stop('SIGTERM');
+        existingTelegram.bot.stop('SIGTERM');
         this.telegramBots.delete(user.id);
+        this.failedSpawns.delete(telegramKey);
       }
     }
   }
 
+  // Skip respawning a token that just failed, unless the token has since changed
+  // or the backoff window has elapsed — prevents hammering Discord/Telegram with
+  // a known-bad token on every poll.
+  private shouldAttemptSpawn(key: string, token: string): boolean {
+    const failed = this.failedSpawns.get(key);
+    if (!failed) return true;
+    if (failed.token !== token) return true;
+    return Date.now() - failed.at > SPAWN_RETRY_BACKOFF_MS;
+  }
+
   // --- DISCORD LOGIC ---
 
-  async spawnDiscordBot(userId: string, token: string) {
+  async spawnDiscordBot(userId: string, token: string): Promise<boolean> {
     console.log(`Spawning Discord bot for User ID: ${userId}`);
-    
+
     const client = new Client({
       intents: [
         GatewayIntentBits.Guilds,
@@ -136,23 +168,24 @@ class BotManager {
       }),
     });
 
+    client.on('interactionCreate', async (interaction) => {
+      if (!interaction.isChatInputCommand()) return;
+      console.log(`[Interaction] Received ${interaction.commandName} (ID: ${interaction.id}) from ${interaction.user.tag} for User ${userId}`);
+      await this.handleDiscordInteraction(interaction, userId);
+    });
+
     try {
       await client.login(token);
-      this.discordClients.set(userId, client);
-      
-      // Register Commands
-      await this.registerDiscordCommands(token, client.user!.id);
-
-      client.on('interactionCreate', async (interaction) => {
-        if (!interaction.isChatInputCommand()) return;
-        console.log(`[Interaction] Received ${interaction.commandName} (ID: ${interaction.id}) from ${interaction.user.tag} for User ${userId}`);
-        await this.handleDiscordInteraction(interaction, userId);
-      });
-
-      console.log(`Discord Bot for ${userId} is online as ${client.user?.tag}`);
     } catch (error) {
       console.error(`Failed to start Discord bot for ${userId}:`, error);
+      try { client.destroy(); } catch {}
+      return false;
     }
+
+    this.discordClients.set(userId, { client, token });
+    await this.registerDiscordCommands(token, client.user!.id);
+    console.log(`Discord Bot for ${userId} is online as ${client.user?.tag}`);
+    return true;
   }
 
   async registerDiscordCommands(token: string, botId: string) {
@@ -407,7 +440,7 @@ class BotManager {
 
   // --- TELEGRAM LOGIC ---
 
-  async spawnTelegramBot(userId: string, token: string) {
+  async spawnTelegramBot(userId: string, token: string): Promise<boolean> {
     console.log(`Spawning Telegram bot for User ID: ${userId}`);
     
     const bot = new Telegraf(token);
@@ -608,13 +641,22 @@ class BotManager {
       await ctx.reply('✅ **Restoration complete!**');
     });
 
+    // Validate the token before committing — getMe throws on a bad/revoked
+    // token, which lets us report failure (and back off) instead of leaking an
+    // unhandled promise rejection from launch().
     try {
-      bot.launch();
-      this.telegramBots.set(userId, bot);
-      console.log(`Telegram Bot for ${userId} is online.`);
+      await bot.telegram.getMe();
     } catch (error) {
       console.error(`Failed to start Telegram bot for ${userId}:`, error);
+      return false;
     }
+
+    // launch() resolves only when the bot stops, so we don't await it; we just
+    // catch a later crash so it doesn't become an unhandled rejection.
+    bot.launch().catch((err) => console.error(`Telegram bot for ${userId} stopped:`, err));
+    this.telegramBots.set(userId, { bot, token });
+    console.log(`Telegram Bot for ${userId} is online.`);
+    return true;
   }
 }
 
