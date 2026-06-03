@@ -103,8 +103,9 @@ Living checklist of outstanding work, derived from the full-project review on
       the error message that already claimed uniqueness. _(Needs `prisma db push`
       on deploy — see deploy steps above.)_
 - [ ] **Free-tier 50-vouch limit is racy** (count-then-create not atomic).
-- [ ] **`debug: true` in `auth.ts`** + very chatty bot logging (logs every
-      Telegram update) — quiet down for production.
+- [x] **Quieted production logging** — auth `debug` is now gated to
+      non-production, and removed the bot-manager middleware that logged every
+      Telegram update (incl. user IDs / PII). Per-command + error logs retained.
 
 ---
 
