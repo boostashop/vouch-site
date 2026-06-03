@@ -21,7 +21,6 @@ import { hasActivePremium } from "@/lib/premium"
 
 interface PublicProfileProps {
   params: Promise<{ slug: string }>
-  searchParams?: Promise<{ t?: string }>
 }
 
 export async function generateMetadata({ params }: PublicProfileProps): Promise<Metadata> {
@@ -37,9 +36,8 @@ export async function generateMetadata({ params }: PublicProfileProps): Promise<
   }
 }
 
-export default async function PublicProfilePage({ params, searchParams }: PublicProfileProps) {
+export default async function PublicProfilePage({ params }: PublicProfileProps) {
   const { slug } = await params
-  const { t } = searchParams ? await searchParams : {}
 
   const user = await prisma.user.findUnique({
     where: { slug },
@@ -64,13 +62,8 @@ export default async function PublicProfilePage({ params, searchParams }: Public
   const isGlass = theme === "glass"
   const bannerImage = user.profileBannerImage || null
 
-  // Design token CSS — preview param overrides saved tokens
-  let activeTokens: DesignTokens | null = null
-  if (t) {
-    try { activeTokens = JSON.parse(Buffer.from(t, "base64").toString("utf-8")) } catch {}
-  } else if (user.profileDesignTokens) {
-    activeTokens = user.profileDesignTokens as unknown as DesignTokens
-  }
+  // Design token CSS from the user's saved tokens (sanitized in tokensToCSS).
+  const activeTokens = (user.profileDesignTokens as unknown as DesignTokens) || null
   const tokenCSS = activeTokens ? tokensToCSS(activeTokens) : null
 
   const fontMap: Record<string, string> = {
@@ -108,7 +101,7 @@ export default async function PublicProfilePage({ params, searchParams }: Public
   return (
     <div id="vp" className={`min-h-screen ${pageBg} ${pageText} selection:bg-indigo-500/30`} style={{ fontFamily }}>
       {tokenCSS && <style dangerouslySetInnerHTML={{ __html: tokenCSS }} />}
-      <script dangerouslySetInnerHTML={{ __html: `(function(){window.addEventListener('message',function(e){if(e.data&&e.data.type==='vc-preview-css'){var s=document.getElementById('vc-preview-style');if(!s){s=document.createElement('style');s.id='vc-preview-style';document.head.appendChild(s);}s.textContent=e.data.css;}});})();` }} />
+      <script dangerouslySetInnerHTML={{ __html: `(function(){window.addEventListener('message',function(e){if(e.origin!==window.location.origin)return;if(e.data&&e.data.type==='vc-preview-css'){var s=document.getElementById('vc-preview-style');if(!s){s=document.createElement('style');s.id='vc-preview-style';document.head.appendChild(s);}s.textContent=e.data.css;}});})();` }} />
 
       {/* Background glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">

@@ -177,6 +177,16 @@ const SHADOW_MAP: Record<string, string> = {
   lg: "0 10px 30px rgba(0,0,0,0.2),0 4px 8px rgba(0,0,0,0.1)",
 }
 
+// This string is injected into a <style> element via dangerouslySetInnerHTML on
+// the server-rendered public profile. A <style> is a "raw text" element: the
+// only way to break out of it (e.g. to inject a <script>) is a literal "</style"
+// sequence — HTML entities and comments are NOT parsed inside it. Stripping that
+// sequence is therefore a complete defense against breakout, covering both a
+// premium user's saved Custom CSS and any other untrusted token source.
+function sanitizeStyleContent(css: string): string {
+  return css.replace(/<\/style/gi, "")
+}
+
 export function configToCSS(c: ProfileDesignConfig): string {
   const bg =
     c.pageBgType === "gradient"
@@ -228,7 +238,7 @@ export function configToCSS(c: ProfileDesignConfig): string {
 
   if (c.customCSS?.trim()) rules.push(c.customCSS.trim())
 
-  return rules.join("\n")
+  return sanitizeStyleContent(rules.join("\n"))
 }
 
 // Keep old alias for any lingering references

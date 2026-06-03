@@ -47,18 +47,19 @@ Living checklist of outstanding work, derived from the full-project review on
 
 - [ ] **`vps.key` committed** — _user handling at go-live_ (rotate key + purge
       from git history; add to `.gitignore`).
-- [ ] **Reflected XSS / CSS-injection via `?t=` on every profile**
-      (`src/app/u/[slug]/page.tsx` → `dangerouslySetInnerHTML` of unsanitised
-      tokens; `customCSS` appended raw). Validate/escape tokens or stop reading
-      them from the query string.
+- [x] **Reflected & stored XSS / CSS-injection on profiles** — removed the
+      unused attacker-controlled `?t=` token param entirely, and neutralised the
+      `</style` breakout sequence at the `configToCSS` chokepoint so a premium
+      user's saved Custom CSS can't break out of the `<style>` element either.
+- [x] **`postMessage` listener origin check** — preview-CSS listener now ignores
+      cross-origin messages (`u/[slug]/page.tsx`).
 - [ ] **Bot tokens echoed to the browser** (`dashboard/bot/page.tsx` renders the
       saved token as `defaultValue` in a password field) and stored plaintext.
       Show a masked "configured" state; consider encrypting at rest.
+      (Note: the bot page also falsely claims "Encrypted at rest".)
 - [ ] **Telegram proof URLs leak the bot token** when R2 is unconfigured
       (`bot-manager.ts` stores the `api.telegram.org/file/bot<TOKEN>/…` URL).
       Require R2 for proofs; drop proof on upload failure.
-- [ ] **`postMessage` listener has no origin check** (`u/[slug]/page.tsx`).
-      Validate `e.origin` before applying preview CSS.
 
 ---
 
