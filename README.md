@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vouched.to
 
-## Getting Started
+A reputation platform: a secure backup for customer testimonials ("vouches")
+collected via users' own Discord and Telegram bots, with public profiles as an
+"insurance policy" against platform bans.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router) + React 19, Tailwind v4
+- **PostgreSQL** via **Prisma**
+- **NextAuth v5** (magic-link via Resend + credentials)
+- **Bot manager** — multi-tenant Discord (`discord.js`) + Telegram (`telegraf`)
+  service that spawns a bot per user token (`src/bot-manager.ts`)
+- **Cloudflare R2** (S3-compatible) for proof images
+- External **payments site** owns premium state via a signed webhook
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npx prisma generate
+npm run dev        # web app on http://localhost:3000
+npm run bot        # bot manager (separate process)
+npm test           # node:test suite
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Set up `.env` first — see **[DEPLOY.md](./DEPLOY.md)** for the full list of
+environment variables.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Key paths
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `src/app/u/[slug]/` — public profile (+ OG image)
+- `src/app/dashboard/` — user dashboard (bot config, profile, Design Studio)
+- `src/app/admin/` — admin console
+- `src/app/api/payments/webhook/` — incoming payment events
+- `src/bot-manager.ts` — Discord/Telegram bot engine
+- `src/lib/premium.ts` — `hasActivePremium()` (the premium gate everywhere)
 
-## Learn More
+## Docs
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **[AGENTS.md](./AGENTS.md)** — conventions for working in this repo
+- **[DEPLOY.md](./DEPLOY.md)** — VPS / PM2 deployment + environment variables
+- **[ROADMAP.md](./ROADMAP.md)** — living tracker of done / outstanding work
