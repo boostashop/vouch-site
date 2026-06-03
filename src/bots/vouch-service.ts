@@ -6,7 +6,8 @@ import { prisma } from "./prisma"
 // overhaul progresses (anti-abuse, validation, vouch creation) the shared logic
 // consolidates here so both platforms stay in lockstep.
 
-export { hasActivePremium } from "../lib/premium"
+import { hasActivePremium } from "../lib/premium"
+export { hasActivePremium }
 
 export const FREE_VOUCH_LIMIT = 50
 
@@ -57,27 +58,29 @@ export async function validateVouchRules({
   giverId,
   platform,
   comment,
+  guildId,
+  giverCreatedAt,
 }: {
   receiverId: string
   giverId: string
   platform: "discord" | "telegram"
   comment: string
+  guildId?: string | null
+  giverCreatedAt?: Date
 }) {
   // 1. Min comment length check
   if (!comment || comment.trim().length < 4) {
     throw new Error("Vouch feedback must be at least 4 characters long.")
   }
 
-  // Fetch the receiver user
-  const user = await prisma.user.findUnique({
-    where: { id: receiverId },
-  })
-  if (!user) {
+  // Fetch the receiver config/user
+  const config = await getActiveConfig(receiverId, guildId || null)
+  if (!config) {
     throw new Error("Seller profile not found.")
   }
 
   // 2. Self-vouch block
-  const receiverPlatformId = platform === "discord" ? user.discordId : user.telegramId
+  const receiverPlatformId = platform === "discord" ? config.discordId : config.telegramId
   if (receiverPlatformId && giverId === receiverPlatformId) {
     throw new Error("You cannot vouch for yourself.")
   }
@@ -96,7 +99,15 @@ export async function validateVouchRules({
     throw new Error("You have been blacklisted by this seller and cannot leave a vouch.")
   }
 
-  // 4. Rate limit / cooldown: Max 3 vouches per giver per receiver per 24 hours
+  // 4. Discord account age check
+  if (platform === "discord" && config.minAccountAgeDays > 0 && giverCreatedAt) {
+    const ageInDays = (Date.now() - giverCreatedAt.getTime()) / (1000 * 60 * 60 * 24)
+    if (ageInDays < config.minAccountAgeDays) {
+      throw new Error(`Your Discord account must be at least ${config.minAccountAgeDays} days old to vouch for this seller.`)
+    }
+  }
+
+  // 5. Rate limit / cooldown: Max 3 vouches per giver per receiver per 24 hours
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
   const recentCount = await prisma.vouch.count({
     where: {
@@ -259,5 +270,62 @@ export function isMilestone(vouchCount: number): boolean {
   const milestones = [5, 10, 25, 50, 100, 250, 500, 1000]
   return milestones.includes(vouchCount) || (vouchCount > 100 && vouchCount % 100 === 0)
 }
+
+export async function getActiveConfig(userId: string, guildId: string | null) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  })
+  if (!user) return null
+
+  const isPremium = hasActivePremium(user)
+
+  if (guildId) {
+    const guildConfig = await prisma.guildConfig.findUnique({
+      where: { userId_guildId: { userId, guildId } },
+    })
+    if (guildConfig) {
+      return {
+        requireProof: guildConfig.requireProof,
+        vouchChannelId: guildConfig.vouchChannelId,
+        minAccountAgeDays: guildConfig.minAccountAgeDays,
+        pinnedMessageId: guildConfig.pinnedMessageId,
+        vouchEmbedTitle: user.vouchEmbedTitle,
+        vouchEmbedFooter: user.vouchEmbedFooter,
+        vouchEmbedColor: user.vouchEmbedColor,
+        vouchShowCount: user.vouchShowCount,
+        vouchTagUser: user.vouchTagUser,
+        vouchEmoji: user.vouchEmoji,
+        vouchRoleId: user.vouchRoleId,
+        isPremium,
+        discordId: user.discordId,
+        telegramId: user.telegramId,
+        slug: user.slug,
+        name: user.name,
+        username: user.username,
+      }
+    }
+  }
+
+  return {
+    requireProof: user.vouchRequireProof,
+    vouchChannelId: user.vouchChannelId,
+    minAccountAgeDays: 0,
+    pinnedMessageId: null,
+    vouchEmbedTitle: user.vouchEmbedTitle,
+    vouchEmbedFooter: user.vouchEmbedFooter,
+    vouchEmbedColor: user.vouchEmbedColor,
+    vouchShowCount: user.vouchShowCount,
+    vouchTagUser: user.vouchTagUser,
+    vouchEmoji: user.vouchEmoji,
+    vouchRoleId: user.vouchRoleId,
+    isPremium,
+    discordId: user.discordId,
+    telegramId: user.telegramId,
+    slug: user.slug,
+    name: user.name,
+    username: user.username,
+  }
+}
+
 
 

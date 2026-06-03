@@ -108,6 +108,30 @@ export function buildDiscordCommands() {
         opt.setName("query").setDescription("Keyword or rating (1-5) to search for").setRequired(true),
       )
       .toJSON(),
+    new SlashCommandBuilder()
+      .setName("config")
+      .setDescription("Configure vouch settings for this server (Owner only)")
+      .addChannelOption((opt) =>
+        opt.setName("channel").setDescription("Target announcement channel for vouches").setRequired(false),
+      )
+      .addBooleanOption((opt) =>
+        opt.setName("require_proof").setDescription("Require screenshot proof for vouches").setRequired(false),
+      )
+      .addIntegerOption((opt) =>
+        opt.setName("min_account_age").setDescription("Minimum giver Discord account age in days").setRequired(false),
+      )
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName("remove")
+      .setDescription("Soft-delete a specific vouch (Owner only)")
+      .addStringOption((opt) =>
+        opt.setName("vouch_id").setDescription("ID of the vouch to remove").setRequired(true),
+      )
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName("export")
+      .setDescription("Export all vouch data as JSON (Owner only, Premium)")
+      .toJSON(),
   ]
 }
 

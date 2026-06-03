@@ -208,10 +208,10 @@ Architecture / library notes:
 - [x] New-vouch DM + milestone announcements.
 
 ### Phase 4 — Owner power tools
-- [ ] `/config` (in-chat setup) + per-guild `GuildConfig`.
-- [ ] `/remove`, `/export` [P].
-- [ ] Vouch-only channel + pinned live card [P].
-- [ ] Role rewards [P].
+- [x] `/config` (in-chat setup) + per-guild `GuildConfig`.
+- [x] `/remove`, `/export` [P].
+- [x] Vouch-only channel + pinned live card [P].
+- [x] Role rewards [P].
 
 ### Phase 5 — Migration & growth
 - [ ] Import existing vouches from channel/chat history.

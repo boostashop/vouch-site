@@ -156,3 +156,17 @@ model VouchReport {
   createdAt  DateTime @default(now())
 }
 
+model GuildConfig {
+  id                String   @id @default(cuid())
+  userId            String   // owning bot user
+  guildId           String   // Discord guild / Telegram chat id
+  vouchChannelId    String?
+  pinnedMessageId   String?
+  requireProof      Boolean  @default(false)
+  minAccountAgeDays Int      @default(0)
+  createdAt         DateTime @default(now())
+
+  @@unique([userId, guildId])
+}
+
+

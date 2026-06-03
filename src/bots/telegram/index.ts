@@ -14,6 +14,7 @@ import {
   approveVouch,
   removeVouch,
   isMilestone,
+  getActiveConfig,
 } from "../vouch-service"
 
 const TELEGRAM_COMMANDS = [
@@ -23,6 +24,9 @@ const TELEGRAM_COMMANDS = [
   { command: "blacklist", description: "Manage blacklist: /blacklist <add|remove> <user_id> [reason] (owner only)" },
   { command: "moderate", description: "Moderate vouches: /moderate <list|approve|remove> [vouch_id] (owner only)" },
   { command: "restore", description: "Re-post all vouches (owner only)" },
+  { command: "config", description: "Configure settings: /config <key> <val> (owner only)" },
+  { command: "remove", description: "Soft-delete a specific vouch: /remove <vouch_id> (owner only)" },
+  { command: "export", description: "Export vouch data as JSON: /export (owner only, Premium)" },
   { command: "link", description: "Link this account to your dashboard" },
   { command: "help", description: "How to use this bot" },
 ]
@@ -35,6 +39,9 @@ const HELP_TEXT =
   "*/blacklist <add|remove> <user_id> [reason]* — owner only: manage blacklist.\n" +
   "*/moderate <list|approve|remove> [vouch_id]* — owner only: moderate flagged/reported vouches.\n" +
   "*/restore* — owner only: re-post your full vouch history here.\n" +
+  "*/config <channel|require_proof|min_account_age> <value>* — owner only: configure settings.\n" +
+  "*/remove <vouch_id>* — owner only: soft-delete a specific vouch.\n" +
+  "*/export* — owner only: export all vouch data as JSON (Premium).\n" +
   "*/link* — link this Telegram account to your dashboard.\n\n" +
   "_Powered by Vouched.to_"
 
@@ -126,6 +133,7 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
         giverId: ctx.from!.id.toString(),
         platform: "telegram",
         comment: state.comment,
+        guildId: ctx.chat?.id.toString(),
       })
     } catch (err: any) {
       await ctx.reply(`❌ Validation failed: ${err.message}`)
@@ -167,6 +175,7 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
             giverId: ctx.from!.id.toString(),
             platform: "telegram",
             comment: state.comment,
+            guildId: ctx.chat?.id.toString(),
           })
 
           const createdVouch = await prisma.vouch.create({
@@ -184,32 +193,30 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
             },
           })
 
-          const user = await prisma.user.findUnique({
-            where: { id: state.receiverId },
-          })
+          const config = await getActiveConfig(state.receiverId, ctx.chat?.id.toString() || null)
           const baseUrl = process.env.AUTH_URL || "https://vouched.to"
-          const permalink = user?.slug ? `${baseUrl}/u/${user.slug}#vouch-${createdVouch.id}` : null
+          const permalink = config?.slug ? `${baseUrl}/u/${config.slug}#vouch-${createdVouch.id}` : null
 
           const stars = "⭐".repeat(state.rating)
           let responseText = `✅ *Vouch Recorded!*\n\n*Giver:* ${ctx.from!.first_name}\n*Rating:* ${stars}\n*Comment:* ${state.comment}`
           if (permalink) {
             responseText += `\n[🔗 Verify Vouch](${permalink})`
           }
-          responseText += `\n\n_ID: ${createdVouch.id} • ${user?.vouchEmbedFooter || "Powered by Vouched.to"}_`
+          responseText += `\n\n_ID: ${createdVouch.id} • ${config?.vouchEmbedFooter || "Powered by Vouched.to"}_`
 
           const replyMarkup = permalink ? {
             inline_keyboard: [
-              [{ text: "🌐 View Profile", url: `${baseUrl}/u/${user?.slug}` }]
+              [{ text: "🌐 View Profile", url: `${baseUrl}/u/${config?.slug}` }]
             ]
           } : undefined
 
           await ctx.reply(responseText, { parse_mode: "Markdown", reply_markup: replyMarkup })
 
           // Owner DM
-          if (user?.telegramId) {
+          if (config?.telegramId) {
             try {
               const dmText = `🔔 *New Vouch Received!*\n\nYou received a new vouch from *${ctx.from!.first_name}*!\n\n*Rating:* ${stars}\n*Comment:* ${state.comment}\n\n_ID: ${createdVouch.id}_`
-              await ctx.telegram.sendMessage(user.telegramId, dmText, { parse_mode: "Markdown" })
+              await ctx.telegram.sendMessage(config.telegramId, dmText, { parse_mode: "Markdown" })
             } catch (dmErr) {
               console.error("Failed to DM Telegram bot owner:", dmErr)
             }
@@ -220,7 +227,7 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
             where: { receiverId: state.receiverId, status: "ACTIVE" },
           })
           if (isMilestone(totalVouches)) {
-            const milestoneText = `🎉 *Vouch Milestone Reached!*\n\n🚀 *${user?.name || user?.username || "Seller"}* has reached *${totalVouches}* verified vouches!`
+            const milestoneText = `🎉 *Vouch Milestone Reached!*\n\n🚀 *${config?.name || config?.username || "Seller"}* has reached *${totalVouches}* verified vouches!`
             await ctx.reply(milestoneText, { parse_mode: "Markdown" })
           }
         } catch (err: any) {
@@ -295,14 +302,14 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
     }
 
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { _count: { select: { vouchesReceived: true } } },
+      const config = await getActiveConfig(userId, ctx.chat.id.toString())
+      if (!config) return
+
+      const totalVouches = await prisma.vouch.count({
+        where: { receiverId: userId, status: "ACTIVE" },
       })
 
-      if (!user) return
-
-      if (!hasActivePremium(user) && user._count.vouchesReceived >= FREE_VOUCH_LIMIT) {
+      if (!config.isPremium && totalVouches >= FREE_VOUCH_LIMIT) {
         return ctx.reply(`❌ Vouch limit (${FREE_VOUCH_LIMIT}) reached.`)
       }
 
@@ -313,6 +320,7 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
           giverId: ctx.from.id.toString(),
           platform: "telegram",
           comment,
+          guildId: ctx.chat.id.toString(),
         })
       } catch (validationErr: any) {
         return ctx.reply(`❌ ${validationErr.message}`)
@@ -349,14 +357,14 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
 
       // Generate verification permalink
       const baseUrl = process.env.AUTH_URL || "https://vouched.to"
-      const permalink = user.slug ? `${baseUrl}/u/${user.slug}#vouch-${createdVouch.id}` : null
+      const permalink = config.slug ? `${baseUrl}/u/${config.slug}#vouch-${createdVouch.id}` : null
 
       const stars = "⭐".repeat(rating)
       let responseText = `✅ **Vouch Recorded with Proof!**\n\n**Giver:** ${ctx.from.first_name}\n**Rating:** ${stars}\n**Comment:** ${comment}`
       if (permalink) {
         responseText += `\n[🔗 Verify Vouch](${permalink})`
       }
-      responseText += `\n\n_ID: ${createdVouch.id} • ${user.vouchEmbedFooter}_`
+      responseText += `\n\n_ID: ${createdVouch.id} • ${config.vouchEmbedFooter}_`
 
       await ctx.reply(responseText, { parse_mode: "Markdown" })
     } catch (err) {
@@ -690,6 +698,124 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
     } catch (err) {
       console.error(err)
       await ctx.reply("❌ Error fetching recent vouches.")
+    }
+  })
+
+  bot.command("config", async (ctx) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.telegramId !== ctx.from.id.toString()) {
+      return ctx.reply("❌ Only the owner can use this command.")
+    }
+
+    const guildId = ctx.chat.id.toString()
+    const args = ctx.message.text.split(" ").slice(1)
+    const key = args[0]?.toLowerCase()
+    const val = args[1]?.toLowerCase()
+
+    if (!key || !["channel", "require_proof", "min_account_age"].includes(key)) {
+      return ctx.reply(
+        "❌ **Usage:**\n" +
+        "`/config channel <channel_id>`\n" +
+        "`/config require_proof <true|false>`\n" +
+        "`/config min_account_age <days>`\n\n" +
+        "Type `/config` in the group/channel you want to configure.",
+        { parse_mode: "Markdown" }
+      )
+    }
+
+    if (val === undefined) {
+      return ctx.reply(`❌ Please provide a value for \`${key}\`.`, { parse_mode: "Markdown" })
+    }
+
+    const existing = await prisma.guildConfig.findUnique({
+      where: { userId_guildId: { userId, guildId } },
+    })
+
+    let data: any = {}
+    if (key === "channel") {
+      data.vouchChannelId = val === "none" || val === "null" ? null : val
+    } else if (key === "require_proof") {
+      data.requireProof = val === "true" || val === "yes" || val === "1"
+    } else if (key === "min_account_age") {
+      const days = parseInt(val)
+      if (isNaN(days) || days < 0) {
+        return ctx.reply("❌ min_account_age must be a non-negative integer.")
+      }
+      data.minAccountAgeDays = days
+    }
+
+    const updated = await prisma.guildConfig.upsert({
+      where: { userId_guildId: { userId, guildId } },
+      create: {
+        userId,
+        guildId,
+        vouchChannelId: key === "channel" ? data.vouchChannelId : null,
+        requireProof: key === "require_proof" ? data.requireProof : false,
+        minAccountAgeDays: key === "min_account_age" ? data.minAccountAgeDays : 0,
+      },
+      update: data,
+    })
+
+    return ctx.reply(
+      `✅ **Server Configuration Updated!**\n\n` +
+      `• **Announcement Channel/Chat ID:** \`${updated.vouchChannelId || "None"}\`\n` +
+      `• **Require Proof:** \`${updated.requireProof}\`\n` +
+      `• **Min Account Age:** \`${updated.minAccountAgeDays} days\``,
+      { parse_mode: "Markdown" }
+    )
+  })
+
+  bot.command("remove", async (ctx) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.telegramId !== ctx.from.id.toString()) {
+      return ctx.reply("❌ Only the owner can use this command.")
+    }
+
+    const args = ctx.message.text.split(" ").slice(1)
+    const vouchId = args[0]
+    if (!vouchId) {
+      return ctx.reply("❌ **Usage:** `/remove <vouch_id>`", { parse_mode: "Markdown" })
+    }
+
+    try {
+      await removeVouch(userId, vouchId)
+      return ctx.reply(`✅ Vouch \`${vouchId}\` has been soft-deleted and removed from public profile.`)
+    } catch (err: any) {
+      return ctx.reply(`❌ Error: ${err.message}`)
+    }
+  })
+
+  bot.command("export", async (ctx) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.telegramId !== ctx.from.id.toString()) {
+      return ctx.reply("❌ Only the owner can use this command.")
+    }
+
+    const config = await getActiveConfig(userId, ctx.chat.id.toString())
+    if (!config || !config.isPremium) {
+      return ctx.reply("❌ This command is premium-gated. Upgrade to Premium to export your vouch data.")
+    }
+
+    try {
+      const vouches = await prisma.vouch.findMany({
+        where: { receiverId: userId, status: "ACTIVE" },
+        orderBy: { createdAt: "desc" },
+      })
+
+      const jsonContent = JSON.stringify(vouches, null, 2)
+      const buffer = Buffer.from(jsonContent, "utf-8")
+
+      await ctx.telegram.sendDocument(ctx.from.id, {
+        source: buffer,
+        filename: `vouches_export_${userId}.json`,
+      }, {
+        caption: `📊 Here is your Vouched.to data export. It contains ${vouches.length} active vouches.`,
+      })
+
+      return ctx.reply("✅ Your data has been exported and sent to your DMs!")
+    } catch (err) {
+      console.error("Failed to export Telegram vouches:", err)
+      return ctx.reply("❌ Failed to export vouch data.")
     }
   })
 

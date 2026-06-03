@@ -30,6 +30,7 @@ import {
   approveVouch,
   removeVouch,
   isMilestone,
+  getActiveConfig,
 } from "../vouch-service"
 import { registerDiscordCommands } from "./commands"
 
@@ -43,7 +44,7 @@ export async function spawnDiscordBot(userId: string, token: string): Promise<Cl
   console.log(`Spawning Discord bot for User ID: ${userId}`)
 
   const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
     // Optimization: Limit cache to keep RAM usage low
     makeCache: Options.cacheWithLimits({
       MessageManager: 0,
@@ -71,6 +72,21 @@ export async function spawnDiscordBot(userId: string, token: string): Promise<Cl
         `[Interaction] Received modal submit ${interaction.customId} from ${interaction.user.tag} for User ${userId}`,
       )
       await handleDiscordModalSubmit(interaction, userId)
+    }
+  })
+
+  client.on("messageCreate", async (message) => {
+    if (message.author.bot) return
+    const guildId = message.guildId
+    if (!guildId) return
+
+    try {
+      const config = await getActiveConfig(userId, guildId)
+      if (config && config.isPremium && config.vouchChannelId === message.channelId) {
+        await message.delete()
+      }
+    } catch (err) {
+      console.error("Failed to delete non-vouch message in vouch-only channel:", err)
     }
   })
 
@@ -155,27 +171,23 @@ async function handleDiscordInteraction(
     }
 
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          _count: { select: { vouchesReceived: true } },
-        },
-      })
-
-      if (!user) {
+      const config = await getActiveConfig(userId, interaction.guildId)
+      if (!config) {
         return interaction.reply({ content: "❌ User not found.", ephemeral: true })
       }
 
-      const premium = hasActivePremium(user)
+      const totalVouches = await prisma.vouch.count({
+        where: { receiverId: userId, status: "ACTIVE" },
+      })
 
-      if (!premium && user._count.vouchesReceived >= FREE_VOUCH_LIMIT) {
+      if (!config.isPremium && totalVouches >= FREE_VOUCH_LIMIT) {
         return interaction.reply({
           content: `❌ This user has reached the maximum limit of ${FREE_VOUCH_LIMIT} vouches for free accounts. They need to upgrade to Premium to receive more.`,
           ephemeral: true,
         })
       }
 
-      if (user.vouchRequireProof && !proof) {
+      if (config.requireProof && !proof) {
         return interaction.reply({
           content: "❌ This user requires proof (screenshot) for every vouch.",
           ephemeral: true,
@@ -189,6 +201,8 @@ async function handleDiscordInteraction(
           giverId: interaction.user.id,
           platform: "discord",
           comment,
+          guildId: interaction.guildId,
+          giverCreatedAt: interaction.user.createdAt,
         })
       } catch (validationErr: any) {
         return interaction.reply({
@@ -206,7 +220,7 @@ async function handleDiscordInteraction(
 
         // If proof is mandatory but we couldn't store it, don't save a
         // proofless vouch — ask them to retry rather than silently dropping it.
-        if (user.vouchRequireProof && !proofUrl) {
+        if (config.requireProof && !proofUrl) {
           return interaction.reply({
             content: "❌ Could not save your proof image right now (storage unavailable). Please try again later.",
             ephemeral: true,
@@ -229,16 +243,28 @@ async function handleDiscordInteraction(
         },
       })
 
+      // Premium: Role rewards
+      if (config.isPremium && config.vouchRoleId && interaction.guild) {
+        try {
+          const member = await interaction.guild.members.fetch(interaction.user.id)
+          if (member) {
+            await member.roles.add(config.vouchRoleId)
+          }
+        } catch (roleErr) {
+          console.error("Failed to assign role reward to vouch giver:", roleErr)
+        }
+      }
+
       // Generate permalink
       const baseUrl = process.env.AUTH_URL || "https://vouched.to"
-      const permalink = user.slug ? `${baseUrl}/u/${user.slug}#vouch-${createdVouch.id}` : null
+      const permalink = config.slug ? `${baseUrl}/u/${config.slug}#vouch-${createdVouch.id}` : null
 
       // Build Custom Embed
       const stars = "⭐".repeat(rating)
       const embed = new EmbedBuilder()
-        .setTitle(user.vouchEmbedTitle)
-        .setColor(user.vouchEmbedColor as any)
-        .setFooter({ text: `${user.vouchEmbedFooter} • ID: ${createdVouch.id}` })
+        .setTitle(config.vouchEmbedTitle)
+        .setColor(config.vouchEmbedColor as any)
+        .setFooter({ text: `${config.vouchEmbedFooter} • ID: ${createdVouch.id}` })
         .setTimestamp()
         .addFields({ name: "Vouch:", value: comment }, { name: "Rating:", value: stars, inline: true })
 
@@ -246,15 +272,15 @@ async function handleDiscordInteraction(
         embed.setURL(permalink)
       }
 
-      if (user.vouchShowCount) {
+      if (config.vouchShowCount) {
         embed.addFields({
           name: "Vouch Nº:",
-          value: `${user._count.vouchesReceived + 1}`,
+          value: `${totalVouches + 1}`,
           inline: true,
         })
       }
 
-      if (user.vouchTagUser) {
+      if (config.vouchTagUser) {
         embed.addFields({ name: "Vouched by:", value: `<@${interaction.user.id}>`, inline: true })
       }
 
@@ -264,15 +290,15 @@ async function handleDiscordInteraction(
 
       // Handle Custom Channel/Role/Emoji for Premium
       let responseContent = "✅ **Vouch Recorded!**"
-      if (premium && user.vouchEmoji) {
-        responseContent = `${user.vouchEmoji} **Vouch Recorded!**`
+      if (config.isPremium && config.vouchEmoji) {
+        responseContent = `${config.vouchEmoji} **Vouch Recorded!**`
       }
 
       // Premium: ping a configured role on the announcement. We ping it on the
       // dedicated channel post when one is set, otherwise on the reply — never
       // both, to avoid a double notification.
-      const roleMention = premium && user.vouchRoleId ? `<@&${user.vouchRoleId}>` : ""
-      const roleAllowedMentions = roleMention ? { roles: [user.vouchRoleId!] } : undefined
+      const roleMention = config.isPremium && config.vouchRoleId ? `<@&${config.vouchRoleId}>` : ""
+      const roleAllowedMentions = roleMention ? { roles: [config.vouchRoleId!] } : undefined
 
       // If a specific channel is set and user is premium, send there too
       let announcedToChannel = false
@@ -282,13 +308,13 @@ async function handleDiscordInteraction(
           new ButtonBuilder()
             .setLabel("🌐 View Profile")
             .setStyle(ButtonStyle.Link)
-            .setURL(`${baseUrl}/u/${user.slug}`)
+            .setURL(`${baseUrl}/u/${config.slug}`)
         )
       }
 
-      if (premium && user.vouchChannelId) {
+      if (config.isPremium && config.vouchChannelId) {
         try {
-          const channel = await interaction.client.channels.fetch(user.vouchChannelId)
+          const channel = await interaction.client.channels.fetch(config.vouchChannelId)
           if (channel && channel.isTextBased()) {
             await (channel as any).send({
               content: roleMention || undefined,
@@ -312,10 +338,15 @@ async function handleDiscordInteraction(
         ephemeral: false,
       })
 
+      // Trigger pinned live card update
+      if (interaction.guildId) {
+        await updatePinnedLiveCard(interaction.client, userId, interaction.guildId)
+      }
+
       // Phase 3: Owner DM
-      if (user.discordId) {
+      if (config.discordId) {
         try {
-          const ownerUser = await interaction.client.users.fetch(user.discordId)
+          const ownerUser = await interaction.client.users.fetch(config.discordId)
           if (ownerUser) {
             const dmEmbed = new EmbedBuilder()
               .setTitle("🔔 New Vouch Received!")
@@ -335,21 +366,18 @@ async function handleDiscordInteraction(
       }
 
       // Phase 3: Milestone Announcement
-      const totalVouches = await prisma.vouch.count({
-        where: { receiverId: userId, status: "ACTIVE" },
-      })
-      if (isMilestone(totalVouches)) {
+      if (isMilestone(totalVouches + 1)) {
         const milestoneEmbed = new EmbedBuilder()
           .setTitle("🎉 Vouch Milestone Reached!")
           .setColor("#3B82F6")
-          .setDescription(`🚀 **${user.name || user.username}** has reached **${totalVouches}** verified vouches!`)
+          .setDescription(`🚀 **${config.name || config.username || "Seller"}** has reached **${totalVouches + 1}** verified vouches!`)
           .setFooter({ text: "Verify all reviews on Vouched.to" })
 
         const destChannels = []
         destChannels.push(interaction.channel)
-        if (premium && user.vouchChannelId && user.vouchChannelId !== interaction.channelId) {
+        if (config.isPremium && config.vouchChannelId && config.vouchChannelId !== interaction.channelId) {
           try {
-            const ch = await interaction.client.channels.fetch(user.vouchChannelId)
+            const ch = await interaction.client.channels.fetch(config.vouchChannelId)
             if (ch && ch.isTextBased()) destChannels.push(ch)
           } catch {}
         }
@@ -840,6 +868,126 @@ async function handleDiscordInteraction(
       return interaction.reply({ content: "❌ Error searching vouches.", ephemeral: true })
     }
   }
+
+  if (interaction.commandName === "config") {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.discordId !== interaction.user.id) {
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+    }
+
+    const channel = interaction.options.getChannel("channel")
+    const requireProof = interaction.options.getBoolean("require_proof")
+    const minAccountAge = interaction.options.getInteger("min_account_age")
+
+    const guildId = interaction.guildId
+    if (!guildId) {
+      return interaction.reply({ content: "❌ This command must be used in a server.", ephemeral: true })
+    }
+
+    const existing = await prisma.guildConfig.findUnique({
+      where: { userId_guildId: { userId, guildId } },
+    })
+
+    const data = {
+      vouchChannelId: channel ? channel.id : (existing ? existing.vouchChannelId : null),
+      requireProof: requireProof !== null ? requireProof : (existing ? existing.requireProof : false),
+      minAccountAgeDays: minAccountAge !== null ? minAccountAge : (existing ? existing.minAccountAgeDays : 0),
+    }
+
+    const updated = await prisma.guildConfig.upsert({
+      where: { userId_guildId: { userId, guildId } },
+      create: {
+        userId,
+        guildId,
+        ...data,
+      },
+      update: data,
+    })
+
+    // Trigger pinned live card update
+    await updatePinnedLiveCard(interaction.client, userId, guildId)
+
+    const channelMention = updated.vouchChannelId ? `<#${updated.vouchChannelId}>` : "None"
+    return interaction.reply({
+      content: `✅ **Server Configuration Updated!**\n\n` +
+               `• **Announcement Channel:** ${channelMention}\n` +
+               `• **Require Proof:** \`${updated.requireProof}\`\n` +
+               `• **Min Account Age:** \`${updated.minAccountAgeDays} days\``,
+      ephemeral: true,
+    })
+  }
+
+  if (interaction.commandName === "remove") {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.discordId !== interaction.user.id) {
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+    }
+
+    const vouchId = interaction.options.getString("vouch_id", true)
+    try {
+      await removeVouch(userId, vouchId)
+      // Trigger pinned live card update if in guild
+      if (interaction.guildId) {
+        await updatePinnedLiveCard(interaction.client, userId, interaction.guildId)
+      }
+      return interaction.reply({
+        content: `✅ Vouch \`${vouchId}\` has been soft-deleted and removed from public profile.`,
+        ephemeral: true,
+      })
+    } catch (err: any) {
+      return interaction.reply({
+        content: `❌ Error: ${err.message}`,
+        ephemeral: true,
+      })
+    }
+  }
+
+  if (interaction.commandName === "export") {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || user.discordId !== interaction.user.id) {
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+    }
+
+    const config = await getActiveConfig(userId, interaction.guildId)
+    if (!config || !config.isPremium) {
+      return interaction.reply({
+        content: "❌ This command is premium-gated. Upgrade to Premium to export your vouch data.",
+        ephemeral: true,
+      })
+    }
+
+    await interaction.deferReply({ ephemeral: true })
+
+    try {
+      const vouches = await prisma.vouch.findMany({
+        where: { receiverId: userId, status: "ACTIVE" },
+        orderBy: { createdAt: "desc" },
+      })
+
+      const jsonContent = JSON.stringify(vouches, null, 2)
+      const buffer = Buffer.from(jsonContent, "utf-8")
+
+      const ownerUser = await interaction.client.users.fetch(user.discordId)
+      if (ownerUser) {
+        await ownerUser.send({
+          content: `📊 Here is your Vouched.to data export. It contains ${vouches.length} active vouches.`,
+          files: [{ attachment: buffer, name: `vouches_export_${userId}.json` }],
+        })
+        return interaction.editReply({
+          content: "✅ Your data has been exported and sent to your DMs!",
+        })
+      } else {
+        return interaction.editReply({
+          content: "❌ Could not open a DM with you. Please make sure your DMs are open.",
+        })
+      }
+    } catch (err) {
+      console.error("Failed to export vouches:", err)
+      return interaction.editReply({
+        content: "❌ Failed to export vouch data.",
+      })
+    }
+  }
 }
 
 async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, botUserId: string) {
@@ -890,31 +1038,8 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
     const { receiverId, rating, comment } = pending
 
     try {
-      // Re-run validation rules to prevent race conditions
-      await validateVouchRules({
-        receiverId,
-        giverId: interaction.user.id,
-        platform: "discord",
-        comment,
-      })
-    } catch (err: any) {
-      pendingDiscordVouches.delete(pendingId)
-      return interaction.update({
-        content: `❌ Validation failed: ${err.message}`,
-        embeds: [],
-        components: [],
-      })
-    }
-
-    try {
-      const user = await prisma.user.findUnique({
-        where: { id: receiverId },
-        include: {
-          _count: { select: { vouchesReceived: true } },
-        },
-      })
-
-      if (!user) {
+      const config = await getActiveConfig(receiverId, interaction.guildId)
+      if (!config) {
         pendingDiscordVouches.delete(pendingId)
         return interaction.update({
           content: "❌ Seller profile not found.",
@@ -923,9 +1048,31 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
         })
       }
 
+      // Re-run validation rules to prevent race conditions
+      try {
+        await validateVouchRules({
+          receiverId,
+          giverId: interaction.user.id,
+          platform: "discord",
+          comment,
+          guildId: interaction.guildId,
+          giverCreatedAt: interaction.user.createdAt,
+        })
+      } catch (err: any) {
+        pendingDiscordVouches.delete(pendingId)
+        return interaction.update({
+          content: `❌ Validation failed: ${err.message}`,
+          embeds: [],
+          components: [],
+        })
+      }
+
+      const totalVouches = await prisma.vouch.count({
+        where: { receiverId, status: "ACTIVE" },
+      })
+
       // Check premium vouch limit
-      const premium = hasActivePremium(user)
-      if (!premium && user._count.vouchesReceived >= FREE_VOUCH_LIMIT) {
+      if (!config.isPremium && totalVouches >= FREE_VOUCH_LIMIT) {
         pendingDiscordVouches.delete(pendingId)
         return interaction.update({
           content: `❌ Vouch limit (${FREE_VOUCH_LIMIT}) reached.`,
@@ -951,16 +1098,28 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
 
       pendingDiscordVouches.delete(pendingId)
 
+      // Premium: Role rewards
+      if (config.isPremium && config.vouchRoleId && interaction.guild) {
+        try {
+          const member = await interaction.guild.members.fetch(interaction.user.id)
+          if (member) {
+            await member.roles.add(config.vouchRoleId)
+          }
+        } catch (roleErr) {
+          console.error("Failed to assign role reward to vouch giver:", roleErr)
+        }
+      }
+
       // Generate permalink
       const baseUrl = process.env.AUTH_URL || "https://vouched.to"
-      const permalink = user.slug ? `${baseUrl}/u/${user.slug}#vouch-${createdVouch.id}` : null
+      const permalink = config.slug ? `${baseUrl}/u/${config.slug}#vouch-${createdVouch.id}` : null
 
       // Build Embed
       const stars = "⭐".repeat(rating)
       const embed = new EmbedBuilder()
-        .setTitle(user.vouchEmbedTitle)
-        .setColor(user.vouchEmbedColor as any)
-        .setFooter({ text: `${user.vouchEmbedFooter} • ID: ${createdVouch.id}` })
+        .setTitle(config.vouchEmbedTitle)
+        .setColor(config.vouchEmbedColor as any)
+        .setFooter({ text: `${config.vouchEmbedFooter} • ID: ${createdVouch.id}` })
         .setTimestamp()
         .addFields({ name: "Vouch:", value: comment }, { name: "Rating:", value: stars, inline: true })
 
@@ -968,26 +1127,26 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
         embed.setURL(permalink)
       }
 
-      if (user.vouchShowCount) {
+      if (config.vouchShowCount) {
         embed.addFields({
           name: "Vouch Nº:",
-          value: `${user._count.vouchesReceived + 1}`,
+          value: `${totalVouches + 1}`,
           inline: true,
         })
       }
 
-      if (user.vouchTagUser) {
+      if (config.vouchTagUser) {
         embed.addFields({ name: "Vouched by:", value: `<@${interaction.user.id}>`, inline: true })
       }
 
       // Handle Custom Channel/Role/Emoji for Premium
       let responseContent = "✅ **Vouch Recorded!**"
-      if (premium && user.vouchEmoji) {
-        responseContent = `${user.vouchEmoji} **Vouch Recorded!**`
+      if (config.isPremium && config.vouchEmoji) {
+        responseContent = `${config.vouchEmoji} **Vouch Recorded!**`
       }
 
-      const roleMention = premium && user.vouchRoleId ? `<@&${user.vouchRoleId}>` : ""
-      const roleAllowedMentions = roleMention ? { roles: [user.vouchRoleId!] } : undefined
+      const roleMention = config.isPremium && config.vouchRoleId ? `<@&${config.vouchRoleId}>` : ""
+      const roleAllowedMentions = roleMention ? { roles: [config.vouchRoleId!] } : undefined
 
       let announcedToChannel = false
       const profileRow = new ActionRowBuilder<ButtonBuilder>()
@@ -996,13 +1155,13 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
           new ButtonBuilder()
             .setLabel("🌐 View Profile")
             .setStyle(ButtonStyle.Link)
-            .setURL(`${baseUrl}/u/${user.slug}`)
+            .setURL(`${baseUrl}/u/${config.slug}`)
         )
       }
 
-      if (premium && user.vouchChannelId) {
+      if (config.isPremium && config.vouchChannelId) {
         try {
-          const channel = await interaction.client.channels.fetch(user.vouchChannelId)
+          const channel = await interaction.client.channels.fetch(config.vouchChannelId)
           if (channel && channel.isTextBased()) {
             await (channel as any).send({
               content: roleMention || undefined,
@@ -1038,10 +1197,15 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
         }
       }
 
+      // Trigger pinned live card update
+      if (interaction.guildId) {
+        await updatePinnedLiveCard(interaction.client, botUserId, interaction.guildId)
+      }
+
       // Phase 3: Owner DM
-      if (user.discordId) {
+      if (config.discordId) {
         try {
-          const ownerUser = await interaction.client.users.fetch(user.discordId)
+          const ownerUser = await interaction.client.users.fetch(config.discordId)
           if (ownerUser) {
             const dmEmbed = new EmbedBuilder()
               .setTitle("🔔 New Vouch Received!")
@@ -1061,21 +1225,18 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
       }
 
       // Phase 3: Milestone Announcement
-      const totalVouches = await prisma.vouch.count({
-        where: { receiverId, status: "ACTIVE" },
-      })
-      if (isMilestone(totalVouches)) {
+      if (isMilestone(totalVouches + 1)) {
         const milestoneEmbed = new EmbedBuilder()
           .setTitle("🎉 Vouch Milestone Reached!")
           .setColor("#3B82F6")
-          .setDescription(`🚀 **${user.name || user.username}** has reached **${totalVouches}** verified vouches!`)
+          .setDescription(`🚀 **${config.name || config.username || "Seller"}** has reached **${totalVouches + 1}** verified vouches!`)
           .setFooter({ text: "Verify all reviews on Vouched.to" })
 
         const destChannels = []
         destChannels.push(interaction.channel)
-        if (premium && user.vouchChannelId && user.vouchChannelId !== interaction.channelId) {
+        if (config.isPremium && config.vouchChannelId && config.vouchChannelId !== interaction.channelId) {
           try {
-            const ch = await interaction.client.channels.fetch(user.vouchChannelId)
+            const ch = await interaction.client.channels.fetch(config.vouchChannelId)
             if (ch && ch.isTextBased()) destChannels.push(ch)
           } catch {}
         }
@@ -1171,6 +1332,112 @@ async function handleDiscordModalSubmit(interaction: ModalSubmitInteraction<Cach
       components: [row],
       ephemeral: true,
     })
+  }
+}
+
+export async function updatePinnedLiveCard(
+  client: Client,
+  userId: string,
+  guildId: string,
+) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        _count: { select: { vouchesReceived: true } },
+        vouchesReceived: { select: { rating: true } },
+      },
+    })
+    if (!user) return
+
+    const isPremium = hasActivePremium(user)
+    if (!isPremium) return // premium-gated
+
+    const guildConfig = await prisma.guildConfig.findUnique({
+      where: { userId_guildId: { userId, guildId } },
+    })
+    if (!guildConfig || !guildConfig.vouchChannelId) return
+
+    const channelId = guildConfig.vouchChannelId
+    const channel = await client.channels.fetch(channelId)
+    if (!channel || !channel.isTextBased()) return
+
+    const count = user._count.vouchesReceived
+    const totalRating = user.vouchesReceived.reduce((acc, v) => acc + v.rating, 0)
+    const averageRating = count > 0 ? (totalRating / count).toFixed(1) : "0.0"
+
+    const stars = "⭐".repeat(Math.round(parseFloat(averageRating))) || "⭐"
+
+    // Build the stats embed
+    const embed = new EmbedBuilder()
+      .setTitle(`📈 ${user.name || user.username}'s Reputation Live Stats`)
+      .setColor((user.vouchEmbedColor as any) || "#6366f1")
+      .setDescription(user.profileMetaDescription || "Real-time reputation stats. Click the buttons below to interact!")
+      .addFields(
+        { name: "Rating:", value: `${stars} (${averageRating} / 5.0)`, inline: true },
+        { name: "Total Reviews:", value: `📝 ${count}`, inline: true }
+      )
+      .setFooter({ text: "Auto-updates in real-time • Powered by Vouched.to" })
+      .setTimestamp()
+
+    const baseUrl = process.env.AUTH_URL || "https://vouched.to"
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId("vouch_btn")
+        .setLabel("⭐ Leave a Vouch")
+        .setStyle(ButtonStyle.Success)
+    )
+
+    if (user.slug) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setLabel("🌐 View Profile")
+          .setStyle(ButtonStyle.Link)
+          .setURL(`${baseUrl}/u/${user.slug}`)
+      )
+    }
+
+    let existingMsg = null
+    if (guildConfig.pinnedMessageId) {
+      try {
+        existingMsg = await (channel as any).messages.fetch(guildConfig.pinnedMessageId)
+      } catch (err) {
+        // Message was probably deleted
+      }
+    }
+
+    if (existingMsg) {
+      await existingMsg.edit({
+        embeds: [embed],
+        components: [row],
+      })
+    } else {
+      const newMsg = await (channel as any).send({
+        embeds: [embed],
+        components: [row],
+      })
+
+      try {
+        await newMsg.pin()
+        // Try to delete the system "pinned a message" notification
+        const messages = await (channel as any).messages.fetch({ limit: 5 })
+        const systemPinMsg = messages.find(
+          (m: any) => m.type === 6 || m.type === "ChannelPinnedMessage"
+        )
+        if (systemPinMsg) {
+          await systemPinMsg.delete()
+        }
+      } catch (pinErr) {
+        console.error("Failed to pin message or delete system notification:", pinErr)
+      }
+
+      await prisma.guildConfig.update({
+        where: { userId_guildId: { userId, guildId } },
+        data: { pinnedMessageId: newMsg.id },
+      })
+    }
+  } catch (err) {
+    console.error("Error updating pinned live card:", err)
   }
 }
 
