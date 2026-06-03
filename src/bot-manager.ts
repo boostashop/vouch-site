@@ -147,6 +147,17 @@ class BotManager {
     return Date.now() - failed.at > SPAWN_RETRY_BACKOFF_MS;
   }
 
+  // Global leaderboard position by vouch count (1 = most vouches). Returns 0 for
+  // users with no vouches. Used by the /stats "Leaderboard" line.
+  private async getLeaderboardRank(vouchCount: number): Promise<number> {
+    if (vouchCount <= 0) return 0;
+    const rows = await prisma.$queryRaw<{ count: number }[]>`
+      SELECT COUNT(*)::int AS count FROM (
+        SELECT "receiverId" FROM "Vouch" GROUP BY "receiverId" HAVING COUNT(*) > ${vouchCount}
+      ) t`;
+    return Number(rows[0]?.count ?? 0) + 1;
+  }
+
   // --- DISCORD LOGIC ---
 
   async spawnDiscordBot(userId: string, token: string): Promise<boolean> {
@@ -317,12 +328,24 @@ class BotManager {
           responseContent = `${user.vouchEmoji} **Vouch Recorded!**`;
         }
 
+        // Premium: ping a configured role on the announcement. We ping it on the
+        // dedicated channel post when one is set, otherwise on the reply — never
+        // both, to avoid a double notification.
+        const roleMention = premium && user.vouchRoleId ? `<@&${user.vouchRoleId}>` : '';
+        const roleAllowedMentions = roleMention ? { roles: [user.vouchRoleId!] } : undefined;
+
         // If a specific channel is set and user is premium, send there too
+        let announcedToChannel = false;
         if (premium && user.vouchChannelId) {
           try {
             const channel = await interaction.client.channels.fetch(user.vouchChannelId);
             if (channel && channel.isTextBased()) {
-              await (channel as any).send({ embeds: [embed] });
+              await (channel as any).send({
+                content: roleMention || undefined,
+                embeds: [embed],
+                allowedMentions: roleAllowedMentions,
+              });
+              announcedToChannel = true;
             }
           } catch (err) {
             console.error('Failed to send vouch to custom channel:', err);
@@ -330,8 +353,9 @@ class BotManager {
         }
 
         await interaction.reply({
-          content: responseContent,
+          content: roleMention && !announcedToChannel ? `${roleMention} ${responseContent}` : responseContent,
           embeds: [embed],
+          allowedMentions: roleMention && !announcedToChannel ? roleAllowedMentions : undefined,
           ephemeral: false
         });
 
@@ -372,6 +396,11 @@ class BotManager {
 
         if (user.statsShowScore) {
           embed.addFields({ name: 'Score:', value: `${averageRating} / 5.0`, inline: true });
+        }
+
+        if (user.statsShowLeaderboard) {
+          const rank = await this.getLeaderboardRank(count);
+          embed.addFields({ name: 'Leaderboard:', value: rank > 0 ? `#${rank}` : 'Unranked', inline: true });
         }
 
         if (user.statsShowPlan) {
@@ -587,10 +616,14 @@ class BotManager {
         const totalRating = user.vouchesReceived.reduce((acc, v) => acc + v.rating, 0);
         const averageRating = count > 0 ? (totalRating / count).toFixed(1) : '0.0';
 
+        const rank = user.statsShowLeaderboard ? await this.getLeaderboardRank(count) : 0;
+        const rankText = rank > 0 ? `#${rank}` : 'Unranked';
+
         const statsText = `📊 **${user.statsEmbedTitle}**\n\n` +
           `${user.statsEmbedDescription}\n\n` +
           (user.statsShowCount ? `**Total Vouches:** ${count}\n` : '') +
           (user.statsShowScore ? `**Average Rating:** ${averageRating} / 5.0\n` : '') +
+          (user.statsShowLeaderboard ? `**Leaderboard:** ${rankText}\n` : '') +
           (user.statsShowPlan ? `**Account Plan:** ${hasActivePremium(user) ? 'Premium' : 'Free'}\n` : '') +
           (user.statsShowExpiration && user.premiumExpiresAt ? `**Renews/Expires:** ${user.premiumExpiresAt.toLocaleDateString()}\n` : '') +
           `\n_${user.statsEmbedFooter}_`;
