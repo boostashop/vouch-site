@@ -160,6 +160,26 @@ export default async function ProfileSettingsPage() {
               <p className="text-[10px] text-zinc-500">Displays as a full-width header image on your public profile.</p>
             </div>
 
+            <div className="space-y-2">
+              <label htmlFor="profileCustomCSS" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
+                Custom CSS
+                {!isPremium && <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Premium</span>}
+              </label>
+              <textarea
+                id="profileCustomCSS"
+                name="profileCustomCSS"
+                defaultValue={user?.profileCustomCSS || ""}
+                disabled={!isPremium}
+                rows={5}
+                spellCheck={false}
+                placeholder={"#vp .vc-name { text-transform: uppercase; }"}
+                className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-mono text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <p className="text-[10px] text-zinc-500">
+                Applied on top of your theme. Target <code className="font-mono">#vp .vc-*</code> selectors. For a visual editor, use the Design Studio below.
+              </p>
+            </div>
+
           </div>
         </section>
 

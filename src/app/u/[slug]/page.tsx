@@ -16,7 +16,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { Metadata } from "next"
-import { tokensToCSS, DesignTokens } from "@/types/design-tokens"
+import { tokensToCSS, sanitizeStyleContent, DesignTokens } from "@/types/design-tokens"
 import { hasActivePremium } from "@/lib/premium"
 
 interface PublicProfileProps {
@@ -101,6 +101,9 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
   return (
     <div id="vp" className={`min-h-screen ${pageBg} ${pageText} selection:bg-indigo-500/30`} style={{ fontFamily }}>
       {tokenCSS && <style dangerouslySetInnerHTML={{ __html: tokenCSS }} />}
+      {isPremium && user.profileCustomCSS && (
+        <style dangerouslySetInnerHTML={{ __html: sanitizeStyleContent(user.profileCustomCSS) }} />
+      )}
       <script dangerouslySetInnerHTML={{ __html: `(function(){window.addEventListener('message',function(e){if(e.origin!==window.location.origin)return;if(e.data&&e.data.type==='vc-preview-css'){var s=document.getElementById('vc-preview-style');if(!s){s=document.createElement('style');s.id='vc-preview-style';document.head.appendChild(s);}s.textContent=e.data.css;}});})();` }} />
 
       {/* Background glow */}

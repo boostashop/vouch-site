@@ -183,7 +183,7 @@ const SHADOW_MAP: Record<string, string> = {
 // sequence — HTML entities and comments are NOT parsed inside it. Stripping that
 // sequence is therefore a complete defense against breakout, covering both a
 // premium user's saved Custom CSS and any other untrusted token source.
-function sanitizeStyleContent(css: string): string {
+export function sanitizeStyleContent(css: string): string {
   return css.replace(/<\/style/gi, "")
 }
 

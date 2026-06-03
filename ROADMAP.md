@@ -74,11 +74,12 @@ Living checklist of outstanding work, derived from the full-project review on
 
 - [ ] **Admin Settings page is all dead UI** (`admin/settings/page.tsx`): Global
       Bot Sync, Prune Sessions, Maintenance Mode, API key — no handlers.
-- [ ] **`profileCustomCSS` dead path** — saved (premium) but never rendered.
-      Decide: render it on the profile, or remove the field (Design Studio's
-      token `customCSS` already covers this).
-- [ ] **`vouchRoleId`** collected + saved but the bot never assigns a role.
-- [ ] **`statsShowLeaderboard`** saved but never used in `/stats`.
+- [x] **`profileCustomCSS` wired** — added a premium Custom CSS textarea on the
+      Profile Settings page and render it on the public profile (sanitized via
+      `sanitizeStyleContent`, gated to active premium), applied on top of theme.
+- [x] **`vouchRoleId` wired** — pings the configured role on the vouch
+      announcement (premium).
+- [x] **`statsShowLeaderboard` wired** — `/stats` shows the user's global rank.
 - [ ] **Admin Users**: search box and the `⋮` row menu are non-functional.
 - [ ] **Dashboard "+0 this week"** is hardcoded — compute real weekly trend.
 - [ ] Roadmap gaps from `PLAN.md`: website-based vouching, vouch import/scrape
