@@ -131,10 +131,12 @@ Living checklist of outstanding work, derived from the full-project review on
 
 ## ⚪ Hygiene
 
-- [ ] Remove the 7 ad-hoc debug scripts at repo root (`check-users.js`,
-      `get-token.js` — dumps a token —, `promote-user.js`, etc.).
-- [ ] Consolidate the overlapping docs (`PLAN.md`, `CHECKLIST.md`, `GEMINI.md`,
-      `SESSION_SUMMARY.md`, `DEPLOY.md`) — several are stale/contradictory.
+- [x] **Removed the data-leaking debug scripts** (`get-token.js`, `db-check.js`,
+      `check-users.js`, `check-duplicates.js`, `debug-leaderboard.js`). Kept
+      `clear-tg.js` + `promote-user.js` as occasional ops tools (by choice).
+- [~] **Docs** — README rewritten as the real overview and DEPLOY.md updated;
+      ROADMAP.md is the living tracker. PLAN.md/CHECKLIST.md/SESSION_SUMMARY.md/
+      GEMINI.md kept as-is by choice.
 - [x] **Admin pages support light mode** — `admin/users` and `admin/settings`
       were hardcoded dark (broken under the admin theme toggle); both now have
       proper light/dark variants matching the rest of admin.
