@@ -1,24 +1,26 @@
 import Link from "next/link";
 import { CheckCircle, Shield, Zap, Globe, MessageSquare, Star, Trophy, Palette, BadgeCheck, ShieldCheck, Plug, RotateCw, X, Calendar } from "lucide-react";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getCheckoutUrl } from "@/lib/payments";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export const dynamic = "force-dynamic";
+// Marketing page: prerender it and refresh the stats every 5 minutes. This
+// makes the HTML CDN-cacheable (emits `s-maxage`) instead of `no-store`, so
+// Cloudflare can serve it from the edge — far faster on mobile/high-latency
+// than round-tripping to origin on every visit. Kept session-agnostic on
+// purpose; logged-in users navigate via /dashboard.
+export const revalidate = 300;
 
 export default async function Home() {
   // Pull live platform aggregates for the social-proof bar. Counting in the DB
-  // (not loading rows) keeps this cheap even as the dataset grows.
-  const [session, totalVouches, totalProfiles, ratingAgg] = await Promise.all([
-    auth(),
+  // (not loading rows) keeps this cheap; with ISR these run at build + every
+  // 5 min, not on every request.
+  const [totalVouches, totalProfiles, ratingAgg] = await Promise.all([
     prisma.vouch.count(),
     prisma.user.count({ where: { slug: { not: null } } }),
     prisma.vouch.aggregate({ _avg: { rating: true } }),
   ]);
 
   const avgRating = ratingAgg._avg.rating ?? 0;
-  const checkoutUrl = session?.user?.id ? getCheckoutUrl(session.user.id) : null;
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-white selection:bg-indigo-500/30 font-sans">
@@ -40,15 +42,9 @@ export default async function Home() {
 
             <div className="flex items-center gap-3">
               <ThemeToggle />
-              {session ? (
-                <Link href="/dashboard" className="bg-zinc-900 dark:bg-white text-white dark:text-black px-5 py-2 rounded-full text-sm font-bold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-all active:scale-95 shadow-md">
-                  Dashboard
-                </Link>
-              ) : (
-                <Link href="/auth/signin" className="bg-zinc-900 dark:bg-white text-white dark:text-black px-5 py-2 rounded-full text-sm font-bold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-all active:scale-95 shadow-md">
-                  Sign In
-                </Link>
-              )}
+              <Link href="/auth/signin" className="bg-zinc-900 dark:bg-white text-white dark:text-black px-5 py-2 rounded-full text-sm font-bold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-all active:scale-95 shadow-md">
+                Sign In
+              </Link>
             </div>
           </div>
         </div>
@@ -74,34 +70,24 @@ export default async function Home() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-6">
-              {session ? (
-                <Link href="/dashboard" className="w-full sm:w-auto bg-indigo-600 px-10 py-4 rounded-2xl font-bold text-lg hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/30 active:scale-95 text-center text-white">
-                  Open Dashboard
-                </Link>
-              ) : (
-                <>
-                  <Link
-                    href="/auth/signup"
-                    className="w-full sm:w-auto bg-indigo-600 px-10 py-4 rounded-2xl font-bold text-lg hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/30 active:scale-95 text-center text-white"
-                  >
-                    Get Started Free
-                  </Link>
+              <Link
+                href="/auth/signup"
+                className="w-full sm:w-auto bg-indigo-600 px-10 py-4 rounded-2xl font-bold text-lg hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/30 active:scale-95 text-center text-white"
+              >
+                Get Started Free
+              </Link>
 
-                  <Link
-                    href="#how"
-                    className="w-full sm:w-auto bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 text-zinc-900 dark:text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all active:scale-95 text-center"
-                  >
-                    Learn More
-                  </Link>
-                </>
-              )}
+              <Link
+                href="#how"
+                className="w-full sm:w-auto bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 text-zinc-900 dark:text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all active:scale-95 text-center"
+              >
+                Learn More
+              </Link>
             </div>
 
-            {!session && (
-              <p className="text-zinc-500 text-xs mt-6 font-medium">
-                No password required. Instant magic link login.
-              </p>
-            )}
+            <p className="text-zinc-500 text-xs mt-6 font-medium">
+              No password required. Instant magic link login.
+            </p>
 
             {/* Live stats bar */}
             <div className="mt-16 grid grid-cols-3 max-w-2xl mx-auto divide-x divide-zinc-200 dark:divide-white/10 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
@@ -276,10 +262,10 @@ export default async function Home() {
                 <PlanRow>Role pings &amp; expiry in /stats</PlanRow>
               </ul>
               <Link
-                href={session ? "/dashboard" : "/auth/signup"}
+                href="/auth/signup"
                 className="mt-10 block w-full text-center py-3.5 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-black font-bold hover:opacity-90 transition-all active:scale-95"
               >
-                {session ? "Go to Dashboard" : "Get Started Free"}
+                Get Started Free
               </Link>
             </div>
 
@@ -304,21 +290,16 @@ export default async function Home() {
                 <PlanRow ok>Leaderboard &amp; verified badge</PlanRow>
                 <PlanRow ok>Renewal &amp; expiry in /stats</PlanRow>
               </ul>
-              {checkoutUrl ? (
-                <a
-                  href={checkoutUrl}
-                  className="mt-10 block w-full text-center py-3.5 rounded-2xl bg-indigo-600 text-white font-bold hover:bg-indigo-500 transition-all active:scale-95 shadow-xl shadow-indigo-600/30"
-                >
-                  Upgrade to Premium
-                </a>
-              ) : (
-                <Link
-                  href={session ? "/dashboard" : "/auth/signup"}
-                  className="mt-10 block w-full text-center py-3.5 rounded-2xl bg-indigo-600 text-white font-bold hover:bg-indigo-500 transition-all active:scale-95 shadow-xl shadow-indigo-600/30"
-                >
-                  {session ? "Upgrade in Dashboard" : "Get Started Free"}
-                </Link>
-              )}
+              {/* Upgrade lives in the dashboard, which builds the user-specific
+                  checkout link-out. Signed-out visitors get bounced to sign-in
+                  first, then land back here. Keeps this page session-agnostic
+                  and edge-cacheable. */}
+              <Link
+                href="/dashboard"
+                className="mt-10 block w-full text-center py-3.5 rounded-2xl bg-indigo-600 text-white font-bold hover:bg-indigo-500 transition-all active:scale-95 shadow-xl shadow-indigo-600/30"
+              >
+                Upgrade to Premium
+              </Link>
             </div>
           </div>
         </section>
