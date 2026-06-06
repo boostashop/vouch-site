@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle, Shield, Zap, Globe, MessageSquare, Star, Trophy, Palette, BadgeCheck, ShieldCheck, Plug, RotateCw, X, Calendar } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AuthNavButton } from "@/components/auth-nav-button";
 
 // Marketing page: prerender it and refresh the stats every 5 minutes. This
 // makes the HTML CDN-cacheable (emits `s-maxage`) instead of `no-store`, so
@@ -42,9 +43,7 @@ export default async function Home() {
 
             <div className="flex items-center gap-3">
               <ThemeToggle />
-              <Link href="/auth/signin" className="bg-zinc-900 dark:bg-white text-white dark:text-black px-5 py-2 rounded-full text-sm font-bold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-all active:scale-95 shadow-md">
-                Sign In
-              </Link>
+              <AuthNavButton />
             </div>
           </div>
         </div>
