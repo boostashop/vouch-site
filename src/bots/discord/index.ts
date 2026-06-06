@@ -118,6 +118,7 @@ async function handleDiscordInteraction(
       .addFields(
         { name: "/vouch", value: "Leave a vouch: a 1–5 rating, a comment, and an optional proof screenshot." },
         { name: "/stats", value: "View this profile's vouch count, average score, and leaderboard rank." },
+        { name: "/badge", value: "Owner only (Premium) — get a live, embeddable reputation badge for forums & sites." },
         { name: "/report <vouch_id> [reason]", value: "Report a vouch to the owner for moderation." },
         { name: "/blacklist <add|remove> <user_id> [reason]", value: "Owner only — Manage blacklisted users." },
         { name: "/moderate <list|approve|remove>", value: "Owner only — Manage reported/flagged vouches." },
@@ -474,6 +475,58 @@ async function handleDiscordInteraction(
     } catch (err) {
       console.error("Error fetching stats:", err)
       await interaction.reply({ content: "❌ Failed to fetch stats.", ephemeral: true })
+    }
+  }
+
+  if (interaction.commandName === "badge") {
+    try {
+      const user = await prisma.user.findUnique({ where: { id: userId } })
+      const baseUrl = process.env.AUTH_URL || "https://vouched.to"
+
+      if (!user) {
+        return interaction.reply({ content: "❌ User not found.", ephemeral: true })
+      }
+      if (!hasActivePremium(user)) {
+        return interaction.reply({
+          content: `🔒 The embeddable reputation badge is a Premium feature. Upgrade at ${baseUrl}/dashboard to unlock it.`,
+          ephemeral: true,
+        })
+      }
+      if (!user.slug) {
+        return interaction.reply({
+          content: "⚠️ Set a profile slug in your dashboard first to generate your badge.",
+          ephemeral: true,
+        })
+      }
+
+      const profileUrl = `${baseUrl}/u/${user.slug}`
+      const bannerUrl = `${baseUrl}/u/${user.slug}/badge`
+      const chipUrl = `${baseUrl}/u/${user.slug}/badge?size=chip`
+      const bbcode = `[url=${profileUrl}][img]${bannerUrl}[/img][/url]`
+
+      const embed = new EmbedBuilder()
+        .setTitle("Your Embeddable Vouch Badge")
+        .setDescription(
+          "A live image of your reputation for forum signatures & listings — it updates automatically as you collect vouches.\n\n" +
+            "**BBCode (forums):**\n```\n" +
+            bbcode +
+            "\n```\n" +
+            "**Direct image URLs:**\n" +
+            `• Banner: ${bannerUrl}\n` +
+            `• Compact: ${chipUrl}`
+        )
+        .setColor((user.profileAccentColor || "#6366f1") as any)
+        .setImage(bannerUrl)
+        .setFooter({ text: "Powered by Vouched.to" })
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setLabel("View Profile").setStyle(ButtonStyle.Link).setURL(profileUrl)
+      )
+
+      await interaction.reply({ embeds: [embed], components: [row], ephemeral: true })
+    } catch (err) {
+      console.error("Error building badge:", err)
+      await interaction.reply({ content: "❌ Failed to build badge.", ephemeral: true })
     }
   }
 

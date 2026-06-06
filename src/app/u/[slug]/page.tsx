@@ -18,6 +18,7 @@ import Link from "next/link"
 import { Metadata } from "next"
 import { tokensToCSS, DesignTokens, defaultLightTokens, defaultDarkTokens } from "@/types/design-tokens"
 import { hasActivePremium } from "@/lib/premium"
+import { standingLabel } from "@/lib/reputation"
 import { getSignedProofUrl } from "@/lib/proof-url"
 
 const VOUCHES_PER_PAGE = 30
@@ -197,7 +198,7 @@ export default async function PublicProfilePage({ params, searchParams }: Public
             />
             <StatMini
               label="Standing"
-              value={vouchCount >= 100 ? "Top Tier" : vouchCount >= 25 ? "Trusted" : vouchCount >= 5 ? "Rising" : "New"}
+              value={standingLabel(vouchCount)}
               cardBg={cardBg}
             />
           </div>

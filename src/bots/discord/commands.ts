@@ -22,6 +22,10 @@ export function buildDiscordCommands() {
       .toJSON(),
     new SlashCommandBuilder().setName("stats").setDescription("View vouch statistics").toJSON(),
     new SlashCommandBuilder()
+      .setName("badge")
+      .setDescription("Get your embeddable reputation badge for forums & sites (Premium)")
+      .toJSON(),
+    new SlashCommandBuilder()
       .setName("restore")
       .setDescription("Restore all vouches to this channel (Owner only)")
       .toJSON(),

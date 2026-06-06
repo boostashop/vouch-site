@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { updateProfile } from "./actions"
 import { hasActivePremium } from "@/lib/premium"
 import { getCheckoutUrl } from "@/lib/payments"
-import { User, Link as LinkIcon, Shield, CheckCircle, Palette, Globe, Search } from "lucide-react"
+import { EmbedBadgePanel } from "@/components/dashboard/EmbedBadgePanel"
+import { User, Link as LinkIcon, Shield, CheckCircle, Palette, Globe, Search, Code2 } from "lucide-react"
 
 export default async function ProfileSettingsPage() {
   const session = await auth()
@@ -13,6 +14,7 @@ export default async function ProfileSettingsPage() {
 
   const isPremium = hasActivePremium(user)
   const checkoutUrl = (session?.user?.id && getCheckoutUrl(session.user.id)) || null
+  const baseUrl = (process.env.AUTH_URL || "").replace(/\/$/, "")
 
   return (
     <div className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -282,6 +284,52 @@ export default async function ProfileSettingsPage() {
           </div>
         </section>
       </form>
+
+      {/* Embeddable Badge */}
+      <section className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm">
+        <div className="p-6 border-b border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/50 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+            <Code2 size={20} />
+          </div>
+          <div>
+            <h2 className="font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+              Embeddable Badge
+              {!isPremium && (
+                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">
+                  Premium
+                </span>
+              )}
+            </h2>
+            <p className="text-xs text-zinc-500">A live image of your rep for forum signatures &amp; listings.</p>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {!user?.slug ? (
+            <p className="text-sm text-zinc-500">
+              Set a <strong>profile slug</strong> above and save to unlock your embeddable badge.
+            </p>
+          ) : isPremium ? (
+            <EmbedBadgePanel baseUrl={baseUrl} slug={user.slug} name={user.name || user.slug} />
+          ) : (
+            <a
+              href={checkoutUrl ?? "#"}
+              className="flex items-center justify-between gap-4 bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl p-6 hover:border-zinc-300 dark:hover:border-white/10 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-2xl">🔒</div>
+                <div>
+                  <h3 className="font-extrabold text-zinc-900 dark:text-white">Live reputation badge</h3>
+                  <p className="text-sm text-zinc-500 mt-0.5">
+                    A self-updating image showing your vouch count, rating &amp; verified status — with copy-paste BBCode, HTML &amp; Markdown.
+                  </p>
+                </div>
+              </div>
+              {checkoutUrl && <span className="text-emerald-500 font-bold text-sm shrink-0">Upgrade →</span>}
+            </a>
+          )}
+        </div>
+      </section>
 
       {user?.slug && (
          <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">

@@ -21,6 +21,7 @@ import { getSignedProofUrl } from "../../lib/proof-url"
 const TELEGRAM_COMMANDS = [
   { command: "vouch", description: "Leave a vouch: /vouch <1-5> <comment>" },
   { command: "stats", description: "View vouch statistics" },
+  { command: "badge", description: "Get your embeddable reputation badge (owner only, Premium)" },
   { command: "report", description: "Report a vouch: /report <vouch_id> [reason]" },
   { command: "blacklist", description: "Manage blacklist: /blacklist <add|remove> <user_id> [reason] (owner only)" },
   { command: "moderate", description: "Moderate vouches: /moderate <list|approve|remove> [vouch_id] (owner only)" },
@@ -36,6 +37,7 @@ const HELP_TEXT =
   "🤖 *Vouched.to Bot*\n\n" +
   "*/vouch <rating 1-5> <comment>* — leave a vouch. Attach a photo with that caption to include proof.\n" +
   "*/stats* — view vouch count, average score, and leaderboard rank.\n" +
+  "*/badge* — owner only (Premium): get a live, embeddable reputation badge for forums & sites.\n" +
   "*/report <vouch_id> [reason]* — report a vouch to the seller for moderation.\n" +
   "*/blacklist <add|remove> <user_id> [reason]* — owner only: manage blacklist.\n" +
   "*/moderate <list|approve|remove> [vouch_id]* — owner only: moderate flagged/reported vouches.\n" +
@@ -409,6 +411,49 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
     } catch (err) {
       console.error("Error fetching Telegram stats:", err)
       await ctx.reply("❌ Failed to fetch stats.")
+    }
+  })
+
+  bot.command("badge", async (ctx) => {
+    try {
+      const user = await prisma.user.findUnique({ where: { id: userId } })
+      const baseUrl = process.env.AUTH_URL || "https://vouched.to"
+
+      if (!user) return ctx.reply("❌ User not found.")
+      if (!hasActivePremium(user)) {
+        return ctx.reply(
+          `🔒 The embeddable reputation badge is a Premium feature.\nUpgrade at ${baseUrl}/dashboard to unlock it.`,
+        )
+      }
+      if (!user.slug) {
+        return ctx.reply("⚠️ Set a profile slug in your dashboard first to generate your badge.")
+      }
+
+      const profileUrl = `${baseUrl}/u/${user.slug}`
+      const bannerUrl = `${baseUrl}/u/${user.slug}/badge`
+      const chipUrl = `${baseUrl}/u/${user.slug}/badge?size=chip`
+      const bbcode = `[url=${profileUrl}][img]${bannerUrl}[/img][/url]`
+
+      const caption =
+        "🏅 *Your Embeddable Vouch Badge*\n\n" +
+        "A live image of your reputation — it updates automatically as you collect vouches.\n\n" +
+        "*BBCode (forums):*\n" +
+        "`" + bbcode + "`\n\n" +
+        "*Direct image URLs:*\n" +
+        `Banner: ${bannerUrl}\n` +
+        `Compact: ${chipUrl}`
+
+      await ctx.replyWithPhoto(
+        { url: bannerUrl },
+        {
+          caption,
+          parse_mode: "Markdown",
+          reply_markup: { inline_keyboard: [[{ text: "🌐 View Profile", url: profileUrl }]] },
+        },
+      )
+    } catch (err) {
+      console.error("Error building Telegram badge:", err)
+      await ctx.reply("❌ Failed to build badge.")
     }
   })
 
