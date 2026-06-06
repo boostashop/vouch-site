@@ -129,6 +129,8 @@ export function CredentialsForm({ type = "signin" }: { type?: "signin" | "signup
             type="password"
             placeholder="••••••••"
             required
+            minLength={type === "signup" ? 8 : undefined}
+            maxLength={type === "signup" ? 72 : undefined}
             className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all outline-none"
           />
         </div>

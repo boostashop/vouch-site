@@ -4,7 +4,7 @@
 Implement bot customization features (Discord/Telegram) based on the MyVouch.es model and deploy to the VPS.
 
 ## Status: SUCCESSFUL DEPLOYMENT
-- **Environment**: VPS (145.241.222.48) is running the latest `dev` branch.
+- **Environment**: The production VPS is running the latest `dev` branch.
 - **Web App**: `vouch-site` is online (PM2 ID 0).
 - **Bot Manager**: `vouch-bot` is online (PM2 ID 1).
 - **Database**: PostgreSQL schema synchronized via Prisma.
