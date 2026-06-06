@@ -6,6 +6,10 @@ import crypto from "crypto"
 // button simply links to the payments site, passing the Vouched userId as
 // `ref` so the payments site can attach the purchase to this account and echo
 // the id back on its webhooks. `return` is where it should send the user after.
+//
+// When PAYMENTS_STORE_SLUG is set we deep-link to that store's storefront (which
+// lists the Premium plans); the payments site captures `ref` and carries it
+// through to checkout. Without it we fall back to the payments site root.
 
 export function getCheckoutUrl(userId: string): string | null {
   const base = process.env.PAYMENTS_URL
@@ -13,7 +17,8 @@ export function getCheckoutUrl(userId: string): string | null {
   const returnTo = process.env.AUTH_URL
     ? `${process.env.AUTH_URL.replace(/\/$/, "")}/dashboard`
     : ""
-  const url = new URL("/checkout", base)
+  const slug = process.env.PAYMENTS_STORE_SLUG?.trim()
+  const url = new URL(slug ? `/store/${slug}` : "/", base)
   url.searchParams.set("ref", userId)
   if (returnTo) url.searchParams.set("return", returnTo)
   return url.toString()

@@ -50,6 +50,16 @@ test("getCheckoutUrl builds url with ref + return", () => {
   assert.equal(u.searchParams.get("return"), "https://vouched.to/dashboard")
 })
 
+test("getCheckoutUrl deep-links to the store storefront when PAYMENTS_STORE_SLUG is set", () => {
+  process.env.PAYMENTS_URL = "https://pay.example.com"
+  process.env.AUTH_URL = "https://vouched.to"
+  process.env.PAYMENTS_STORE_SLUG = "vouched"
+  const u = new URL(getCheckoutUrl("user123")!)
+  assert.equal(u.pathname, "/store/vouched")
+  assert.equal(u.searchParams.get("ref"), "user123")
+  delete process.env.PAYMENTS_STORE_SLUG
+})
+
 test("getCheckoutUrl returns null when PAYMENTS_URL is unset", () => {
   delete process.env.PAYMENTS_URL
   assert.equal(getCheckoutUrl("u"), null)
