@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-// Shared chrome for the legal/placeholder pages. These are honest placeholders:
-// real policy copy should replace the body before go-live.
+// Shared chrome for the legal pages (Terms, Privacy, Cookies + the /legal
+// index). The prose styles on the body wrapper cover every element the policy
+// copy uses (h2/h3 headings, lists, links, emphasis) so each page can stay
+// plain JSX.
 export function LegalShell({
   title,
   updated,
@@ -34,7 +36,7 @@ export function LegalShell({
           <p className="text-indigo-500 dark:text-indigo-400 text-xs font-black uppercase tracking-[0.2em] mb-4">Legal</p>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">{title}</h1>
           <p className="text-sm font-medium text-zinc-500 mb-12">Last updated {updated}</p>
-          <div className="space-y-6 text-zinc-600 dark:text-zinc-400 leading-relaxed [&_h2]:text-zinc-900 dark:[&_h2]:text-white [&_h2]:text-xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:mt-10 [&_h2]:mb-3">
+          <div className="space-y-6 text-zinc-600 dark:text-zinc-400 leading-relaxed [&_h2]:text-zinc-900 dark:[&_h2]:text-white [&_h2]:text-xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:mt-10 [&_h2]:mb-3 [&_h3]:text-zinc-900 dark:[&_h3]:text-white [&_h3]:text-base [&_h3]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_li]:marker:text-zinc-400 dark:[&_li]:marker:text-zinc-600 [&_a]:text-indigo-500 dark:[&_a]:text-indigo-400 [&_a]:font-medium [&_a:hover]:underline [&_strong]:text-zinc-900 dark:[&_strong]:text-white [&_strong]:font-semibold">
             {children}
           </div>
         </article>
@@ -42,6 +44,8 @@ export function LegalShell({
 
       <footer className="border-t border-zinc-200 dark:border-white/5 py-10 px-6 text-center">
         <p className="text-xs font-medium text-zinc-500">
+          <Link href="/legal" className="hover:text-indigo-400 transition-colors">Legal</Link>
+          <span className="mx-3 text-zinc-300 dark:text-zinc-700">·</span>
           <Link href="/legal/privacy" className="hover:text-indigo-400 transition-colors">Privacy</Link>
           <span className="mx-3 text-zinc-300 dark:text-zinc-700">·</span>
           <Link href="/legal/terms" className="hover:text-indigo-400 transition-colors">Terms</Link>
