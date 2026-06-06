@@ -101,7 +101,6 @@ model User {
   profileBannerImage     String?
   profileMetaTitle       String?
   profileMetaDescription String?
-  profileCustomCSS       String?
   profileFontFamily      String   @default("sans")
   profileDesignTokens    Json?
   profileShowStats       Boolean  @default(true)

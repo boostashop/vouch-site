@@ -64,6 +64,12 @@ Stored in `.env` at the project root (not committed to git).
   host check in `proxy.ts` and the checkout return URL
 - `AUTH_RESEND_KEY` — Resend API key for magic-link emails
 - `EMAIL_FROM` — from-address for magic-link emails
+- `TOKEN_ENCRYPTION_KEY` — secret used to derive the AES-256-GCM key that
+  encrypts users' Discord/Telegram bot tokens at rest. Required for bots to
+  start and for the bot settings page. Generate with
+  `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+  **Rotating this value makes existing encrypted tokens undecryptable** — users
+  would need to re-enter their bot tokens.
 
 **Proof storage (Cloudflare R2, S3-compatible):** if unset, proofs are skipped
 rather than stored.

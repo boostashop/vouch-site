@@ -65,9 +65,6 @@ export interface ProfileDesignConfig {
 
   // Section dividers
   dividerColor: string
-
-  // Power-user raw CSS (appended last, can override anything)
-  customCSS: string
 }
 
 // ── Defaults ──────────────────────────────────────────────────────────────
@@ -114,7 +111,6 @@ export const defaultDarkConfig: ProfileDesignConfig = {
   ctaTextColor: "#ffffff",
   ctaRadius: 16,
   dividerColor: "rgba(255,255,255,0.06)",
-  customCSS: "",
 }
 
 export const defaultLightConfig: ProfileDesignConfig = {
@@ -159,7 +155,6 @@ export const defaultLightConfig: ProfileDesignConfig = {
   ctaTextColor: "#ffffff",
   ctaRadius: 16,
   dividerColor: "#e4e4e7",
-  customCSS: "",
 }
 
 // ── CSS generation ─────────────────────────────────────────────────────────
@@ -181,8 +176,8 @@ const SHADOW_MAP: Record<string, string> = {
 // the server-rendered public profile. A <style> is a "raw text" element: the
 // only way to break out of it (e.g. to inject a <script>) is a literal "</style"
 // sequence — HTML entities and comments are NOT parsed inside it. Stripping that
-// sequence is therefore a complete defense against breakout, covering both a
-// premium user's saved Custom CSS and any other untrusted token source.
+// sequence is therefore a complete defense against breakout for any user-supplied
+// token value (colors, fonts, etc.) interpolated into the generated CSS.
 export function sanitizeStyleContent(css: string): string {
   return css.replace(/<\/style/gi, "")
 }
@@ -235,8 +230,6 @@ export function configToCSS(c: ProfileDesignConfig): string {
     // Badge chips
     `#vp .vc-badge{background:${c.badgeBg}!important;border-color:${c.badgeBorderColor}!important;color:${c.badgeTextColor}!important;border-radius:${c.badgeRadius}px!important}`,
   ]
-
-  if (c.customCSS?.trim()) rules.push(c.customCSS.trim())
 
   return sanitizeStyleContent(rules.join("\n"))
 }

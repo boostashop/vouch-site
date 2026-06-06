@@ -4,6 +4,7 @@ import { prisma } from "./prisma"
 import { spawnDiscordBot } from "./discord"
 import { spawnTelegramBot } from "./telegram"
 import { hasActivePremium } from "./vouch-service"
+import { tryDecryptSecret } from "../lib/crypto"
 
 // After a spawn fails for a given token, wait this long before retrying that
 // same token — otherwise a bad/revoked token gets retried every poll (60s) and
@@ -63,24 +64,30 @@ export class BotManager {
     })
 
     for (const user of users) {
+      // Tokens are stored encrypted at rest; decrypt to the plaintext the bot
+      // libraries (and our change-detection below) expect. A token that fails to
+      // decrypt is treated as absent so one bad row can't crash the sync loop.
+      const discordToken = tryDecryptSecret(user.discordBotToken)
+      const telegramToken = tryDecryptSecret(user.telegramBotToken)
+
       // --- Discord Sync ---
       const discordKey = `discord:${user.id}`
       const existingDiscord = this.discordClients.get(user.id)
-      if (user.discordBotToken) {
+      if (discordToken) {
         // Token replaced in the dashboard → tear down the stale client so we
         // respawn with the new one below.
-        if (existingDiscord && existingDiscord.token !== user.discordBotToken) {
+        if (existingDiscord && existingDiscord.token !== discordToken) {
           console.log(`Discord token changed for ${user.id}; respawning.`)
           existingDiscord.client.destroy()
           this.discordClients.delete(user.id)
         }
-        if (!this.discordClients.has(user.id) && this.shouldAttemptSpawn(discordKey, user.discordBotToken)) {
-          const client = await spawnDiscordBot(user.id, user.discordBotToken)
+        if (!this.discordClients.has(user.id) && this.shouldAttemptSpawn(discordKey, discordToken)) {
+          const client = await spawnDiscordBot(user.id, discordToken)
           if (client) {
-            this.discordClients.set(user.id, { client, token: user.discordBotToken })
+            this.discordClients.set(user.id, { client, token: discordToken })
             this.failedSpawns.delete(discordKey)
           } else {
-            this.failedSpawns.set(discordKey, { token: user.discordBotToken, at: Date.now() })
+            this.failedSpawns.set(discordKey, { token: discordToken, at: Date.now() })
           }
         }
       } else if (existingDiscord) {
@@ -93,19 +100,19 @@ export class BotManager {
       // --- Telegram Sync ---
       const telegramKey = `telegram:${user.id}`
       const existingTelegram = this.telegramBots.get(user.id)
-      if (user.telegramBotToken) {
-        if (existingTelegram && existingTelegram.token !== user.telegramBotToken) {
+      if (telegramToken) {
+        if (existingTelegram && existingTelegram.token !== telegramToken) {
           console.log(`Telegram token changed for ${user.id}; respawning.`)
           existingTelegram.bot.stop("SIGTERM")
           this.telegramBots.delete(user.id)
         }
-        if (!this.telegramBots.has(user.id) && this.shouldAttemptSpawn(telegramKey, user.telegramBotToken)) {
-          const bot = await spawnTelegramBot(user.id, user.telegramBotToken)
+        if (!this.telegramBots.has(user.id) && this.shouldAttemptSpawn(telegramKey, telegramToken)) {
+          const bot = await spawnTelegramBot(user.id, telegramToken)
           if (bot) {
-            this.telegramBots.set(user.id, { bot, token: user.telegramBotToken })
+            this.telegramBots.set(user.id, { bot, token: telegramToken })
             this.failedSpawns.delete(telegramKey)
           } else {
-            this.failedSpawns.set(telegramKey, { token: user.telegramBotToken, at: Date.now() })
+            this.failedSpawns.set(telegramKey, { token: telegramToken, at: Date.now() })
           }
         }
       } else if (existingTelegram) {

@@ -376,21 +376,6 @@ export function ProfileBuilder({ slug, initialTokens }: Props) {
           <>
             <ColorRow label="Divider color" value={tokens.dividerColor} onChange={(v) => set("dividerColor", v)} />
 
-            <div className="space-y-1.5 pt-1">
-              <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300">Custom CSS</p>
-              <p className="text-[10px] text-zinc-400 leading-snug">
-                Appended after generated rules. Target <code className="font-mono bg-zinc-100 dark:bg-zinc-800 px-1 rounded">#vp .vc-*</code> selectors.
-              </p>
-              <textarea
-                value={tokens.customCSS}
-                onChange={(e) => set("customCSS", e.target.value)}
-                placeholder={"#vp .vc-name {\n  text-transform: uppercase;\n}"}
-                rows={6}
-                spellCheck={false}
-                className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-[11px] font-mono text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
-              />
-            </div>
-
             <div className="flex gap-2 pt-1">
               <button
                 type="button"

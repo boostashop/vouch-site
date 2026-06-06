@@ -3,6 +3,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { encryptSecret, decryptSecret } from "@/lib/crypto"
 
 export async function updateBotTokens(formData: FormData) {
   const session = await auth()
@@ -18,11 +19,11 @@ export async function updateBotTokens(formData: FormData) {
 
   if (formData.has("discordToken")) {
     const v = (formData.get("discordToken") as string).trim()
-    if (v) data.discordBotToken = v
+    if (v) data.discordBotToken = encryptSecret(v)
   }
   if (formData.has("telegramToken")) {
     const v = (formData.get("telegramToken") as string).trim()
-    if (v) data.telegramBotToken = v
+    if (v) data.telegramBotToken = encryptSecret(v)
   }
 
   if (Object.keys(data).length > 0) {
@@ -130,7 +131,7 @@ export async function getBotGuildChannels(guildId: string) {
   try {
     const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
       headers: {
-        Authorization: `Bot ${user.discordBotToken}`
+        Authorization: `Bot ${decryptSecret(user.discordBotToken)}`
       }
     })
     if (!response.ok) {
@@ -160,7 +161,7 @@ export async function getBotGuildRoles(guildId: string) {
   try {
     const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
       headers: {
-        Authorization: `Bot ${user.discordBotToken}`
+        Authorization: `Bot ${decryptSecret(user.discordBotToken)}`
       }
     })
     if (!response.ok) {

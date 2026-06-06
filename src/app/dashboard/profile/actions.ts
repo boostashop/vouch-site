@@ -18,7 +18,6 @@ export async function updateProfile(formData: FormData) {
   const profileTheme = formData.get("profileTheme") as string
   const profileFontFamily = formData.get("profileFontFamily") as string
   const profileBannerImage = formData.get("profileBannerImage") as string
-  const profileCustomCSS = formData.get("profileCustomCSS") as string
   const customDomain = formData.get("customDomain") as string
 
   // Basic slug validation (lowercase, alphanumeric, hyphens)
@@ -44,7 +43,6 @@ export async function updateProfile(formData: FormData) {
         profileTheme: theme,
         profileFontFamily: ["sans", "serif", "mono"].includes(profileFontFamily) ? profileFontFamily : "sans",
         profileBannerImage: profileBannerImage || null,
-        profileCustomCSS: isPremium ? (profileCustomCSS || null) : undefined,
         customDomain: isPremium ? (customDomain || null) : undefined,
       }
     })

@@ -7,8 +7,8 @@ test("sanitizeStyleContent strips the </style breakout sequence", () => {
   assert.equal(/<\/style/i.test(out), false)
 })
 
-test("configToCSS neutralizes a customCSS breakout attempt (case-insensitive)", () => {
-  const css = configToCSS({ ...defaultDarkConfig, customCSS: "</STYLE><script>evil()</script>" })
+test("configToCSS neutralizes a </style breakout smuggled into a token value", () => {
+  const css = configToCSS({ ...defaultDarkConfig, nameColor: "red</STYLE><script>evil()</script>" })
   assert.equal(/<\/style/i.test(css), false)
 })
 

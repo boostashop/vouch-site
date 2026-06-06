@@ -2,6 +2,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { updateBotTokens, updateVouchSettings, updateStatsSettings, removeBotToken } from "./actions"
 import { hasActivePremium } from "@/lib/premium"
+import { decryptSecret } from "@/lib/crypto"
 import { Shield, Info, Bot, Send, ExternalLink, CheckCircle2, MessageSquare, BarChart3, Lock, Settings2, Palette } from "lucide-react"
 import Link from "next/link"
 import { DiscordChannelSelector } from "./DiscordChannelSelector"
@@ -26,11 +27,13 @@ export default async function BotSettingsPage(props: {
   let initialChannels: any[] = []
   let initialRoles: any[] = []
 
-  if (user.discordBotToken && isPremium) {
+  const discordToken = user.discordBotToken ? decryptSecret(user.discordBotToken) : null
+
+  if (discordToken && isPremium) {
     try {
       const response = await fetch("https://discord.com/api/v10/users/@me/guilds", {
         headers: {
-          Authorization: `Bot ${user.discordBotToken}`
+          Authorization: `Bot ${discordToken}`
         },
         next: { revalidate: 60 }
       })
@@ -45,7 +48,7 @@ export default async function BotSettingsPage(props: {
       try {
         const chanResponse = await fetch(`https://discord.com/api/v10/channels/${user.vouchChannelId}`, {
           headers: {
-            Authorization: `Bot ${user.discordBotToken}`
+            Authorization: `Bot ${discordToken}`
           }
         })
         if (chanResponse.ok) {
@@ -66,12 +69,12 @@ export default async function BotSettingsPage(props: {
         const [chansResponse, rolesResponse] = await Promise.all([
           fetch(`https://discord.com/api/v10/guilds/${initialGuildId}/channels`, {
             headers: {
-              Authorization: `Bot ${user.discordBotToken}`
+              Authorization: `Bot ${discordToken}`
             }
           }),
           fetch(`https://discord.com/api/v10/guilds/${initialGuildId}/roles`, {
             headers: {
-              Authorization: `Bot ${user.discordBotToken}`
+              Authorization: `Bot ${discordToken}`
             }
           })
         ])
