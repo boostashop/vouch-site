@@ -77,10 +77,10 @@ export default async function Home() {
               </Link>
 
               <Link
-                href="#how"
+                href="#pricing"
                 className="w-full sm:w-auto bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-white/10 text-zinc-900 dark:text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all active:scale-95 text-center"
               >
-                Learn More
+                See Premium Plans
               </Link>
             </div>
 

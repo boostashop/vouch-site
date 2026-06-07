@@ -48,6 +48,31 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
+      {/* Premium upgrade banner (non-premium only) */}
+      {!isPremium && (
+        <Link
+          href="/upgrade"
+          className="group block rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 p-6 md:p-8 shadow-xl shadow-indigo-600/20 hover:shadow-2xl hover:shadow-indigo-600/30 transition-all"
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center text-white shrink-0">
+                <Zap size={24} className="fill-current" />
+              </div>
+              <div>
+                <h3 className="text-lg md:text-xl font-extrabold text-white">Unlock Premium</h3>
+                <p className="text-sm text-indigo-100/90 mt-1 max-w-xl leading-relaxed">
+                  Embeddable badge, unlimited vouches, custom domain, Design Studio &amp; bot perks — from just <span className="font-bold text-white">$1.67/mo</span>, one-time payment.
+                </p>
+              </div>
+            </div>
+            <span className="shrink-0 self-start md:self-auto inline-flex items-center gap-2 bg-white text-indigo-700 px-6 py-3 rounded-2xl text-sm font-extrabold group-hover:scale-[1.02] transition-transform">
+              View plans <ArrowRight size={16} />
+            </span>
+          </div>
+        </Link>
+      )}
+
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>

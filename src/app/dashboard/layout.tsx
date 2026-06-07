@@ -1,20 +1,23 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { 
-  LayoutDashboard, 
-  Settings, 
-  MessageSquare, 
-  User as UserIcon, 
+import {
+  LayoutDashboard,
+  Settings,
+  MessageSquare,
+  User as UserIcon,
   ChevronRight,
   Menu,
   Bell,
   ShieldAlert,
-  Trophy
+  Trophy,
+  Sparkles
 } from "lucide-react"
 import { SignOut, MobileSignOut } from "@/components/auth-components"
 import { UserNav } from "@/components/dashboard/user-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { prisma } from "@/lib/prisma"
+import { hasActivePremium } from "@/lib/premium"
 
 export default async function DashboardLayout({
   children,
@@ -26,6 +29,14 @@ export default async function DashboardLayout({
   if (!session) {
     redirect("/auth/signin")
   }
+
+  const premiumUser = session.user?.id
+    ? await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { isPremium: true, premiumExpiresAt: true },
+      })
+    : null
+  const isPremium = hasActivePremium(premiumUser)
 
   return (
     <div className="flex min-h-screen bg-zinc-50 dark:bg-black font-sans transition-colors duration-300">
@@ -46,6 +57,15 @@ export default async function DashboardLayout({
           <NavItem href="/dashboard/profile" icon={<UserIcon size={18} />} label="Public Profile" />
           {session.user?.role === "ADMIN" && (
             <NavItem href="/admin" icon={<ShieldAlert size={18} />} label="Admin Panel" />
+          )}
+          {!isPremium && (
+            <Link
+              href="/upgrade"
+              className="flex items-center gap-3 px-4 py-3 mt-3 rounded-xl text-sm font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/20 hover:opacity-95 active:scale-[0.98] transition-all"
+            >
+              <Sparkles size={18} />
+              Go Premium
+            </Link>
           )}
         </nav>
 
@@ -109,6 +129,11 @@ export default async function DashboardLayout({
           <MobileNavItem href="/admin" icon={<ShieldAlert size={20} />} />
         ) : (
           <MobileNavItem href="/dashboard/profile" icon={<UserIcon size={20} />} />
+        )}
+        {!isPremium && (
+          <Link href="/upgrade" className="p-3 rounded-xl text-indigo-500" aria-label="Go Premium">
+            <Sparkles size={20} />
+          </Link>
         )}
         <MobileSignOut />
       </nav>
