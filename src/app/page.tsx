@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle, Shield, Zap, Globe, MessageSquare, Star, Trophy, Palette, BadgeCheck, ShieldCheck, Plug, RotateCw, X, Calendar } from "lucide-react";
+import { CheckCircle, Shield, Zap, Globe, MessageSquare, Star, Trophy, Palette, BadgeCheck, ShieldCheck, Plug, RotateCw, X, Calendar, Code2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthNavButton } from "@/components/auth-nav-button";
@@ -162,9 +162,9 @@ export default async function Home() {
               description="Climb the public rankings of the most-trusted builders and turn your track record into discovery."
             />
             <FeatureCard
-              icon={<Palette className="text-indigo-400" />}
-              title="Design Studio"
-              description="Make your profile yours — themes, custom CSS, and banners that match your brand top to bottom."
+              icon={<Code2 className="text-indigo-400" />}
+              title="Embeddable Badge"
+              description="Drop a live reputation badge into any forum signature or site — your vouch count and rating stay up to date and link straight back to your profile."
             />
             <FeatureCard
               icon={<Globe className="text-indigo-400" />}
@@ -239,65 +239,47 @@ export default async function Home() {
           <div className="text-center max-w-3xl mx-auto mb-20">
             <p className="text-indigo-500 dark:text-indigo-400 text-xs font-black uppercase tracking-[0.2em] mb-4">Pricing</p>
             <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">Start free. Upgrade when you scale.</h2>
-            <p className="text-zinc-600 dark:text-zinc-400 text-lg leading-relaxed">Every account backs up vouches from day one. Premium unlocks the professional brand layer.</p>
+            <p className="text-zinc-600 dark:text-zinc-400 text-lg leading-relaxed">Every account backs up vouches from day one. Go Premium from just <span className="font-bold text-zinc-900 dark:text-white">$1.67/mo</span> to unlock the full professional brand layer — one-time payment, no auto-renew.</p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto items-start">
-            {/* Free */}
-            <div className="rounded-3xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900/30 p-8 md:p-10">
-              <h3 className="text-xl font-bold tracking-tight">Free</h3>
-              <div className="mt-4 mb-8 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold tracking-tight">$0</span>
-                <span className="text-zinc-500 font-medium">/ forever</span>
-              </div>
-              <ul className="space-y-4">
-                <PlanRow ok>Discord &amp; Telegram bot</PlanRow>
-                <PlanRow ok>Up to 50 backed-up vouches</PlanRow>
-                <PlanRow ok>Public profile &amp; wall</PlanRow>
-                <PlanRow ok>Star ratings &amp; proof images</PlanRow>
-                <PlanRow ok>/restore command</PlanRow>
-                <PlanRow>Custom domain</PlanRow>
-                <PlanRow>Design Studio &amp; custom CSS</PlanRow>
-                <PlanRow>Role pings &amp; expiry in /stats</PlanRow>
-              </ul>
-              <Link
-                href="/auth/signup"
-                className="mt-10 block w-full text-center py-3.5 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-black font-bold hover:opacity-90 transition-all active:scale-95"
-              >
-                Get Started Free
-              </Link>
+          <div className="max-w-5xl mx-auto">
+            {/* Premium plans */}
+            <div className="grid sm:grid-cols-3 gap-6 md:gap-8 items-stretch">
+              <PriceCard duration="30 days" price="2.50" per="$2.50 / month" />
+              <PriceCard duration="90 days" price="6" per="$2.00 / month" badge="Most popular" save="Save 20%" highlight />
+              <PriceCard duration="365 days" price="20" per="$1.67 / month" badge="Best value" save="Save 33%" />
             </div>
 
-            {/* Premium */}
-            <div className="relative rounded-3xl border-2 border-indigo-500/40 bg-white dark:bg-zinc-900/50 p-8 md:p-10 shadow-2xl shadow-indigo-600/10">
-              <div className="absolute -top-3 left-8 px-3 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/30">
-                Most popular
-              </div>
-              <h3 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                Premium <ShieldCheck size={18} className="text-indigo-500" />
+            {/* What every Premium plan unlocks */}
+            <div className="mt-10 rounded-3xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900/30 p-8 md:p-10">
+              <h3 className="text-lg font-bold tracking-tight mb-6 flex items-center gap-2">
+                <ShieldCheck size={18} className="text-indigo-500" /> Every Premium plan unlocks
               </h3>
-              <div className="mt-4 mb-8 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold tracking-tight">Pro</span>
-                <span className="text-zinc-500 font-medium">— everything in Free, plus</span>
-              </div>
-              <ul className="space-y-4">
-                <PlanRow ok>Unlimited vouch backups</PlanRow>
+              <ul className="grid sm:grid-cols-2 gap-x-10 gap-y-4">
+                <PlanRow ok>Unlimited vouch backups <span className="text-zinc-400 dark:text-zinc-600">(Free caps at 50)</span></PlanRow>
+                <PlanRow ok>Embeddable reputation badge for forums &amp; sites</PlanRow>
                 <PlanRow ok>Custom domain hosting</PlanRow>
-                <PlanRow ok>Design Studio &amp; custom CSS</PlanRow>
+                <PlanRow ok>Design Studio — themes, custom CSS &amp; banners</PlanRow>
                 <PlanRow ok>Premium &amp; glass profile themes</PlanRow>
-                <PlanRow ok>Role pings on new vouches</PlanRow>
-                <PlanRow ok>Leaderboard &amp; verified badge</PlanRow>
-                <PlanRow ok>Renewal &amp; expiry in /stats</PlanRow>
+                <PlanRow ok>Dedicated vouch channel &amp; auto-role pings</PlanRow>
+                <PlanRow ok>Custom vouch emoji &amp; pinned live stats card</PlanRow>
+                <PlanRow ok>One-click data export</PlanRow>
+                <PlanRow ok>Renewal &amp; expiry shown in /stats</PlanRow>
+                <PlanRow ok>Verified Premium profile badge</PlanRow>
               </ul>
-              {/* Upgrade lives in the dashboard, which builds the user-specific
-                  checkout link-out. Signed-out visitors get bounced to sign-in
-                  first, then land back here. Keeps this page session-agnostic
-                  and edge-cacheable. */}
+            </div>
+
+            {/* Free tier */}
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-5 rounded-3xl border border-zinc-200 dark:border-white/10 p-6 md:p-8">
+              <div>
+                <h4 className="font-bold tracking-tight">Just getting started?</h4>
+                <p className="text-sm text-zinc-500 mt-1 leading-relaxed">Start free — Discord &amp; Telegram bot, public profile, star ratings, and up to 50 backed-up vouches. No card needed.</p>
+              </div>
               <Link
-                href="/dashboard"
-                className="mt-10 block w-full text-center py-3.5 rounded-2xl bg-indigo-600 text-white font-bold hover:bg-indigo-500 transition-all active:scale-95 shadow-xl shadow-indigo-600/30"
+                href="/auth/signup"
+                className="shrink-0 px-6 py-3.5 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-black font-bold hover:opacity-90 transition-all active:scale-95"
               >
-                Upgrade to Premium
+                Get started free
               </Link>
             </div>
           </div>
@@ -447,6 +429,38 @@ function ProfileMock() {
       </div>
     </div>
   );
+}
+
+function PriceCard({ duration, price, per, badge, save, highlight }: { duration: string, price: string, per: string, badge?: string, save?: string, highlight?: boolean }) {
+  return (
+    <div className={`relative rounded-3xl border p-8 flex flex-col ${highlight ? "border-2 border-indigo-500/40 bg-white dark:bg-zinc-900/50 shadow-2xl shadow-indigo-600/10" : "border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900/30"}`}>
+      {badge && (
+        <div className="absolute -top-3 left-8 px-3 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/30">
+          {badge}
+        </div>
+      )}
+      <h3 className="text-lg font-bold tracking-tight flex items-center gap-2">
+        Premium <ShieldCheck size={16} className="text-indigo-500" />
+      </h3>
+      <p className="text-sm text-zinc-500 font-medium mt-0.5">{duration} of access</p>
+      <div className="mt-5 flex items-baseline gap-1">
+        <span className="text-4xl font-extrabold tracking-tight">${price}</span>
+        <span className="text-zinc-500 font-medium text-sm">one-time</span>
+      </div>
+      <p className="text-xs text-zinc-500 font-medium mt-2 mb-7">
+        {per}{save ? <span className="text-emerald-500 font-bold"> · {save}</span> : null}
+      </p>
+      {/* Checkout lives in the dashboard, which builds the user-specific
+          link-out to the payments site (carrying the account ref). Signed-out
+          visitors are bounced to sign-in first. Keeps this page edge-cacheable. */}
+      <Link
+        href="/dashboard"
+        className={`mt-auto block w-full text-center py-3.5 rounded-2xl font-bold transition-all active:scale-95 ${highlight ? "bg-indigo-600 text-white hover:bg-indigo-500 shadow-xl shadow-indigo-600/30" : "bg-zinc-900 dark:bg-white text-white dark:text-black hover:opacity-90"}`}
+      >
+        Upgrade to Premium
+      </Link>
+    </div>
+  )
 }
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
