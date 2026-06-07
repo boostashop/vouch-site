@@ -1,7 +1,6 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { hasActivePremium } from "@/lib/premium"
-import { getCheckoutUrl } from "@/lib/payments"
 import { redirect } from "next/navigation"
 import { 
   MessageSquare, 
@@ -46,7 +45,6 @@ export default async function DashboardPage() {
   const vouchCount = user?._count.vouchesReceived || 0;
   const isPremium = hasActivePremium(user);
   const hasBot = !!user?.discordBotToken;
-  const checkoutUrl = getCheckoutUrl(session.user.id) ?? "/dashboard/profile";
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
@@ -179,7 +177,7 @@ export default async function DashboardPage() {
               icon={<Shield className="text-purple-400" />}
               title={isPremium ? "Premium Active" : "Upgrade to Premium"}
               description={isPremium ? "Unlimited storage and custom domains unlocked." : "Unlock unlimited storage and custom domains."}
-              href={checkoutUrl}
+              href={isPremium ? "/dashboard/profile" : "/upgrade"}
               status={isPremium ? "done" : "pending"}
             />
           </div>

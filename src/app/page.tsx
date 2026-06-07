@@ -245,9 +245,9 @@ export default async function Home() {
           <div className="max-w-5xl mx-auto">
             {/* Premium plans */}
             <div className="grid sm:grid-cols-3 gap-6 md:gap-8 items-stretch">
-              <PriceCard duration="30 days" price="2.50" per="$2.50 / month" />
-              <PriceCard duration="90 days" price="6" per="$2.00 / month" badge="Most popular" save="Save 20%" highlight />
-              <PriceCard duration="365 days" price="20" per="$1.67 / month" badge="Best value" save="Save 33%" />
+              <PriceCard plan="premium-30d" duration="30 days" price="2.50" per="$2.50 / month" />
+              <PriceCard plan="premium-90d" duration="90 days" price="6" per="$2.00 / month" badge="Most popular" save="Save 20%" highlight />
+              <PriceCard plan="premium-365d" duration="365 days" price="20" per="$1.67 / month" badge="Best value" save="Save 33%" />
             </div>
 
             {/* What every Premium plan unlocks */}
@@ -431,7 +431,7 @@ function ProfileMock() {
   );
 }
 
-function PriceCard({ duration, price, per, badge, save, highlight }: { duration: string, price: string, per: string, badge?: string, save?: string, highlight?: boolean }) {
+function PriceCard({ plan, duration, price, per, badge, save, highlight }: { plan: string, duration: string, price: string, per: string, badge?: string, save?: string, highlight?: boolean }) {
   return (
     <div className={`relative rounded-3xl border p-8 flex flex-col ${highlight ? "border-2 border-indigo-500/40 bg-white dark:bg-zinc-900/50 shadow-2xl shadow-indigo-600/10" : "border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900/30"}`}>
       {badge && (
@@ -450,14 +450,14 @@ function PriceCard({ duration, price, per, badge, save, highlight }: { duration:
       <p className="text-xs text-zinc-500 font-medium mt-2 mb-7">
         {per}{save ? <span className="text-emerald-500 font-bold"> · {save}</span> : null}
       </p>
-      {/* Checkout lives in the dashboard, which builds the user-specific
-          link-out to the payments site (carrying the account ref). Signed-out
-          visitors are bounced to sign-in first. Keeps this page edge-cacheable. */}
+      {/* /upgrade resolves the session and deep-links a signed-in buyer straight
+          to this plan's checkout (carrying their account ref); signed-out
+          visitors are asked to sign in first. Keeps this page edge-cacheable. */}
       <Link
-        href="/dashboard"
+        href={`/upgrade?plan=${plan}`}
         className={`mt-auto block w-full text-center py-3.5 rounded-2xl font-bold transition-all active:scale-95 ${highlight ? "bg-indigo-600 text-white hover:bg-indigo-500 shadow-xl shadow-indigo-600/30" : "bg-zinc-900 dark:bg-white text-white dark:text-black hover:opacity-90"}`}
       >
-        Upgrade to Premium
+        Choose this plan
       </Link>
     </div>
   )
