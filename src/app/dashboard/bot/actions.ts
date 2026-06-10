@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 import { encryptSecret, decryptSecret } from "@/lib/crypto"
 
 export async function updateBotTokens(formData: FormData) {
@@ -16,6 +16,7 @@ export async function updateBotTokens(formData: FormData) {
   // saving Discord from nulling the Telegram token and vice versa.) Use the
   // explicit disconnect action to remove a token.
   const data: { discordBotToken?: string; telegramBotToken?: string } = {}
+  let tab = "discord"
 
   if (formData.has("discordToken")) {
     const v = (formData.get("discordToken") as string).trim()
@@ -24,13 +25,15 @@ export async function updateBotTokens(formData: FormData) {
   if (formData.has("telegramToken")) {
     const v = (formData.get("telegramToken") as string).trim()
     if (v) data.telegramBotToken = encryptSecret(v)
+    tab = "telegram"
   }
 
-  if (Object.keys(data).length > 0) {
+  const saved = Object.keys(data).length > 0
+  if (saved) {
     await prisma.user.update({ where: { id: session.user.id }, data })
   }
 
-  revalidatePath("/dashboard/bot")
+  redirect(`/dashboard/bot?tab=${tab}${saved ? "&saved=1" : ""}`)
 }
 
 export async function removeBotToken(formData: FormData) {
@@ -50,13 +53,14 @@ export async function removeBotToken(formData: FormData) {
     })
   }
 
-  revalidatePath("/dashboard/bot")
+  const tab = platform === "telegram" ? "telegram" : "discord"
+  redirect(`/dashboard/bot?tab=${tab}&saved=1`)
 }
 
 export async function updateVouchSettings(formData: FormData) {
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
-  
+
   const vouchEmbedTitle = formData.get("vouchEmbedTitle") as string
   const vouchEmbedFooter = formData.get("vouchEmbedFooter") as string
   const vouchEmbedColor = formData.get("vouchEmbedColor") as string
@@ -66,13 +70,13 @@ export async function updateVouchSettings(formData: FormData) {
   const vouchChannelId = formData.get("vouchChannelId") as string
   const vouchRoleId = formData.get("vouchRoleId") as string
   const vouchEmoji = formData.get("vouchEmoji") as string
-  
+
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
-      vouchEmbedTitle,
-      vouchEmbedFooter,
-      vouchEmbedColor,
+      vouchEmbedTitle: vouchEmbedTitle || undefined,
+      vouchEmbedFooter: vouchEmbedFooter || undefined,
+      vouchEmbedColor: vouchEmbedColor || undefined,
       vouchRequireProof,
       vouchShowCount,
       vouchTagUser,
@@ -81,8 +85,8 @@ export async function updateVouchSettings(formData: FormData) {
       vouchEmoji: vouchEmoji || null,
     }
   })
-  
-  revalidatePath("/dashboard/bot")
+
+  redirect("/dashboard/bot?tab=discord&saved=1")
 }
 
 export async function updateStatsSettings(formData: FormData) {
@@ -92,7 +96,7 @@ export async function updateStatsSettings(formData: FormData) {
   const user = await prisma.user.findUnique({ where: { id: session.user.id } })
   const { hasActivePremium } = await import("@/lib/premium")
   if (!user || !hasActivePremium(user)) throw new Error("Premium required")
-  
+
   const statsEmbedTitle = formData.get("statsEmbedTitle") as string
   const statsEmbedDescription = formData.get("statsEmbedDescription") as string
   const statsEmbedFooter = formData.get("statsEmbedFooter") as string
@@ -103,14 +107,14 @@ export async function updateStatsSettings(formData: FormData) {
   const statsShowPlan = formData.get("statsShowPlan") === "on"
   const statsShowExpiration = formData.get("statsShowExpiration") === "on"
   const statsShowAge = formData.get("statsShowAge") === "on"
-  
+
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
-      statsEmbedTitle,
-      statsEmbedDescription,
-      statsEmbedFooter,
-      statsEmbedColor,
+      statsEmbedTitle: statsEmbedTitle || undefined,
+      statsEmbedDescription: statsEmbedDescription || undefined,
+      statsEmbedFooter: statsEmbedFooter || undefined,
+      statsEmbedColor: statsEmbedColor || undefined,
       statsShowCount,
       statsShowScore,
       statsShowLeaderboard,
@@ -119,8 +123,8 @@ export async function updateStatsSettings(formData: FormData) {
       statsShowAge,
     }
   })
-  
-  revalidatePath("/dashboard/bot")
+
+  redirect("/dashboard/bot?tab=discord&saved=1")
 }
 
 export async function getBotGuildChannels(guildId: string) {
@@ -142,7 +146,6 @@ export async function getBotGuildChannels(guildId: string) {
       throw new Error("Failed to fetch channels")
     }
     const channels = await response.json()
-    // Filter for text channels (type 0) and sort by name
     return channels
       .filter((c: any) => c.type === 0)
       .map((c: any) => ({ id: c.id, name: c.name }))
@@ -172,7 +175,6 @@ export async function getBotGuildRoles(guildId: string) {
       throw new Error("Failed to fetch roles")
     }
     const roles = await response.json()
-    // Filter out @everyone (role ID == guild ID) and managed roles, then sort by name
     return roles
       .filter((r: any) => r.id !== guildId && !r.managed)
       .map((r: any) => ({ id: r.id, name: r.name }))
@@ -182,4 +184,3 @@ export async function getBotGuildRoles(guildId: string) {
     return []
   }
 }
-

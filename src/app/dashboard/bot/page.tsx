@@ -6,9 +6,10 @@ import { decryptSecret } from "@/lib/crypto"
 import { Shield, Info, Bot, Send, ExternalLink, CheckCircle2, MessageSquare, BarChart3, Lock, Settings2, Palette } from "lucide-react"
 import Link from "next/link"
 import { DiscordChannelSelector } from "./DiscordChannelSelector"
+import { FlashToast } from "./FlashToast"
 
 export default async function BotSettingsPage(props: {
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; saved?: string }>
 }) {
   const searchParams = await props.searchParams;
   const activeTab = searchParams.tab || "discord";
@@ -102,6 +103,7 @@ export default async function BotSettingsPage(props: {
 
   return (
     <div className="max-w-4xl space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      <FlashToast />
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">Bot Engine</h1>
@@ -373,6 +375,14 @@ export default async function BotSettingsPage(props: {
                         defaultValue={user.statsEmbedDescription}
                         rows={3}
                         className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Footer</label>
+                      <input
+                        name="statsEmbedFooter"
+                        defaultValue={user.statsEmbedFooter}
+                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                       />
                     </div>
                     <div className="space-y-2">
