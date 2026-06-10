@@ -88,6 +88,10 @@ export async function updateVouchSettings(formData: FormData) {
 export async function updateStatsSettings(formData: FormData) {
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } })
+  const { hasActivePremium } = await import("@/lib/premium")
+  if (!user || !hasActivePremium(user)) throw new Error("Premium required")
   
   const statsEmbedTitle = formData.get("statsEmbedTitle") as string
   const statsEmbedDescription = formData.get("statsEmbedDescription") as string

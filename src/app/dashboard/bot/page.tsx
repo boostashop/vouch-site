@@ -345,71 +345,92 @@ export default async function BotSettingsPage(props: {
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
                 <BarChart3 size={20} />
               </div>
-              <div>
-                <h2 className="font-bold">Stats Command Customization</h2>
+              <div className="flex-1">
+                <h2 className="font-bold flex items-center gap-2">
+                  Stats Command Customization
+                  {!isPremium && <Lock size={13} className="text-amber-500" />}
+                </h2>
                 <p className="text-xs text-zinc-500">Customize your public reputation statistics card.</p>
               </div>
             </div>
-            
-            <form action={updateStatsSettings} className="p-6 space-y-8">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Title</label>
-                    <input 
-                      name="statsEmbedTitle"
-                      defaultValue={user.statsEmbedTitle}
-                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Description</label>
-                    <textarea 
-                      name="statsEmbedDescription"
-                      defaultValue={user.statsEmbedDescription}
-                      rows={3}
-                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none transition-all"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-                      <Palette size={14} /> Border Color
-                    </label>
-                    <input 
-                      type="color"
-                      name="statsEmbedColor"
-                      defaultValue={user.statsEmbedColor}
-                      className="w-full h-10 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-2 py-1 cursor-pointer transition-all"
-                    />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { label: "Show Count", name: "statsShowCount", current: user.statsShowCount },
-                    { label: "Show Score", name: "statsShowScore", current: user.statsShowScore },
-                    { label: "Leaderboard", name: "statsShowLeaderboard", current: user.statsShowLeaderboard },
-                    { label: "Show Plan", name: "statsShowPlan", current: user.statsShowPlan },
-                    { label: "Expiration", name: "statsShowExpiration", current: user.statsShowExpiration },
-                    { label: "Account Age", name: "statsShowAge", current: user.statsShowAge },
-                  ].map((item) => (
-                    <div key={item.name} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-white/5 rounded-xl border border-zinc-200 dark:border-white/5">
-                      <p className="text-[11px] font-bold text-zinc-900 dark:text-white">{item.label}</p>
-                      <input type="checkbox" name={item.name} defaultChecked={item.current} className="w-4 h-4 accent-blue-500" />
+            {isPremium ? (
+              <form action={updateStatsSettings} className="p-6 space-y-8">
+                <div className="grid md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Title</label>
+                      <input
+                        name="statsEmbedTitle"
+                        defaultValue={user.statsEmbedTitle}
+                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                      />
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Description</label>
+                      <textarea
+                        name="statsEmbedDescription"
+                        defaultValue={user.statsEmbedDescription}
+                        rows={3}
+                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
+                        <Palette size={14} /> Border Color
+                      </label>
+                      <input
+                        type="color"
+                        name="statsEmbedColor"
+                        defaultValue={user.statsEmbedColor}
+                        className="w-full h-10 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-2 py-1 cursor-pointer transition-all"
+                      />
+                    </div>
+                  </div>
 
-              <div className="pt-4 border-t border-zinc-200 dark:border-white/5 flex justify-end">
-                <button 
-                  type="submit"
-                  className="bg-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-400 transition-all active:scale-95"
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: "Show Count", name: "statsShowCount", current: user.statsShowCount },
+                      { label: "Show Score", name: "statsShowScore", current: user.statsShowScore },
+                      { label: "Leaderboard", name: "statsShowLeaderboard", current: user.statsShowLeaderboard },
+                      { label: "Show Plan", name: "statsShowPlan", current: user.statsShowPlan },
+                      { label: "Expiration", name: "statsShowExpiration", current: user.statsShowExpiration },
+                      { label: "Account Age", name: "statsShowAge", current: user.statsShowAge },
+                    ].map((item) => (
+                      <div key={item.name} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-white/5 rounded-xl border border-zinc-200 dark:border-white/5">
+                        <p className="text-[11px] font-bold text-zinc-900 dark:text-white">{item.label}</p>
+                        <input type="checkbox" name={item.name} defaultChecked={item.current} className="w-4 h-4 accent-blue-500" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-zinc-200 dark:border-white/5 flex justify-end">
+                  <button
+                    type="submit"
+                    className="bg-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-400 transition-all active:scale-95"
+                  >
+                    Update Stats Settings
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="p-10 flex flex-col items-center justify-center gap-5 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                  <Lock size={24} className="text-amber-500" />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="font-bold text-zinc-900 dark:text-white">Premium Feature</p>
+                  <p className="text-sm text-zinc-500 max-w-xs">Customize your stats embed title, description, color, and which fields are shown.</p>
+                </div>
+                <Link
+                  href="/upgrade"
+                  className="bg-amber-500 text-black px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-amber-400 transition-all active:scale-95"
                 >
-                  Update Stats Settings
-                </button>
+                  Upgrade to Premium
+                </Link>
               </div>
-            </form>
+            )}
           </section>
         </div>
       ) : (
