@@ -1,10 +1,10 @@
 # Vouched.to — Full Codebase Audit (2026-06-11)
 
-**Status 2026-06-11:** all P0s, all P1s, and most P2s fixed & deployed (see ✅
-markers). Remaining: #21 (FK constraints + account deletion), #23 (webhook
-dedupe), #24 (auth rate limiting), #25 (OG emoji tofu), #19 (clear-to-empty),
-and the P3 cleanup list. Account deletion (part of #21) and OG emoji (#25)
-are now done; remaining #21 work is adding DB-level FK constraints.
+**Status 2026-06-11:** all P0s, all P1s, and all P2s except #23 fixed &
+deployed (see ✅ markers). Remaining: #23 (webhook dedupe/ordering), #19
+(clear-to-empty embed fields, arguably intentional), and the P3 cleanup list
+(ephemeral deprecation, weekly-summary fragility, command-registration
+caching, uuid dep, more tests, lint debt, admin placeholders, EMAIL_FROM).
 
 Deep-dive review of every source file (~11.5k LOC: web app, Discord/Telegram
 bots, auth, payments, admin). Ordered by priority — fix P0s before promoting
@@ -169,7 +169,7 @@ for free users too (harmless — bot gates at read — but confusing).
 credentials signups → "N/A". Add `createdAt`/`updatedAt` to `User` (and
 backfill).
 
-### 21. ⚠️ PARTIAL — account deletion shipped; FK constraints still TODO
+### 21. ✅ FIXED — FK relations/cascade + account deletion
 `VouchReport.vouchId`, `Blacklist.userId`, `GuildConfig.userId` have no
 relations; `Vouch.receiver` has no `onDelete`. Admin `deleteVouch` leaves
 orphaned reports; deleting a user row is impossible while vouches exist. There
@@ -187,7 +187,7 @@ replay within the 300 s window), no ordering guard (a delayed `activated` can
 overwrite a newer `cancelled`). Low risk today; add an event id + processed-at
 table when convenient.
 
-### 24. ⚠️ PARTIAL — Auth hardening gaps (register race + case fixed; rate limiting TODO)
+### 24. ✅ FIXED — Auth hardening gaps (register race, case-insensitivity, rate limiting)
 - No rate limiting on credentials login, registration, or magic-link sends
   (email-bomb / credential-stuffing vector).
 - `register()` race: unique-constraint violation between `findFirst` and
