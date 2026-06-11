@@ -29,7 +29,7 @@ const TELEGRAM_COMMANDS = [
   { command: "config", description: "Configure settings: /config <key> <val> (owner only)" },
   { command: "remove", description: "Soft-delete a specific vouch: /remove <vouch_id> (owner only)" },
   { command: "export", description: "Export vouch data as JSON: /export (owner only, Premium)" },
-  { command: "link", description: "Link this account to your dashboard" },
+  { command: "link", description: "Link your account: /link <code from dashboard>" },
   { command: "help", description: "How to use this bot" },
 ]
 
@@ -45,8 +45,15 @@ const HELP_TEXT =
   "*/config <channel|require_proof|min_account_age> <value>* — owner only: configure settings.\n" +
   "*/remove <vouch_id>* — owner only: soft-delete a specific vouch.\n" +
   "*/export* — owner only: export all vouch data as JSON (Premium).\n" +
-  "*/link* — link this Telegram account to your dashboard.\n\n" +
+  "*/link <code>* — link this Telegram account using a code from your dashboard.\n\n" +
   "_Powered by Vouched.to_"
+
+// Telegram legacy-Markdown special characters in user content (comments, names,
+// owner-set embed text) break the whole sendMessage call if unbalanced — the
+// vouch is recorded but the confirmation silently fails. Escape them.
+function esc(text: string | null | undefined): string {
+  return (text ?? "").replace(/([_*`\[])/g, "\\$1")
+}
 
 interface BotContext extends Scenes.WizardContext {}
 
@@ -55,6 +62,27 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
   async (ctx) => {
     const state = ctx.wizard.state as any
     state.receiverId = (ctx.scene.state as any).receiverId
+
+    // Resolve the seller config up front: bail early when the free vouch limit
+    // is already hit, and remember whether proof is mandatory for later steps.
+    const config = await getActiveConfig(state.receiverId, ctx.chat?.id.toString() || null)
+    if (!config) {
+      await ctx.reply("❌ Seller profile not found.")
+      return ctx.scene.leave()
+    }
+    if (!config.isPremium) {
+      const totalVouches = await prisma.vouch.count({
+        where: { receiverId: state.receiverId, status: "ACTIVE" },
+      })
+      if (totalVouches >= FREE_VOUCH_LIMIT) {
+        await ctx.reply(
+          `❌ This user has reached the maximum of ${FREE_VOUCH_LIMIT} vouches for free accounts. They need Premium to receive more.`,
+        )
+        return ctx.scene.leave()
+      }
+    }
+    state.requireProof = config.requireProof
+
     await ctx.reply("⭐ *Leave a Vouch*\n\nPlease select a rating from 1 to 5:", {
       parse_mode: "Markdown",
       reply_markup: {
@@ -95,13 +123,17 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
     }
     const state = ctx.wizard.state as any
     state.comment = text
-    await ctx.reply("Got it! Do you want to attach a photo as proof? Send the photo now, or tap the button below to skip proof.", {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: "Skip Proof", callback_data: "skip_proof" }],
-        ],
-      },
-    })
+    if (state.requireProof) {
+      await ctx.reply("📸 This seller requires a proof photo with every vouch. Please send the photo now (or /cancel to abort):")
+    } else {
+      await ctx.reply("Got it! Do you want to attach a photo as proof? Send the photo now, or tap the button below to skip proof.", {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "Skip Proof", callback_data: "skip_proof" }],
+          ],
+        },
+      })
+    }
     return ctx.wizard.next()
   },
   async (ctx) => {
@@ -109,6 +141,10 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
 
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery && ctx.callbackQuery.data === "skip_proof") {
       await ctx.answerCbQuery()
+      if (state.requireProof) {
+        await ctx.reply("📸 Proof is required for this seller — please send a photo (or /cancel to abort).")
+        return
+      }
       state.proofUrl = null
     } else if (ctx.message && 'photo' in ctx.message) {
       const photo = ctx.message.photo[ctx.message.photo.length - 1]
@@ -117,16 +153,29 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
         const key = proofKey("telegram", "jpg")
         const proofUrl = await persistProofToR2(fileLink.toString(), key, "image/jpeg")
         if (!proofUrl) {
+          // Proof mandatory + storage down → don't record a proofless vouch.
+          if (state.requireProof) {
+            await ctx.reply("❌ Could not save your proof image right now (storage unavailable). Please try again later.")
+            return ctx.scene.leave()
+          }
           await ctx.reply("❌ Storage unavailable for proof. We will continue without proof.")
         }
         state.proofUrl = proofUrl
       } catch (err) {
         console.error("Error processing proof photo in wizard:", err)
+        if (state.requireProof) {
+          await ctx.reply("❌ Error downloading your photo. Please try again later.")
+          return ctx.scene.leave()
+        }
         await ctx.reply("❌ Error downloading photo. We will continue without proof.")
         state.proofUrl = null
       }
     } else {
-      await ctx.reply("Please upload a photo, or tap 'Skip Proof' to continue.")
+      if (state.requireProof) {
+        await ctx.reply("Please upload a photo to continue (or /cancel to abort).")
+      } else {
+        await ctx.reply("Please upload a photo, or tap 'Skip Proof' to continue.")
+      }
       return
     }
 
@@ -144,7 +193,7 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
     }
 
     const stars = "⭐".repeat(state.rating)
-    let previewText = `📝 *Vouch Preview*\n\n*Rating:* ${stars}\n*Comment:* ${state.comment}\n`
+    let previewText = `📝 *Vouch Preview*\n\n*Rating:* ${stars}\n*Comment:* ${esc(state.comment)}\n`
     if (state.proofUrl) {
       previewText += `*Proof:* Included 🖼️\n`
     } else {
@@ -181,6 +230,27 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
             guildId: ctx.chat?.id.toString(),
           })
 
+          // Re-check limits/proof at confirm time — config may have changed
+          // (or several vouches landed) since the wizard started.
+          const confirmConfig = await getActiveConfig(state.receiverId, ctx.chat?.id.toString() || null)
+          if (!confirmConfig) {
+            await ctx.reply("❌ Seller profile not found.")
+            return ctx.scene.leave()
+          }
+          if (confirmConfig.requireProof && !state.proofUrl) {
+            await ctx.reply("📸 This seller requires a proof photo with every vouch. Please start again with /vouch and attach one.")
+            return ctx.scene.leave()
+          }
+          if (!confirmConfig.isPremium) {
+            const activeCount = await prisma.vouch.count({
+              where: { receiverId: state.receiverId, status: "ACTIVE" },
+            })
+            if (activeCount >= FREE_VOUCH_LIMIT) {
+              await ctx.reply(`❌ Vouch limit (${FREE_VOUCH_LIMIT}) reached for this free account.`)
+              return ctx.scene.leave()
+            }
+          }
+
           const createdVouch = await prisma.vouch.create({
             data: {
               receiverId: state.receiverId,
@@ -201,11 +271,11 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
           const permalink = config?.slug ? `${baseUrl}/u/${config.slug}#vouch-${createdVouch.id}` : null
 
           const stars = "⭐".repeat(state.rating)
-          let responseText = `✅ *Vouch Recorded!*\n\n*Giver:* ${ctx.from!.first_name}\n*Rating:* ${stars}\n*Comment:* ${state.comment}`
+          let responseText = `✅ *Vouch Recorded!*\n\n*Giver:* ${esc(ctx.from!.first_name)}\n*Rating:* ${stars}\n*Comment:* ${esc(state.comment)}`
           if (permalink) {
             responseText += `\n[🔗 Verify Vouch](${permalink})`
           }
-          responseText += `\n\n_ID: ${createdVouch.id} • ${config?.vouchEmbedFooter || "Powered by Vouched.to"}_`
+          responseText += `\n\n_ID: ${createdVouch.id} • ${esc(config?.vouchEmbedFooter) || "Powered by Vouched.to"}_`
 
           const replyMarkup = permalink ? {
             inline_keyboard: [
@@ -218,7 +288,7 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
           // Owner DM
           if (config?.telegramId) {
             try {
-              const dmText = `🔔 *New Vouch Received!*\n\nYou received a new vouch from *${ctx.from!.first_name}*!\n\n*Rating:* ${stars}\n*Comment:* ${state.comment}\n\n_ID: ${createdVouch.id}_`
+              const dmText = `🔔 *New Vouch Received!*\n\nYou received a new vouch from *${esc(ctx.from!.first_name)}*!\n\n*Rating:* ${stars}\n*Comment:* ${esc(state.comment)}\n\n_ID: ${createdVouch.id}_`
               await ctx.telegram.sendMessage(config.telegramId, dmText, { parse_mode: "Markdown" })
             } catch (dmErr) {
               console.error("Failed to DM Telegram bot owner:", dmErr)
@@ -230,7 +300,7 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
             where: { receiverId: state.receiverId, status: "ACTIVE" },
           })
           if (isMilestone(totalVouches)) {
-            const milestoneText = `🎉 *Vouch Milestone Reached!*\n\n🚀 *${config?.name || config?.username || "Seller"}* has reached *${totalVouches}* verified vouches!`
+            const milestoneText = `🎉 *Vouch Milestone Reached!*\n\n🚀 *${esc(config?.name || config?.username) || "Seller"}* has reached *${totalVouches}* verified vouches!`
             await ctx.reply(milestoneText, { parse_mode: "Markdown" })
           }
         } catch (err: any) {
@@ -261,17 +331,51 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
   bot.use(session())
   bot.use(stage.middleware())
 
+  // Linking requires a one-time code generated in the dashboard (Bot Settings →
+  // Telegram). Anyone can message the bot, so blindly trusting /start would let
+  // a stranger take over every owner-only command.
   bot.command(["start", "link"], async (ctx) => {
     console.log(`[Telegram] Received /start or /link from ${ctx.from.id} for User ${userId}`)
+    const senderId = ctx.from.id.toString()
+
     try {
+      const user = await prisma.user.findUnique({ where: { id: userId } })
+      if (!user) return
+
+      if (user.telegramId === senderId) {
+        return ctx.reply("✅ This Telegram account is already linked to your dashboard.")
+      }
+
+      const code = ctx.message.text.split(" ")[1]?.trim()
+      if (!code) {
+        return ctx.reply(
+          "👋 Welcome to your Vouched.to bot!\n\n" +
+            "Customers can leave feedback with /vouch right away.\n\n" +
+            "To link this Telegram account as the bot owner, open your dashboard " +
+            "(Bot Settings → Telegram), generate a link code, then run:\n" +
+            "/link <code>",
+        )
+      }
+
+      const identifier = `telegram-link:${userId}`
+      const row = await prisma.verificationToken.findFirst({
+        where: { identifier, token: code, expires: { gt: new Date() } },
+      })
+      if (!row) {
+        return ctx.reply(
+          "❌ Invalid or expired link code. Generate a fresh one in your dashboard (Bot Settings → Telegram) and try again.",
+        )
+      }
+
       await prisma.user.update({
         where: { id: userId },
-        data: { telegramId: ctx.from.id.toString() },
+        data: { telegramId: senderId },
       })
+      await prisma.verificationToken.deleteMany({ where: { identifier } })
+
       console.log(`[Telegram] Successfully linked ID ${ctx.from.id} to User ${userId}`)
       await ctx.reply(
-        "🚀 **Vouched.to Bot is linked!**\n\nYour Telegram account is now connected to your dashboard. You can use /vouch <rating> <comment> to collect feedback and /restore to re-post your vouches.",
-        { parse_mode: "Markdown" },
+        "🚀 Vouched.to Bot is linked!\n\nYour Telegram account is now connected to your dashboard. You can use /vouch <rating> <comment> to collect feedback and /restore to re-post your vouches.",
       )
     } catch (err) {
       console.error(`[Telegram] Failed to link ID ${ctx.from.id} to User ${userId}:`, err)
@@ -363,11 +467,11 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
       const permalink = config.slug ? `${baseUrl}/u/${config.slug}#vouch-${createdVouch.id}` : null
 
       const stars = "⭐".repeat(rating)
-      let responseText = `✅ **Vouch Recorded with Proof!**\n\n**Giver:** ${ctx.from.first_name}\n**Rating:** ${stars}\n**Comment:** ${comment}`
+      let responseText = `✅ **Vouch Recorded with Proof!**\n\n**Giver:** ${esc(ctx.from.first_name)}\n**Rating:** ${stars}\n**Comment:** ${esc(comment)}`
       if (permalink) {
         responseText += `\n[🔗 Verify Vouch](${permalink})`
       }
-      responseText += `\n\n_ID: ${createdVouch.id} • ${config.vouchEmbedFooter}_`
+      responseText += `\n\n_ID: ${createdVouch.id} • ${esc(config.vouchEmbedFooter)}_`
 
       await ctx.reply(responseText, { parse_mode: "Markdown" })
     } catch (err) {
@@ -381,8 +485,8 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: {
-          _count: { select: { vouchesReceived: true } },
-          vouchesReceived: { select: { rating: true } },
+          _count: { select: { vouchesReceived: { where: { status: "ACTIVE" } } } },
+          vouchesReceived: { where: { status: "ACTIVE" }, select: { rating: true } },
         },
       })
 
@@ -396,8 +500,8 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
       const rankText = rank > 0 ? `#${rank}` : "Unranked"
 
       const statsText =
-        `📊 **${user.statsEmbedTitle}**\n\n` +
-        `${user.statsEmbedDescription}\n\n` +
+        `📊 **${esc(user.statsEmbedTitle)}**\n\n` +
+        `${esc(user.statsEmbedDescription)}\n\n` +
         (user.statsShowCount ? `**Total Vouches:** ${count}\n` : "") +
         (user.statsShowScore ? `**Average Rating:** ${averageRating} / 5.0\n` : "") +
         (user.statsShowLeaderboard ? `**Leaderboard:** ${rankText}\n` : "") +
@@ -405,7 +509,7 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
         (user.statsShowExpiration && user.premiumExpiresAt
           ? `**Renews/Expires:** ${user.premiumExpiresAt.toLocaleDateString()}\n`
           : "") +
-        `\n_${user.statsEmbedFooter}_`
+        `\n_${esc(user.statsEmbedFooter)}_`
 
       await ctx.reply(statsText, { parse_mode: "Markdown" })
     } catch (err) {
@@ -466,13 +570,13 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
     await ctx.reply("⏳ **Starting restoration...** re-posting all vouches.", { parse_mode: "Markdown" })
 
     const vouches = await prisma.vouch.findMany({
-      where: { receiverId: userId },
+      where: { receiverId: userId, status: "ACTIVE" },
       orderBy: { createdAt: "asc" },
     })
 
     for (const vouch of vouches) {
       const stars = "⭐".repeat(vouch.rating)
-      const text = `**Vouch from ${vouch.giverName}**\nRating: ${stars}\nComment: ${vouch.comment}`
+      const text = `**Vouch from ${esc(vouch.giverName)}**\nRating: ${stars}\nComment: ${esc(vouch.comment)}`
 
       try {
         if (vouch.proofImageUrl) {
@@ -584,7 +688,7 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
 
       let text = "⚠️ **Pending Vouch Moderation Queue**\n\nThe following vouches have been flagged. Use `/moderate approve <vouch_id>` or `/moderate remove <vouch_id>` to resolve them.\n\n"
       reports.slice(0, 10).forEach((v, index) => {
-        text += `**Report #${index + 1}**\n**ID:** \`${v.id}\`\n**Giver:** ${v.giverName} (${v.giverId})\n**Rating:** ${"⭐".repeat(v.rating)}\n**Comment:** ${v.comment || "No comment"}\n**Date:** ${v.createdAt.toLocaleDateString()}\n\n`
+        text += `**Report #${index + 1}**\n**ID:** \`${v.id}\`\n**Giver:** ${esc(v.giverName)} (${v.giverId})\n**Rating:** ${"⭐".repeat(v.rating)}\n**Comment:** ${esc(v.comment) || "No comment"}\n**Date:** ${v.createdAt.toLocaleDateString()}\n\n`
       })
 
       if (reports.length > 10) {
@@ -640,8 +744,8 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
       const profileUser = await prisma.user.findUnique({
         where: { id: targetId },
         include: {
-          _count: { select: { vouchesReceived: true } },
-          vouchesReceived: { select: { rating: true } },
+          _count: { select: { vouchesReceived: { where: { status: "ACTIVE" } } } },
+          vouchesReceived: { where: { status: "ACTIVE" }, select: { rating: true } },
         }
       })
       if (!profileUser) return ctx.reply("❌ Profile not found.")
@@ -652,11 +756,11 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
       const rank = await getLeaderboardRank(count)
 
       const text =
-        `👤 *${profileUser.name || profileUser.username || "Seller"}'s Profile*\n\n` +
+        `👤 *${esc(profileUser.name || profileUser.username) || "Seller"}'s Profile*\n\n` +
         `*Score:* ⭐ ${averageRating} / 5.0\n` +
         `*Total Reviews:* 📝 ${count}\n` +
         `*Leaderboard Rank:* 🏆 ${rank > 0 ? `#${rank}` : "Unranked"}\n\n` +
-        `_${profileUser.profileMetaDescription || "Check out my verified reputation!"}_`
+        `_${esc(profileUser.profileMetaDescription) || "Check out my verified reputation!"}_`
 
       const baseUrl = process.env.AUTH_URL || "https://vouched.to"
       const replyMarkup = profileUser.slug ? {
@@ -712,7 +816,7 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
         if (sellerUser) {
           const name = sellerUser.name || sellerUser.username || "Anonymous Seller"
           const baseUrl = process.env.AUTH_URL || "https://vouched.to"
-          text += `*#${i + 1} - ${name}*\nTotal Vouches: *${sellerCount}* ${sellerUser.slug ? `| [Profile](${baseUrl}/u/${sellerUser.slug})` : ""}\n\n`
+          text += `*#${i + 1} - ${esc(name)}*\nTotal Vouches: *${sellerCount}* ${sellerUser.slug ? `| [Profile](${baseUrl}/u/${sellerUser.slug})` : ""}\n\n`
         }
       }
 
@@ -738,12 +842,12 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
         return ctx.reply("ℹ️ No vouches recorded for this profile yet.")
       }
 
-      let text = `🕒 *Recent Vouches for ${user.name || user.username || "Seller"}*\n\n`
+      let text = `🕒 *Recent Vouches for ${esc(user.name || user.username) || "Seller"}*\n\n`
       recentVouches.forEach((v, index) => {
-        text += `*Vouch #${index + 1} from ${v.giverName}* (${"⭐".repeat(v.rating)})\n` +
-                `_"${v.comment || "No comment"}"_\n`
+        text += `*Vouch #${index + 1} from ${esc(v.giverName)}* (${"⭐".repeat(v.rating)})\n` +
+                `_"${esc(v.comment) || "No comment"}"_\n`
         if (v.sellerReply) {
-          text += `↳ *Response:* _"${v.sellerReply}"_\n`
+          text += `↳ *Response:* _"${esc(v.sellerReply)}"_\n`
         }
         text += `_Date: ${v.createdAt.toLocaleDateString()}_\n\n`
       })

@@ -1,9 +1,28 @@
 "use server"
 
+import crypto from "crypto"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { encryptSecret, decryptSecret } from "@/lib/crypto"
+
+// One-time code the user types into their Telegram bot (/link <code>) to prove
+// they own this dashboard account. Stored in VerificationToken so no schema
+// change is needed; 15-minute expiry, regenerating invalidates older codes.
+export async function generateTelegramLinkCode() {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const identifier = `telegram-link:${session.user.id}`
+  const code = crypto.randomBytes(4).toString("hex")
+
+  await prisma.verificationToken.deleteMany({ where: { identifier } })
+  await prisma.verificationToken.create({
+    data: { identifier, token: code, expires: new Date(Date.now() + 15 * 60 * 1000) },
+  })
+
+  redirect("/dashboard/bot?tab=telegram")
+}
 
 export async function updateBotTokens(formData: FormData) {
   const session = await auth()

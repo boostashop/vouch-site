@@ -1,8 +1,8 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { updateBotTokens, updateVouchSettings, updateStatsSettings, removeBotToken } from "./actions"
+import { updateBotTokens, updateVouchSettings, updateStatsSettings, removeBotToken, generateTelegramLinkCode } from "./actions"
 import { hasActivePremium } from "@/lib/premium"
-import { decryptSecret } from "@/lib/crypto"
+import { tryDecryptSecret } from "@/lib/crypto"
 import { Shield, Info, Bot, Send, ExternalLink, CheckCircle2, MessageSquare, BarChart3, Lock, Settings2, Palette } from "lucide-react"
 import Link from "next/link"
 import { DiscordChannelSelector } from "./DiscordChannelSelector"
@@ -23,12 +23,25 @@ export default async function BotSettingsPage(props: {
 
   const isPremium = hasActivePremium(user)
 
+  // Pending Telegram link code (generated via the button below), if still valid.
+  const telegramLinkCode =
+    user.telegramBotToken && !user.telegramId
+      ? (
+          await prisma.verificationToken.findFirst({
+            where: { identifier: `telegram-link:${user.id}`, expires: { gt: new Date() } },
+            select: { token: true },
+          })
+        )?.token ?? null
+      : null
+
   let guilds: any[] = []
   let initialGuildId = ""
   let initialChannels: any[] = []
   let initialRoles: any[] = []
 
-  const discordToken = user.discordBotToken ? decryptSecret(user.discordBotToken) : null
+  // Tolerant decrypt: a missing TOKEN_ENCRYPTION_KEY or corrupt row must not
+  // 500 the settings page (the user needs this page to fix their token).
+  const discordToken = tryDecryptSecret(user.discordBotToken)
 
   if (discordToken && isPremium) {
     try {
@@ -460,7 +473,7 @@ export default async function BotSettingsPage(props: {
               <div className="space-y-3">
                 <div className="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center text-sky-400 font-black text-sm">2</div>
                 <h3 className="font-bold text-sm text-zinc-900 dark:text-white uppercase tracking-wider">Link Account</h3>
-                <p className="text-xs text-zinc-500 leading-relaxed">Once you save your token below, message your bot and run <code>/start</code> to link your account.</p>
+                <p className="text-xs text-zinc-500 leading-relaxed">Save your token below, generate a link code, then message your bot <code>/link &lt;code&gt;</code> to verify you own this account.</p>
               </div>
             </div>
           </section>
@@ -539,13 +552,34 @@ export default async function BotSettingsPage(props: {
 
             {user?.telegramBotToken && !user.telegramId && (
               <div className="px-6 pb-6">
-                <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl flex items-center justify-between gap-4 shadow-inner">
+                <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl space-y-3 shadow-inner">
                   <div className="flex items-center gap-3">
                     <Info size={18} className="text-amber-400 shrink-0" />
                     <div>
                       <p className="text-sm font-bold text-zinc-900 dark:text-white">Action Required: Link your account</p>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">Run <strong>/start</strong> on your Telegram bot to link your account and enable owner commands.</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Generate a link code, then message your bot{" "}
+                        <strong className="font-mono">/link &lt;code&gt;</strong> to enable owner commands.
+                      </p>
                     </div>
+                  </div>
+                  <div className="flex items-center gap-3 pl-8">
+                    {telegramLinkCode ? (
+                      <code className="px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 text-sm font-mono font-bold text-zinc-900 dark:text-white tracking-widest select-all">
+                        /link {telegramLinkCode}
+                      </code>
+                    ) : null}
+                    <form action={generateTelegramLinkCode}>
+                      <button
+                        type="submit"
+                        className="px-4 py-1.5 rounded-lg bg-amber-500 text-black text-xs font-bold hover:bg-amber-400 transition-all active:scale-95"
+                      >
+                        {telegramLinkCode ? "Regenerate code" : "Generate link code"}
+                      </button>
+                    </form>
+                    {telegramLinkCode && (
+                      <span className="text-[10px] text-zinc-500">Expires in 15 min</span>
+                    )}
                   </div>
                 </div>
               </div>
