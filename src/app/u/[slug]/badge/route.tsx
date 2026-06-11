@@ -248,12 +248,17 @@ function Chip({ accent, vouchCount, avgRating }: BadgeProps) {
           height: 26,
           borderRadius: 7,
           background: accent,
-          color: "#fff",
-          fontSize: 15,
-          fontWeight: 900,
         }}
       >
-        V
+        <svg width="19" height="19" viewBox="0 0 64 64" fill="none">
+          <path
+            d="M18 26.5L28.5 45L46.5 20"
+            stroke="#fff"
+            strokeWidth="7.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
       <span style={{ color: "#a1a1aa", fontSize: 13, fontWeight: 800, marginLeft: 8 }}>vouched</span>
       <div style={{ display: "flex", width: 1, height: 20, background: "#27272a", margin: "0 10px" }} />

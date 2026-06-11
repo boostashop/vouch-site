@@ -3,6 +3,7 @@ import { CheckCircle, Shield, Zap, Globe, MessageSquare, Star, Trophy, Palette, 
 import { prisma } from "@/lib/prisma";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthNavButton } from "@/components/auth-nav-button";
+import { LogoMark } from "@/components/logo";
 
 // Marketing page: prerender it and refresh the stats every 5 minutes. This
 // makes the HTML CDN-cacheable (emits `s-maxage`) instead of `no-store`, so
@@ -30,7 +31,7 @@ export default async function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl group-hover:scale-105 transition-transform shadow-lg shadow-indigo-600/20">V</div>
+              <LogoMark size={32} className="rounded-lg group-hover:scale-105 transition-transform shadow-lg shadow-indigo-600/20" />
               <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">Vouched.to</span>
             </Link>
 
@@ -291,7 +292,7 @@ export default async function Home() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-12">
             <div className="flex flex-col items-center md:items-start gap-4 text-center md:text-left">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl text-white">V</div>
+                <LogoMark size={32} className="rounded-lg" />
                 <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">Vouched.to</span>
               </div>
               <p className="text-zinc-500 text-sm max-w-xs leading-relaxed font-medium">The reputation standard for digital communities and service providers.</p>

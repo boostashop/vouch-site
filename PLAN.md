@@ -35,10 +35,10 @@ To build a highly scalable, feature-rich reputation management platform. Vouched
 *   [x] **Easy-to-Use Dashboard:** User-friendly management of vouches and settings.
 *   [x] **Vouches Stats:** Detailed trends, average ratings, and volume insights.
 *   [ ] **Vouch Spam Protection:** User blacklist, rate limiting, and automated spam detection.
-*   [ ] **MyVouches Awards:** Earnable badges based on activity (e.g., "100+ Vouches", "Top Rated").
+*   [ ] **Vouched.to Awards:** Earnable badges based on activity (e.g., "100+ Vouches", "Top Rated").
 
 ### Phase 4: Community & Support
-*   [ ] **MyVouches Leaderboard:** Global ranking of the most reputable users.
+*   [ ] **Vouched.to Leaderboard:** Global ranking of the most reputable users.
 *   [ ] **24/7 Support:** Integrated help center and ticket system.
 *   [ ] **Extendable Plans:** Tiered subscription management (Stripe integration).
 

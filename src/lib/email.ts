@@ -45,7 +45,7 @@ export function magicLinkEmail(
         <!-- Brand -->
         <tr><td align="center" style="padding-bottom:28px;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-            <td style="width:34px;height:34px;background:${ACCENT_BTN};border-radius:9px;text-align:center;vertical-align:middle;color:#ffffff;font:800 19px ${FONT};">V</td>
+            <td style="width:34px;height:34px;vertical-align:middle;"><img src="https://vouched.to/logo.png" width="34" height="34" alt="Vouched.to" style="display:block;border-radius:9px;"></td>
             <td style="padding-left:10px;color:#ffffff;font:700 18px ${FONT};letter-spacing:-0.01em;vertical-align:middle;">Vouched.to</td>
           </tr></table>
         </td></tr>

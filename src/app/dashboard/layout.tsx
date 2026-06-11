@@ -16,6 +16,7 @@ import {
 import { SignOut, MobileSignOut } from "@/components/auth-components"
 import { UserNav } from "@/components/dashboard/user-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { LogoMark } from "@/components/logo"
 import { prisma } from "@/lib/prisma"
 import { hasActivePremium } from "@/lib/premium"
 
@@ -44,7 +45,7 @@ export default async function DashboardLayout({
       <aside className="w-64 border-r border-zinc-200 dark:border-white/10 hidden lg:flex flex-col fixed inset-y-0 left-0 bg-white dark:bg-[#050505] z-30 transition-colors duration-300">
         <div className="p-6 text-zinc-950 dark:text-white">
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-600/20">V</div>
+            <LogoMark size={32} className="rounded-lg shadow-lg shadow-indigo-600/20" />
             <span className="text-xl font-bold tracking-tight">Vouched.to</span>
           </Link>
         </div>
@@ -100,7 +101,7 @@ export default async function DashboardLayout({
             </div>
             
             <Link href="/dashboard" className="md:hidden flex items-center gap-2">
-              <div className="w-7 h-7 bg-indigo-600 rounded-md flex items-center justify-center font-bold text-sm text-white">V</div>
+              <LogoMark size={28} className="rounded-md" />
             </Link>
           </div>
           

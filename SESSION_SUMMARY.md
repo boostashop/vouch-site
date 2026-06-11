@@ -1,7 +1,7 @@
 # SESSION_SUMMARY - May 20, 2026
 
 ## Objective
-Implement bot customization features (Discord/Telegram) based on the MyVouch.es model and deploy to the VPS.
+Implement bot customization features (Discord/Telegram) for Vouched.to and deploy to the VPS.
 
 ## Status: SUCCESSFUL DEPLOYMENT
 - **Environment**: The production VPS is running the latest `dev` branch.

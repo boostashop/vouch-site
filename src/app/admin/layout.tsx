@@ -16,6 +16,7 @@ import {
 import { SignOut, MobileSignOut } from "@/components/auth-components"
 import { AdminNavItem } from "@/components/admin/admin-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { LogoMark } from "@/components/logo"
 
 export default async function AdminLayout({
   children,
@@ -34,7 +35,7 @@ export default async function AdminLayout({
       <aside className="w-64 border-r border-zinc-200 dark:border-white/5 hidden lg:flex flex-col fixed inset-y-0 left-0 bg-white dark:bg-[#050505] z-30 transition-colors duration-300">
         <div className="p-6">
           <Link href="/admin" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-red-600/20">V</div>
+            <LogoMark size={32} tone="red" className="rounded-lg shadow-lg shadow-red-600/20" />
             <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white uppercase italic">Admin</span>
           </Link>
         </div>
@@ -72,7 +73,7 @@ export default async function AdminLayout({
         <header className="h-16 border-b border-zinc-200 dark:border-white/5 flex items-center justify-between px-4 md:px-8 bg-white/80 dark:bg-black/80 backdrop-blur-xl sticky top-0 z-20 transition-colors duration-300">
           <div className="flex items-center gap-4 text-sm font-medium">
             <div className="lg:hidden flex items-center gap-2 mr-2">
-              <div className="w-7 h-7 bg-red-600 rounded-md flex items-center justify-center font-bold text-sm text-white">V</div>
+              <LogoMark size={28} tone="red" className="rounded-md" />
             </div>
             <span className="text-zinc-500">Root</span>
             <ChevronRight size={14} className="text-zinc-300 dark:text-zinc-700" />

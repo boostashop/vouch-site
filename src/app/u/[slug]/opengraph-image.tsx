@@ -77,12 +77,17 @@ export default async function Image({ params }: { params: Promise<{ slug: string
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#fff",
-                fontWeight: 900,
-                fontSize: 20,
               }}
             >
-              V
+              <svg width="26" height="26" viewBox="0 0 64 64" fill="none">
+                <path
+                  d="M18 26.5L28.5 45L46.5 20"
+                  stroke="#fff"
+                  strokeWidth="7.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
             <span style={{ color: "#71717a", fontSize: 18, fontWeight: 700, letterSpacing: "0.1em" }}>
               VOUCHED.TO

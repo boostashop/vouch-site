@@ -3,13 +3,16 @@
 import { CredentialsForm } from "@/components/auth-components"
 import { Zap, UserPlus } from "lucide-react"
 import Link from "next/link"
+import { LogoMark } from "@/components/logo"
 
 export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-black flex flex-col items-center justify-center p-4 font-sans">
       <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex flex-col items-center text-center">
-          <Link href="/" className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-bold text-2xl mb-6 shadow-xl shadow-indigo-600/20 active:scale-95 transition-transform">V</Link>
+          <Link href="/" className="mb-6 active:scale-95 transition-transform">
+            <LogoMark size={48} className="rounded-xl shadow-xl shadow-indigo-600/20" />
+          </Link>
           <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">Get Started</h1>
           <p className="text-zinc-500 mt-2 font-medium">Create your Vouched.to account today</p>
         </div>

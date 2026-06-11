@@ -1,4 +1,4 @@
-# Feature Checklist: MyVouch.es Clone
+# Feature Checklist: Vouched.to
 
 ## Phase 1: Foundation & Web
 - [x] **Infrastructure Setup**

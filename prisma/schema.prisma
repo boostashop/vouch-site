@@ -74,7 +74,7 @@ model User {
 
   // Bot Customization - Vouch Command
   vouchEmbedTitle   String   @default("New vouch created!")
-  vouchEmbedFooter  String   @default("Powered by MyVouches")
+  vouchEmbedFooter  String   @default("Powered by Vouched.to")
   vouchEmbedColor   String   @default("#5865F2")
   vouchRequireProof Boolean  @default(false)
   vouchShowCount    Boolean  @default(true)
@@ -84,9 +84,9 @@ model User {
   vouchEmoji        String?
 
   // Bot Customization - Stats Command
-  statsEmbedTitle       String   @default("MyVouches Profile Stats")
-  statsEmbedDescription String   @default("Showing my MyVouches profile stats!")
-  statsEmbedFooter      String   @default("Powered by MyVouches")
+  statsEmbedTitle       String   @default("Vouched.to Profile Stats")
+  statsEmbedDescription String   @default("Showing my Vouched.to profile stats!")
+  statsEmbedFooter      String   @default("Powered by Vouched.to")
   statsEmbedColor       String   @default("#5865F2")
   statsShowCount        Boolean  @default(true)
   statsShowScore        Boolean  @default(true)

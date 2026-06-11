@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { ShieldCheck, MessageSquare, Star, Trophy, Award, TrendingUp, User as UserIcon, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { LogoMark } from "@/components/logo"
 import { hasActivePremium } from "@/lib/premium"
 
 export const dynamic = "force-dynamic"
@@ -50,7 +51,7 @@ export default async function LeaderboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl group-hover:scale-105 transition-transform shadow-lg shadow-indigo-600/20">V</div>
+              <LogoMark size={32} className="rounded-lg group-hover:scale-105 transition-transform shadow-lg shadow-indigo-600/20" />
               <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">Vouched.to</span>
             </Link>
             
