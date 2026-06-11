@@ -1,5 +1,8 @@
 # Vouched.to — Full Codebase Audit (2026-06-11)
 
+**Status 2026-06-11:** all P0s and most P1s fixed & deployed (see ✅ markers).
+Remaining: P1 #9 (`/import` integrity), #10/#11 concurrency guards, #14+ P2s.
+
 Deep-dive review of every source file (~11.5k LOC: web app, Discord/Telegram
 bots, auth, payments, admin). Ordered by priority — fix P0s before promoting
 the site. File:line references are to the `dev` branch as of this date.
@@ -8,7 +11,7 @@ the site. File:line references are to the `dev` branch as of this date.
 
 ## P0 — Critical (security / data integrity)
 
-### 1. Telegram account takeover via `/start` / `/link`
+### 1. ✅ FIXED — Telegram account takeover via `/start` / `/link`
 `src/bots/telegram/index.ts:264` — **anyone** who messages a user's bot and
 sends `/start` or `/link` is written to `user.telegramId` unconditionally.
 Every owner-only check (`/remove`, `/blacklist`, `/moderate`, `/export`,
@@ -17,7 +20,7 @@ can hijack owner powers, delete vouches, export data, and receive owner DMs.
 **Fix:** issue a one-time link code in the dashboard and require
 `/link <code>`; never overwrite an existing `telegramId` silently.
 
-### 2. Soft-deleted (REMOVED/FLAGGED) vouches still shown almost everywhere
+### 2. ✅ FIXED — Soft-deleted (REMOVED/FLAGGED) vouches still shown almost everywhere
 The moderation system sets `status: REMOVED`, but most read paths never filter:
 - `src/app/u/[slug]/page.tsx:54-63` — public profile count, average, and feed
 - `src/app/u/[slug]/badge/route.tsx:59-62` — embeddable badge stats
@@ -33,7 +36,7 @@ displays publicly — moderation is cosmetic. **Fix:** add a shared
 `ACTIVE`-only filter (e.g. `activeVouchWhere(receiverId)`) and apply it to
 every public/stat read; decide explicitly which admin views show all statuses.
 
-### 3. "Require proof" and the free 50-vouch limit are bypassable
+### 3. ✅ FIXED — "Require proof" and the free 50-vouch limit are bypassable
 - Discord button/modal flow (`discord/index.ts:1200-1543`): the
   modal → preview → confirm path never checks `config.requireProof` and offers
   no proof upload, so the proof requirement only applies to direct
@@ -42,7 +45,7 @@ every public/stat read; decide explicitly which admin views show all statuses.
   even when `requireProof` is on, and the wizard's confirm step **never checks
   `FREE_VOUCH_LIMIT`** — free users can exceed 50 vouches via the wizard.
 
-### 4. Design-token CSS injection (premium users)
+### 4. ✅ FIXED — Design-token CSS injection (premium users)
 `saveDesignTokens` (`dashboard/profile/actions.ts:59`) stores the client
 payload verbatim — no validation of any field. `configToCSS` interpolates the
 values into a `<style>` tag; only `</style` is stripped. A malicious premium
@@ -54,7 +57,7 @@ hex/rgba regex for colors, clamp numbers, whitelist enums.
 
 ## P1 — High (bugs users will hit)
 
-### 5. Vouch saved but reported as failed → duplicates
+### 5. ✅ FIXED — Vouch saved but reported as failed → duplicates
 Discord `/vouch` (`discord/index.ts:233-402`): the vouch row is created, then
 embed building / channel sends / DMs run in the same `try`. Any later error
 (e.g. invalid `vouchEmbedColor` crashing `setColor`, channel perms) falls into
@@ -64,20 +67,20 @@ throws "already acknowledged" if the failure happened after the reply.
 **Fix:** create the vouch, ack success, then do side-effects in their own
 try/catches; sanitize embed colors like the badge route does.
 
-### 6. `/dashboard/bot` 500s on undecryptable tokens
+### 6. ✅ FIXED — `/dashboard/bot` 500s on undecryptable tokens
 `dashboard/bot/page.tsx:31` uses `decryptSecret` (throws) instead of
 `tryDecryptSecret`. If `TOKEN_ENCRYPTION_KEY` is unset (it is **still unset in
 prod** per the security follow-ups) or a row is corrupt, the page crashes with
 the generic "couldn't load" screen.
 
-### 7. Telegram Markdown injection / broken replies
+### 7. ✅ FIXED — Telegram Markdown injection / broken replies
 User comments and names are interpolated into `parse_mode: "Markdown"` strings
 throughout `telegram/index.ts`. Unbalanced `*`/`_`/`[` in a comment makes
 Telegram reject the whole message — the vouch is recorded but the confirmation
 (and owner DM) silently fails. Also allows link-text injection.
 **Fix:** switch to `parse_mode: "HTML"` with an escape helper.
 
-### 8. Admin premium toggle ignores `premiumExpiresAt`
+### 8. ✅ FIXED — Admin premium toggle ignores `premiumExpiresAt`
 `admin/actions.ts:14` sets `isPremium: true/false` but never touches
 `premiumExpiresAt`. For a user whose premium previously expired (stale past
 date), `hasActivePremium` stays **false** even after an admin enables premium.
@@ -98,16 +101,16 @@ vouches"). **Fix:** gate behind premium + explicit confirmation, run
 `validateVouchRules`, mark imported vouches (`type: "imported"`), and consider
 not defaulting to 5★.
 
-### 11. `/restore` re-posts REMOVED vouches; no concurrency guard
+### 11. ⚠️ PARTIAL — `/restore` now ACTIVE-only; concurrency guard still TODO
 Both bots (`discord/index.ts:533`, `telegram/index.ts:460`) restore with no
 status filter and no in-flight guard — a 1,000-vouch history is ~25 min of
 sends, and the owner can start it multiple times in parallel.
 
-### 12. `pendingDiscordVouches` never expires
+### 12. ✅ FIXED — `pendingDiscordVouches` never expires
 `discord/index.ts:39` — entries are only deleted on confirm/cancel. Abandoned
 previews accumulate forever in a shared multi-tenant process. Add a TTL sweep.
 
-### 13. No `error.tsx` / `not-found.tsx` anywhere
+### 13. ✅ FIXED — No `error.tsx` / `not-found.tsx` anywhere
 Any thrown server action or page error (slug conflict in `updateProfile`,
 decrypt failure, DB hiccup) renders Next's bare "something went wrong / Reload"
 screen — which is exactly what was reported on `/upgrade`. Add root +
