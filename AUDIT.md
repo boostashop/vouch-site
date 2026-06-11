@@ -1,7 +1,9 @@
 # Vouched.to — Full Codebase Audit (2026-06-11)
 
-**Status 2026-06-11:** all P0s and most P1s fixed & deployed (see ✅ markers).
-Remaining: P1 #9 (`/import` integrity), #10/#11 concurrency guards, #14+ P2s.
+**Status 2026-06-11:** all P0s, all P1s, and most P2s fixed & deployed (see ✅
+markers). Remaining: #21 (FK constraints + account deletion), #23 (webhook
+dedupe), #24 (auth rate limiting), #25 (OG emoji tofu), #19 (clear-to-empty),
+and the P3 cleanup list.
 
 Deep-dive review of every source file (~11.5k LOC: web app, Discord/Telegram
 bots, auth, payments, admin). Ordered by priority — fix P0s before promoting
@@ -86,13 +88,13 @@ Telegram reject the whole message — the vouch is recorded but the confirmation
 date), `hasActivePremium` stays **false** even after an admin enables premium.
 **Fix:** clear `premiumExpiresAt` on toggle-on.
 
-### 9. Stale JWT role/username
+### 9. ✅ FIXED — Stale JWT role/username
 `auth.config.ts` bakes `role` into the JWT at sign-in only. Granting admin
 does nothing until the user re-logs; **revoking admin does not lock them out**
 (proxy + `ensureAdmin` both read the JWT). **Fix:** re-read role from DB in the
 `jwt` callback (or short-lived re-validation).
 
-### 10. `/import` fabricates reputation
+### 10. ✅ FIXED — `/import` fabricates reputation
 `discord/index.ts:1098` converts every ≥4-char human message in a channel into
 a vouch, defaulting to **5 stars**, skipping blacklist/self-vouch/rate-limit
 validation and the free limit, with no preview or undo. It's also an N+1 dup
@@ -101,7 +103,7 @@ vouches"). **Fix:** gate behind premium + explicit confirmation, run
 `validateVouchRules`, mark imported vouches (`type: "imported"`), and consider
 not defaulting to 5★.
 
-### 11. ⚠️ PARTIAL — `/restore` now ACTIVE-only; concurrency guard still TODO
+### 11. ✅ FIXED — `/restore` ACTIVE-only + concurrency guard
 Both bots (`discord/index.ts:533`, `telegram/index.ts:460`) restore with no
 status filter and no in-flight guard — a 1,000-vouch history is ~25 min of
 sends, and the owner can start it multiple times in parallel.
@@ -122,27 +124,27 @@ screen instead of an inline message).
 
 ## P2 — Medium (half-baked features & consistency)
 
-### 14. Web dashboard has no moderation
+### 14. ✅ FIXED — Web dashboard has no moderation
 `dashboard/vouches/page.tsx` is read-only: no remove/reply/report-queue, no
 status badges (REMOVED vouches look identical), no pagination (loads every
 row), `vouch: any`. All moderation is bot-command-only. Build the web
 moderation UI (list FLAGGED, approve/remove, reply, blacklist manager).
 
-### 15. "System Health: Online" is fiction
+### 15. ✅ FIXED — "System Health: Online" is fiction
 `dashboard/page.tsx:114` shows "Online / Bot is listening" purely because a
 token exists. The bot manager (separate PM2 process) has no heartbeat. If the
 token is revoked or spawn fails (backoff map), users still see "Online".
 **Fix:** have the manager write `lastSeenAt`/`status` per bot to the DB and
 surface real status (+ spawn errors like "invalid token") in the dashboard.
 
-### 16. Dashboard copy bugs
+### 16. ✅ FIXED — Dashboard copy bugs
 - "Share Profile" action item is always `status="pending"` even with a slug.
 - Copy says profile lives at `your-slug.vouched.to` — subdomains don't exist;
   it's `vouched.to/u/<slug>` (`dashboard/page.tsx:197`).
 - `hasBot` ignores `telegramBotToken` (`dashboard/page.tsx:47`) — Telegram-only
   users see "Offline / No token provided".
 
-### 17. Custom-domain quirks
+### 17. ✅ FIXED — Custom-domain quirks
 `_domain/[host]/page.tsx` doesn't forward `searchParams`, so pagination is
 stuck on page 1 for custom domains. Worse, every path on a custom domain is
 rewritten to the profile, so the "Get Your Profile" CTA (`href="/"`) loops back
@@ -150,7 +152,7 @@ to the same profile — it should link to `https://vouched.to/` absolutely.
 `customDomain` input is also saved unvalidated (no hostname regex, could
 contain a path/scheme).
 
-### 18. Duplicate accent-color inputs
+### 18. ✅ FIXED — Duplicate accent-color inputs
 `dashboard/profile/page.tsx:132-146` has two inputs both named
 `profileAccentColor` (color picker + hex text). Only the first is read — the
 text field is dead UI. Also no server-side hex validation (the badge route
@@ -161,7 +163,7 @@ sanitizes, the profile page and bot embeds don't).
 back to empty/default; premium-only fields (channel, role, emoji) are saved
 for free users too (harmless — bot gates at read — but confusing).
 
-### 20. User model has no `createdAt`
+### 20. ✅ FIXED — User model has no `createdAt`
 "Member Since" in `/stats` falls back to `emailVerified`, which is null for
 credentials signups → "N/A". Add `createdAt`/`updatedAt` to `User` (and
 backfill).
@@ -173,7 +175,7 @@ orphaned reports; deleting a user row is impossible while vouches exist. There
 is also **no account deletion** feature at all (GDPR exposure — the privacy
 policy presumably promises deletion).
 
-### 22. Vouch-only channel deletes the owner's messages too
+### 22. ✅ FIXED — Vouch-only channel deletes the owner's messages too
 `discord/index.ts:79-92` deletes every non-bot message in the configured vouch
 channel, including the owner/admins. Exempt the owner (and maybe users with
 Manage Messages).
@@ -184,7 +186,7 @@ replay within the 300 s window), no ordering guard (a delayed `activated` can
 overwrite a newer `cancelled`). Low risk today; add an event id + processed-at
 table when convenient.
 
-### 24. Auth hardening gaps
+### 24. ⚠️ PARTIAL — Auth hardening gaps (register race + case fixed; rate limiting TODO)
 - No rate limiting on credentials login, registration, or magic-link sends
   (email-bomb / credential-stuffing vector).
 - `register()` race: unique-constraint violation between `findFirst` and
@@ -199,7 +201,7 @@ table when convenient.
 (seen in generated output). Replace glyph characters with inline SVG (as the
 badge chip now does for the logo) or load a font into `ImageResponse`.
 
-### 26. Leaderboard page is `force-dynamic` and unauthenticated
+### 26. ✅ FIXED — Leaderboard page is `force-dynamic` and unauthenticated
 `leaderboard/page.tsx` hits the DB (groupBy over all vouches) on every request.
 Switch to `revalidate = 300` like the landing page — same freshness, cacheable.
 
@@ -207,7 +209,8 @@ Switch to `revalidate = 300` like the landing page — same freshness, cacheable
 
 ## P3 — Improvements / cleanup
 
-- **`/help` drift (Discord):** lists 7 commands; `/profile`, `/leaderboard`,
+- ✅ **`/help` drift (Discord)** — FIXED, now lists all commands.
+- _(old note)_ `/help` drift (Discord): lists 7 commands; `/profile`, `/leaderboard`,
   `/recent`, `/find`, `/config`, `/reply`, `/export`, `/import`, `/remove`
   exist but aren't mentioned.
 - **`ephemeral:` deprecation:** discord.js v14.26 wants `flags: MessageFlags.Ephemeral`.
