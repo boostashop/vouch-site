@@ -14,7 +14,6 @@ import {
   Heart,
   TrendingUp,
 } from "lucide-react"
-import Link from "next/link"
 import { Metadata } from "next"
 import { tokensToCSS, sanitizeConfig, defaultLightTokens, defaultDarkTokens } from "@/types/design-tokens"
 import { hasActivePremium } from "@/lib/premium"
@@ -68,6 +67,10 @@ export default async function PublicProfilePage({ params, searchParams }: Public
   const isPremium = hasActivePremium(user)
   const avgRating = ratingAgg._avg.rating ?? 0
   const totalPages = Math.max(1, Math.ceil(vouchCount / VOUCHES_PER_PAGE))
+
+  // Absolute home URL for the "Get Your Profile" CTA: on a custom domain every
+  // path is rewritten to this profile, so a relative "/" would loop back here.
+  const homeUrl = (process.env.AUTH_URL || "https://vouched.to").replace(/\/$/, "")
 
   const accentColor = user.profileAccentColor || "#6366f1"
   const theme = user.profileTheme || "dark"
@@ -180,14 +183,14 @@ export default async function PublicProfilePage({ params, searchParams }: Public
             </div>
           </div>
 
-          <Link
-            href="/"
+          <a
+            href={homeUrl}
             className="vc-cta self-start md:self-auto flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-extrabold transition-all active:scale-95 shadow-lg"
             style={{ backgroundColor: accentColor, color: "#fff" }}
           >
             Get Your Profile
             <ExternalLink size={14} />
-          </Link>
+          </a>
         </header>
 
         {/* Stats */}

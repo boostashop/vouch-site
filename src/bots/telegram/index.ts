@@ -55,6 +55,10 @@ function esc(text: string | null | undefined): string {
   return (text ?? "").replace(/([_*`\[])/g, "\\$1")
 }
 
+// Guards a long-running /restore from being started twice for the same owner.
+// Module-level so it's shared across every spawned bot in this process.
+const restoreInProgress = new Set<string>()
+
 interface BotContext extends Scenes.WizardContext {}
 
 const vouchWizard = new Scenes.WizardScene<BotContext>(
@@ -567,36 +571,46 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
       return ctx.reply("❌ Only the owner can use this command.")
     }
 
-    await ctx.reply("⏳ **Starting restoration...** re-posting all vouches.", { parse_mode: "Markdown" })
+    // Prevent a second restore for the same user while one is still running.
+    if (restoreInProgress.has(userId)) {
+      return ctx.reply("⏳ A restore is already running for your account. Please wait for it to finish.")
+    }
+    restoreInProgress.add(userId)
 
-    const vouches = await prisma.vouch.findMany({
-      where: { receiverId: userId, status: "ACTIVE" },
-      orderBy: { createdAt: "asc" },
-    })
+    try {
+      await ctx.reply("⏳ **Starting restoration...** re-posting all vouches.", { parse_mode: "Markdown" })
 
-    for (const vouch of vouches) {
-      const stars = "⭐".repeat(vouch.rating)
-      const text = `**Vouch from ${esc(vouch.giverName)}**\nRating: ${stars}\nComment: ${esc(vouch.comment)}`
+      const vouches = await prisma.vouch.findMany({
+        where: { receiverId: userId, status: "ACTIVE" },
+        orderBy: { createdAt: "asc" },
+      })
 
-      try {
-        if (vouch.proofImageUrl) {
-          const signedUrl = getSignedProofUrl(vouch.proofImageUrl)
-          if (signedUrl) {
-            await ctx.replyWithPhoto(signedUrl, { caption: text, parse_mode: "Markdown" })
+      for (const vouch of vouches) {
+        const stars = "⭐".repeat(vouch.rating)
+        const text = `**Vouch from ${esc(vouch.giverName)}**\nRating: ${stars}\nComment: ${esc(vouch.comment)}`
+
+        try {
+          if (vouch.proofImageUrl) {
+            const signedUrl = getSignedProofUrl(vouch.proofImageUrl)
+            if (signedUrl) {
+              await ctx.replyWithPhoto(signedUrl, { caption: text, parse_mode: "Markdown" })
+            } else {
+              await ctx.reply(text, { parse_mode: "Markdown" })
+            }
           } else {
             await ctx.reply(text, { parse_mode: "Markdown" })
           }
-        } else {
-          await ctx.reply(text, { parse_mode: "Markdown" })
+        } catch (err) {
+          console.error("Failed to restore Telegram vouch:", err)
         }
-      } catch (err) {
-        console.error("Failed to restore Telegram vouch:", err)
+        // Slightly faster delay for Telegram
+        await new Promise((resolve) => setTimeout(resolve, 1000))
       }
-      // Slightly faster delay for Telegram
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-    }
 
-    await ctx.reply("✅ **Restoration complete!**")
+      await ctx.reply("✅ **Restoration complete!**")
+    } finally {
+      restoreInProgress.delete(userId)
+    }
   })
 
   bot.command("blacklist", async (ctx) => {

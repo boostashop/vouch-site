@@ -45,12 +45,48 @@ const pendingDiscordVouches = new Map<
   string,
   { receiverId: string; rating: number; comment: string; createdAt: number }
 >()
+
+// Pending /import previews: the owner analyzes channel history, reviews how many
+// messages would import, and only then confirms — bulk-creating reputation
+// without a confirmation step is too easy to misfire.
+type ImportEntry = {
+  giverId: string
+  giverName: string
+  rating: number
+  comment: string
+  proofSourceUrl: string | null
+  proofExt: string | null
+  proofContentType: string | null
+  createdAt: Date
+}
+const pendingDiscordImports = new Map<
+  string,
+  { receiverId: string; entries: ImportEntry[]; createdAt: number }
+>()
+
 setInterval(() => {
   const cutoff = Date.now() - PENDING_VOUCH_TTL_MS
   for (const [id, pending] of pendingDiscordVouches) {
     if (pending.createdAt < cutoff) pendingDiscordVouches.delete(id)
   }
+  for (const [id, pending] of pendingDiscordImports) {
+    if (pending.createdAt < cutoff) pendingDiscordImports.delete(id)
+  }
 }, 60 * 1000).unref()
+
+// Detect an explicit rating in a historical message. Returns null when there's
+// no clear signal — we deliberately do NOT fabricate a default (e.g. 5★) for
+// arbitrary text, since that would invent reputation the giver never expressed.
+// Guards a long-running /restore from being started twice for the same owner.
+const restoreInProgress = new Set<string>()
+
+function detectRating(text: string): number | null {
+  const starCount = (text.match(/⭐|🌟/g) || []).length
+  if (starCount >= 1 && starCount <= 5) return starCount
+  const frac = text.match(/\b([1-5])\s*\/\s*5\b/)
+  if (frac) return parseInt(frac[1])
+  return null
+}
 
 // Spawn a Discord client for a user's bot token. Returns the logged-in client,
 // or null if login failed (so the manager can back off). The manager owns the
@@ -97,7 +133,14 @@ export async function spawnDiscordBot(userId: string, token: string): Promise<Cl
 
     try {
       const config = await getActiveConfig(userId, guildId)
-      if (config && config.isPremium && config.vouchChannelId === message.channelId) {
+      // Keep the dedicated vouch channel clean, but never delete the owner's
+      // own messages (announcements, pinned context, etc.).
+      if (
+        config &&
+        config.isPremium &&
+        config.vouchChannelId === message.channelId &&
+        message.author.id !== config.discordId
+      ) {
         await message.delete()
       }
     } catch (err) {
@@ -132,11 +175,20 @@ async function handleDiscordInteraction(
       .addFields(
         { name: "/vouch", value: "Leave a vouch: a 1–5 rating, a comment, and an optional proof screenshot." },
         { name: "/stats", value: "View this profile's vouch count, average score, and leaderboard rank." },
-        { name: "/badge", value: "Owner only (Premium) — get a live, embeddable reputation badge for forums & sites." },
+        { name: "/profile [user]", value: "Show a seller's profile card (defaults to this bot's owner)." },
+        { name: "/recent", value: "Show the most recent vouches for this seller." },
+        { name: "/find <query>", value: "Search vouches by keyword or rating (1–5)." },
+        { name: "/leaderboard [server|global]", value: "Top sellers ranked by verified vouch count." },
         { name: "/report <vouch_id> [reason]", value: "Report a vouch to the owner for moderation." },
-        { name: "/blacklist <add|remove> <user_id> [reason]", value: "Owner only — Manage blacklisted users." },
-        { name: "/moderate <list|approve|remove>", value: "Owner only — Manage reported/flagged vouches." },
+        { name: "/badge", value: "Owner only (Premium) — live, embeddable reputation badge for forums & sites." },
+        { name: "/config", value: "Owner only — set the announcement channel, proof requirement, and min account age." },
+        { name: "/blacklist <add|remove> <user_id> [reason]", value: "Owner only — manage blacklisted users." },
+        { name: "/moderate <list|approve|remove>", value: "Owner only — manage reported/flagged vouches." },
+        { name: "/remove <vouch_id>", value: "Owner only — soft-delete a specific vouch." },
+        { name: "/reply <vouch_id> <text>", value: "Owner only — publicly respond to a vouch." },
         { name: "/restore", value: "Owner only — re-post the full vouch history into this channel." },
+        { name: "/export", value: "Owner only (Premium) — export all vouch data as JSON." },
+        { name: "/import [limit]", value: "Owner only (Premium) — import rated messages from this channel's history." },
       )
       .setFooter({ text: "Powered by Vouched.to" })
 
@@ -574,41 +626,56 @@ async function handleDiscordInteraction(
       return interaction.reply({ content: "❌ Only the owner can use this command.", ephemeral: true })
     }
 
-    await interaction.reply({ content: "⏳ Starting restoration of all vouches...", ephemeral: true })
-
-    const vouches = await prisma.vouch.findMany({
-      where: { receiverId: userId, status: "ACTIVE" },
-      orderBy: { createdAt: "asc" },
-    })
-
-    const channel = interaction.channel
-    if (!channel) return
-
-    for (const vouch of vouches) {
-      const stars = "⭐".repeat(vouch.rating)
-      const content = `**Vouch from ${vouch.giverName}**\nRating: ${stars}\nComment: ${vouch.comment}`
-
-      const messageOptions: { content: string; files?: string[] } = { content }
-      if (vouch.proofImageUrl) {
-        const signedUrl = getSignedProofUrl(vouch.proofImageUrl)
-        if (signedUrl) {
-          messageOptions.files = [signedUrl]
-        }
-      }
-
-      try {
-        if (channel && "send" in channel) {
-          await (channel as any).send(messageOptions)
-        }
-      } catch (sendErr) {
-        console.error("Failed to send message during restore:", sendErr)
-      }
-
-      // Delay to avoid rate limits
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+    // A restore can run for minutes (1.5s/vouch). Guard against the owner
+    // starting it again before the first one finishes — that would double-post
+    // the whole history.
+    if (restoreInProgress.has(userId)) {
+      return interaction.reply({
+        content: "⏳ A restore is already running for your account. Please wait for it to finish.",
+        ephemeral: true,
+      })
     }
+    restoreInProgress.add(userId)
 
-    await interaction.followUp({ content: "✅ Restoration complete!", ephemeral: true })
+    try {
+      await interaction.reply({ content: "⏳ Starting restoration of all vouches...", ephemeral: true })
+
+      const vouches = await prisma.vouch.findMany({
+        where: { receiverId: userId, status: "ACTIVE" },
+        orderBy: { createdAt: "asc" },
+      })
+
+      const channel = interaction.channel
+      if (!channel) return
+
+      for (const vouch of vouches) {
+        const stars = "⭐".repeat(vouch.rating)
+        const content = `**Vouch from ${vouch.giverName}**\nRating: ${stars}\nComment: ${vouch.comment}`
+
+        const messageOptions: { content: string; files?: string[] } = { content }
+        if (vouch.proofImageUrl) {
+          const signedUrl = getSignedProofUrl(vouch.proofImageUrl)
+          if (signedUrl) {
+            messageOptions.files = [signedUrl]
+          }
+        }
+
+        try {
+          if (channel && "send" in channel) {
+            await (channel as any).send(messageOptions)
+          }
+        } catch (sendErr) {
+          console.error("Failed to send message during restore:", sendErr)
+        }
+
+        // Delay to avoid rate limits
+        await new Promise((resolve) => setTimeout(resolve, 1500))
+      }
+
+      await interaction.followUp({ content: "✅ Restoration complete!", ephemeral: true })
+    } finally {
+      restoreInProgress.delete(userId)
+    }
   }
 
   if (interaction.commandName === "blacklist") {
@@ -1137,6 +1204,16 @@ async function handleDiscordInteraction(
       return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
     }
 
+    // Bulk-importing reputation is a Premium feature, and only for premium
+    // accounts (free accounts are capped at the 50-vouch limit anyway).
+    const importConfig = await getActiveConfig(userId, interaction.guildId)
+    if (!importConfig?.isPremium) {
+      return interaction.reply({
+        content: "🔒 Importing existing vouches from channel history is a Premium feature.",
+        ephemeral: true,
+      })
+    }
+
     const limit = interaction.options.getInteger("limit") || 100
     await interaction.deferReply({ ephemeral: true })
 
@@ -1160,72 +1237,99 @@ async function handleDiscordInteraction(
         if (batch.size < fetchLimit) break
       }
 
-      let importedCount = 0
+      // Pull blacklist once rather than per-message.
+      const blacklisted = new Set(
+        (
+          await prisma.blacklist.findMany({
+            where: { userId, platform: "discord" },
+            select: { blockedId: true },
+          })
+        ).map((b) => b.blockedId),
+      )
+
+      let scanned = 0
+      let skippedNoRating = 0
+      let skippedSelfOrBlocked = 0
+      let skippedDup = 0
+      const entries: ImportEntry[] = []
+
       for (const msg of messagesList) {
         if (msg.author.bot) continue
-
         const cleanContent = msg.content?.trim() || ""
         if (cleanContent.length < 4) continue
+        scanned++
+
+        // Integrity: never import self-vouches or blacklisted givers.
+        if (msg.author.id === user.discordId || blacklisted.has(msg.author.id)) {
+          skippedSelfOrBlocked++
+          continue
+        }
+
+        // Only import messages with an explicit rating — no fabricated 5★.
+        const rating = detectRating(cleanContent)
+        if (rating === null) {
+          skippedNoRating++
+          continue
+        }
 
         const dup = await prisma.vouch.findFirst({
-          where: {
-            receiverId: userId,
-            platform: "discord",
-            giverId: msg.author.id,
-            comment: cleanContent,
-          }
+          where: { receiverId: userId, platform: "discord", giverId: msg.author.id, comment: cleanContent },
+          select: { id: true },
         })
-        if (dup) continue
-
-        let rating = 5
-        const starCount = (cleanContent.match(/⭐|🌟/g) || []).length
-        if (starCount >= 1 && starCount <= 5) {
-          rating = starCount
-        } else {
-          const matchFraction = cleanContent.match(/([1-5])\/5/)
-          if (matchFraction) {
-            rating = parseInt(matchFraction[1])
-          }
+        if (dup) {
+          skippedDup++
+          continue
         }
 
-        let proofUrl = null
         const firstAttachment = msg.attachments.first()
-        if (firstAttachment) {
-          try {
-            const ext = firstAttachment.name.split(".").pop() || "png"
-            const key = proofKey("discord", ext)
-            proofUrl = await persistProofToR2(firstAttachment.url, key, firstAttachment.contentType || "image/png")
-          } catch (err) {
-            console.error("Failed to upload import attachment:", err)
-          }
-        }
-
-        await prisma.vouch.create({
-          data: {
-            receiverId: userId,
-            platform: "discord",
-            giverId: msg.author.id,
-            giverName: msg.author.username,
-            sourceId: interaction.guildId || "DM",
-            sourceName: interaction.guild?.name ?? null,
-            rating,
-            comment: cleanContent,
-            proofImageUrl: proofUrl,
-            createdAt: msg.createdAt,
-          }
+        entries.push({
+          giverId: msg.author.id,
+          giverName: msg.author.username,
+          rating,
+          comment: cleanContent,
+          proofSourceUrl: firstAttachment?.url ?? null,
+          proofExt: firstAttachment?.name?.split(".").pop() ?? null,
+          proofContentType: firstAttachment?.contentType ?? null,
+          createdAt: msg.createdAt,
         })
-        importedCount++
       }
 
-      if (interaction.guildId) {
-        await updatePinnedLiveCard(interaction.client, userId, interaction.guildId)
+      if (entries.length === 0) {
+        return interaction.editReply({
+          content:
+            `🔍 Scanned ${scanned} message(s) but found nothing to import.\n` +
+            `Only messages with an explicit rating (e.g. \`⭐⭐⭐⭐⭐\` or \`5/5\`) are imported — ` +
+            `${skippedNoRating} had no rating, ${skippedSelfOrBlocked} were self/blocked, ${skippedDup} were already imported.`,
+        })
       }
 
-      return interaction.editReply({
-        content: `✅ Successfully imported **${importedCount}** vouches from this channel's history!`,
-      })
+      const pendingId = uuidv4()
+      pendingDiscordImports.set(pendingId, { receiverId: userId, entries, createdAt: Date.now() })
+
+      const confirmEmbed = new EmbedBuilder()
+        .setTitle("📥 Import Preview")
+        .setColor("#F59E0B")
+        .setDescription(
+          `Found **${entries.length}** message(s) with a clear rating to import as vouches.\n\n` +
+            `Skipped: ${skippedNoRating} no rating · ${skippedSelfOrBlocked} self/blocked · ${skippedDup} duplicate.\n\n` +
+            `Imported vouches are marked as imported. Confirm to proceed.`,
+        )
+        .setFooter({ text: "This preview expires in 15 minutes." })
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`confirm_import_${pendingId}`)
+          .setLabel(`Import ${entries.length} vouches`)
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId(`cancel_import_${pendingId}`)
+          .setLabel("Cancel")
+          .setStyle(ButtonStyle.Danger),
+      )
+
+      return interaction.editReply({ embeds: [confirmEmbed], components: [row] })
     } catch (err: any) {
-      console.error("Import failed:", err)
+      console.error("Import scan failed:", err)
       return interaction.editReply({
         content: `❌ Import failed: ${err.message}`,
       })
@@ -1535,6 +1639,81 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
       embeds: [],
       components: [],
     })
+    return
+  }
+
+  if (interaction.customId.startsWith("cancel_import_")) {
+    const pendingId = interaction.customId.split("cancel_import_")[1]
+    pendingDiscordImports.delete(pendingId)
+    await interaction.update({ content: "❌ Import cancelled.", embeds: [], components: [] })
+    return
+  }
+
+  if (interaction.customId.startsWith("confirm_import_")) {
+    const pendingId = interaction.customId.split("confirm_import_")[1]
+    const pending = pendingDiscordImports.get(pendingId)
+    if (!pending || pending.receiverId !== botUserId) {
+      return interaction.update({
+        content: "❌ This import preview has expired. Run /import again.",
+        embeds: [],
+        components: [],
+      })
+    }
+
+    // Only the owner may confirm an import.
+    const owner = await prisma.user.findUnique({ where: { id: botUserId }, select: { discordId: true } })
+    if (!owner || owner.discordId !== interaction.user.id) {
+      return interaction.reply({ content: "❌ Only the profile owner can confirm an import.", ephemeral: true })
+    }
+
+    pendingDiscordImports.delete(pendingId)
+    await interaction.update({
+      content: `⏳ Importing ${pending.entries.length} vouch(es)…`,
+      embeds: [],
+      components: [],
+    })
+
+    let imported = 0
+    for (const entry of pending.entries) {
+      try {
+        let proofUrl: string | null = null
+        if (entry.proofSourceUrl) {
+          const key = proofKey("discord", entry.proofExt || "png")
+          proofUrl = await persistProofToR2(
+            entry.proofSourceUrl,
+            key,
+            entry.proofContentType || "image/png",
+          )
+        }
+        await prisma.vouch.create({
+          data: {
+            receiverId: botUserId,
+            platform: "discord",
+            giverId: entry.giverId,
+            giverName: entry.giverName,
+            sourceId: interaction.guildId || "DM",
+            sourceName: interaction.guild?.name ?? null,
+            rating: entry.rating,
+            comment: entry.comment,
+            proofImageUrl: proofUrl,
+            type: "imported",
+            createdAt: entry.createdAt,
+          },
+        })
+        imported++
+      } catch (err) {
+        console.error("Failed to import a vouch entry:", err)
+      }
+    }
+
+    if (interaction.guildId) {
+      await updatePinnedLiveCard(interaction.client, botUserId, interaction.guildId).catch(() => {})
+    }
+
+    await interaction
+      .editReply({ content: `✅ Imported **${imported}** vouch(es) from this channel's history.` })
+      .catch(() => {})
+    return
   }
 }
 

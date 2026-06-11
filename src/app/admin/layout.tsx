@@ -17,6 +17,7 @@ import { SignOut, MobileSignOut } from "@/components/auth-components"
 import { AdminNavItem } from "@/components/admin/admin-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogoMark } from "@/components/logo"
+import { isAdmin } from "@/lib/admin"
 
 export default async function AdminLayout({
   children,
@@ -24,10 +25,10 @@ export default async function AdminLayout({
   children: React.ReactNode
 }) {
   const session = await auth()
+  if (!session) redirect("/auth/signin")
 
-  if (!session || session.user?.role !== "ADMIN") {
-    redirect("/dashboard")
-  }
+  // Authoritative DB role check — the JWT role is stale after a grant/revoke.
+  if (!(await isAdmin())) redirect("/dashboard")
 
   return (
     <div className="flex min-h-screen bg-zinc-50 dark:bg-black font-sans transition-colors duration-300">

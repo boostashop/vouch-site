@@ -44,7 +44,8 @@ export default async function DashboardPage() {
 
   const vouchCount = user?._count.vouchesReceived || 0;
   const isPremium = hasActivePremium(user);
-  const hasBot = !!user?.discordBotToken;
+  const hasBot = !!(user?.discordBotToken || user?.telegramBotToken);
+  const hasSlug = !!user?.slug;
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
@@ -191,12 +192,12 @@ export default async function DashboardPage() {
               href="/dashboard/bot"
               status={hasBot ? "done" : "pending"}
             />
-            <ActionItem 
+            <ActionItem
               icon={<ExternalLink className="text-sky-400" />}
               title="Share Profile"
-              description="Your public profile is ready at your-slug.vouched.to"
+              description={hasSlug ? `Your public profile is live at vouched.to/u/${user!.slug}` : "Pick a profile slug to claim your public vouched.to/u/ page."}
               href="/dashboard/profile"
-              status="pending"
+              status={hasSlug ? "done" : "pending"}
             />
             <ActionItem
               icon={<Shield className="text-purple-400" />}

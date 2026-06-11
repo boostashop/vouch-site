@@ -4,6 +4,7 @@ import { updateProfile } from "./actions"
 import { hasActivePremium } from "@/lib/premium"
 import { getCheckoutUrl } from "@/lib/payments"
 import { EmbedBadgePanel } from "@/components/dashboard/EmbedBadgePanel"
+import { AccentColorField } from "./AccentColorField"
 import { User, Link as LinkIcon, Shield, CheckCircle, Palette, Globe, Search, Code2 } from "lucide-react"
 
 export default async function ProfileSettingsPage() {
@@ -124,28 +125,7 @@ export default async function ProfileSettingsPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="profileAccentColor" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Accent Color
-              </label>
-              <div className="flex gap-3">
-                <input
-                  type="color"
-                  id="profileAccentColor"
-                  name="profileAccentColor"
-                  defaultValue={user?.profileAccentColor || "#6366f1"}
-                  className="w-12 h-12 bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl p-1 cursor-pointer transition-all"
-                />
-                <input
-                  type="text"
-                  id="accent_color_text"
-                  name="profileAccentColor"
-                  defaultValue={user?.profileAccentColor || "#6366f1"}
-                  placeholder="#6366f1"
-                  className="flex-1 bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
-                />
-              </div>
-            </div>
+            <AccentColorField defaultValue={user?.profileAccentColor || "#6366f1"} />
 
             <div className="space-y-2">
               <label htmlFor="profileBannerImage" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">

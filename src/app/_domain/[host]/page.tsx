@@ -5,6 +5,7 @@ import PublicProfilePage from "@/app/u/[slug]/page"
 
 interface CustomDomainPageProps {
   params: Promise<{ host: string }>
+  searchParams?: Promise<{ page?: string }>
 }
 
 export async function generateMetadata({ params }: CustomDomainPageProps): Promise<Metadata> {
@@ -20,7 +21,7 @@ export async function generateMetadata({ params }: CustomDomainPageProps): Promi
   }
 }
 
-export default async function CustomDomainPage({ params }: CustomDomainPageProps) {
+export default async function CustomDomainPage({ params, searchParams }: CustomDomainPageProps) {
   const { host } = await params
 
   const user = await prisma.user.findFirst({
@@ -30,5 +31,11 @@ export default async function CustomDomainPage({ params }: CustomDomainPageProps
 
   if (!user?.slug) notFound()
 
-  return <PublicProfilePage params={Promise.resolve({ slug: user.slug })} />
+  // Forward searchParams so pagination works on custom domains too.
+  return (
+    <PublicProfilePage
+      params={Promise.resolve({ slug: user.slug })}
+      searchParams={searchParams ?? Promise.resolve({})}
+    />
+  )
 }

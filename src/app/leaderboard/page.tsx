@@ -5,7 +5,9 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { LogoMark } from "@/components/logo"
 import { hasActivePremium } from "@/lib/premium"
 
-export const dynamic = "force-dynamic"
+// Same freshness as the landing page: rebuilt at most every 5 minutes and
+// served from the edge cache, instead of hitting the DB on every request.
+export const revalidate = 300
 
 export default async function LeaderboardPage() {
   // Aggregate the top 50 receivers in the DB (count + avg rating), instead of

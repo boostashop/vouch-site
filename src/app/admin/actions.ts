@@ -1,15 +1,8 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/auth"
 import { revalidatePath } from "next/cache"
-
-async function ensureAdmin() {
-  const session = await auth()
-  if (session?.user?.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
-}
+import { requireAdmin as ensureAdmin } from "@/lib/admin"
 
 export async function toggleUserPremium(userId: string, isPremium: boolean) {
   await ensureAdmin()

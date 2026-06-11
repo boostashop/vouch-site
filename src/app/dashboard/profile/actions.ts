@@ -23,6 +23,18 @@ export async function updateProfile(formData: FormData) {
   // Basic slug validation (lowercase, alphanumeric, hyphens)
   const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "")
 
+  // Accent color is interpolated into inline styles on the public profile —
+  // only accept a plain 6-digit hex, otherwise fall back to the default.
+  const cleanAccent = /^#[0-9a-fA-F]{6}$/.test(profileAccentColor) ? profileAccentColor : "#6366f1"
+
+  // Custom domain (premium): accept a bare hostname only — no scheme, path, or
+  // spaces — so it can't smuggle anything into the rewrite/middleware logic.
+  const cleanDomain = customDomain?.trim().toLowerCase()
+  const validDomain =
+    cleanDomain && /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.[a-z0-9-]{1,63})+$/.test(cleanDomain)
+      ? cleanDomain
+      : null
+
   // Only premium users can save custom CSS / custom domain
   const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isPremium: true, premiumExpiresAt: true } })
   const isPremium = hasActivePremium(user)
@@ -37,13 +49,13 @@ export async function updateProfile(formData: FormData) {
       data: {
         name,
         slug: cleanSlug || null,
-        profileAccentColor,
+        profileAccentColor: cleanAccent,
         profileMetaTitle,
         profileMetaDescription,
         profileTheme: theme,
         profileFontFamily: ["sans", "serif", "mono"].includes(profileFontFamily) ? profileFontFamily : "sans",
         profileBannerImage: profileBannerImage || null,
-        customDomain: isPremium ? (customDomain || null) : undefined,
+        customDomain: isPremium ? validDomain : undefined,
       }
     })
   } catch (err) {
