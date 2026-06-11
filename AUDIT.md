@@ -1,10 +1,12 @@
 # Vouched.to — Full Codebase Audit (2026-06-11)
 
-**Status 2026-06-11:** all P0s, all P1s, and all P2s except #23 fixed &
-deployed (see ✅ markers). Remaining: #23 (webhook dedupe/ordering), #19
-(clear-to-empty embed fields, arguably intentional), and the P3 cleanup list
-(ephemeral deprecation, weekly-summary fragility, command-registration
-caching, uuid dep, more tests, lint debt, admin placeholders, EMAIL_FROM).
+**Status 2026-06-11:** all P0s, all P1s, and all P2s fixed & deployed.
+P3 done: #23 webhook idempotency, weekly-summary resilience, ephemeral→flags
+deprecation, uuid→crypto.randomUUID, trivial lint errors. Remaining (deferred,
+lower-value/larger): #19 clear-to-empty embed fields (arguably intentional),
+command-registration caching (premature at current scale), DB-dependent tests
+for validateVouchRules/webhook, the ~66 no-explicit-any lint warnings in
+bot glue code, admin 'coming soon' placeholders, and the EMAIL_FROM prod env.
 
 Deep-dive review of every source file (~11.5k LOC: web app, Discord/Telegram
 bots, auth, payments, admin). Ordered by priority — fix P0s before promoting
