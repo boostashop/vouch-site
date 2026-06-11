@@ -57,9 +57,18 @@ export class BotManager {
   }
 
   async syncBots() {
+    // Include users still flagged online (or with a token): a user who removed
+    // BOTH tokens would otherwise drop out of this query, leaving their client
+    // running and their status stuck "online". Including the online flags lets
+    // the teardown + status-reset below run for them too.
     const users = await prisma.user.findMany({
       where: {
-        OR: [{ discordBotToken: { not: null } }, { telegramBotToken: { not: null } }],
+        OR: [
+          { discordBotToken: { not: null } },
+          { telegramBotToken: { not: null } },
+          { discordBotOnline: true },
+          { telegramBotOnline: true },
+        ],
       },
     })
 
@@ -120,6 +129,26 @@ export class BotManager {
         existingTelegram.bot.stop("SIGTERM")
         this.telegramBots.delete(user.id)
         this.failedSpawns.delete(telegramKey)
+      }
+
+      // Persist real bot health so the dashboard reflects spawn success/failure
+      // (not just "a token exists"). Only write on a transition to avoid
+      // hammering the DB every poll.
+      const discordOnline = this.discordClients.has(user.id)
+      const telegramOnline = this.telegramBots.has(user.id)
+      if (discordOnline !== user.discordBotOnline || telegramOnline !== user.telegramBotOnline) {
+        try {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              discordBotOnline: discordOnline,
+              telegramBotOnline: telegramOnline,
+              botCheckedAt: new Date(),
+            },
+          })
+        } catch (err) {
+          console.error(`Failed to update bot status for ${user.id}:`, err)
+        }
       }
     }
   }

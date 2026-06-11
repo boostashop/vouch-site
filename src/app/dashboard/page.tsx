@@ -44,8 +44,18 @@ export default async function DashboardPage() {
 
   const vouchCount = user?._count.vouchesReceived || 0;
   const isPremium = hasActivePremium(user);
-  const hasBot = !!(user?.discordBotToken || user?.telegramBotToken);
+  const hasToken = !!(user?.discordBotToken || user?.telegramBotToken);
+  const botOnline = !!(user?.discordBotOnline || user?.telegramBotOnline);
+  const hasBot = hasToken; // a token is configured
   const hasSlug = !!user?.slug;
+
+  // Real health: a token present but no live client means the bot failed to
+  // start (bad/revoked token) — surface that instead of a false "Online".
+  const health = botOnline
+    ? { value: "Online", description: "Bot is listening", trend: "Stable", color: "amber" as const }
+    : hasToken
+      ? { value: "Check token", description: "Token saved but bot isn't running", trend: "Action Req.", color: "zinc" as const }
+      : { value: "Offline", description: "No token provided", trend: "Action Req.", color: "zinc" as const };
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
@@ -80,7 +90,7 @@ export default async function DashboardPage() {
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
             Hello, {session?.user?.name || session?.user?.username || 'Builder'} <span className="inline-block animate-bounce-slow">👋</span>
           </h1>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-2 font-medium">Your reputation engine is {hasBot ? 'active and monitoring.' : 'awaiting configuration.'}</p>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-2 font-medium">Your reputation engine is {botOnline ? 'active and monitoring.' : hasToken ? 'configured but not running — check your bot token.' : 'awaiting configuration.'}</p>
         </div>
         <div className="flex items-center gap-3">
           <Link 
@@ -111,13 +121,13 @@ export default async function DashboardPage() {
           trend={isPremium ? "Active" : "Upgrade"}
           color="emerald"
         />
-        <StatCard 
-          icon={<Zap className={hasBot ? "text-amber-600 dark:text-amber-400" : "text-zinc-400 dark:text-zinc-500"} />}
+        <StatCard
+          icon={<Zap className={botOnline ? "text-amber-600 dark:text-amber-400" : "text-zinc-400 dark:text-zinc-500"} />}
           label="System Health"
-          value={hasBot ? "Online" : "Offline"}
-          description={hasBot ? "Bot is listening" : "No token provided"}
-          trend={hasBot ? "Stable" : "Action Req."}
-          color={hasBot ? "amber" : "zinc"}
+          value={health.value}
+          description={health.description}
+          trend={health.trend}
+          color={health.color}
         />
       </div>
 

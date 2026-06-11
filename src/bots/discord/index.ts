@@ -547,7 +547,7 @@ async function handleDiscordInteraction(
       if (user.statsShowAge) {
         embed.addFields({
           name: "Member Since:",
-          value: user.emailVerified?.toLocaleDateString() || "N/A",
+          value: (user.createdAt || user.emailVerified)?.toLocaleDateString() || "N/A",
           inline: true,
         })
       }

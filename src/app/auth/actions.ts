@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { signIn } from "@/auth"
 import { AuthError } from "next-auth"
+import { Prisma } from "@prisma/client"
+
+const TAKEN_MESSAGE =
+  "Those account details are unavailable. Try different ones or sign in."
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const USERNAME_RE = /^[a-zA-Z0-9_-]{3,32}$/
@@ -36,7 +40,9 @@ export async function register(formData: FormData) {
       where: {
         OR: [
           { email },
-          { username }
+          // Case-insensitive so "Jack" and "jack" can't both register (login
+          // lookups are case-insensitive too).
+          { username: { equals: username, mode: "insensitive" } },
         ]
       },
       select: { id: true },
@@ -45,18 +51,28 @@ export async function register(formData: FormData) {
     if (existingUser) {
       // Deliberately generic and field-agnostic to limit account enumeration:
       // don't reveal whether it was the email or the username that collided.
-      return { error: "Those account details are unavailable. Try different ones or sign in." }
+      return { error: TAKEN_MESSAGE }
     }
 
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    await prisma.user.create({
-      data: {
-        email,
-        username,
-        password: hashedPassword,
+    try {
+      await prisma.user.create({
+        data: {
+          email,
+          username,
+          password: hashedPassword,
+        }
+      })
+    } catch (createErr) {
+      // Two simultaneous registrations can both pass the check above and race
+      // to insert — the unique constraint catches the loser; show the same
+      // friendly message instead of a 500.
+      if (createErr instanceof Prisma.PrismaClientKnownRequestError && createErr.code === "P2002") {
+        return { error: TAKEN_MESSAGE }
       }
-    })
+      throw createErr
+    }
 
     // Optionally sign them in immediately
     await signIn("credentials", {

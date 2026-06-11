@@ -72,6 +72,15 @@ model User {
   customDomain     String?  @unique
   vouchesReceived  Vouch[]   @relation("ReceivedVouches")
 
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
+
+  // Live bot health, written by the bot manager on each spawn/teardown so the
+  // dashboard can show real status instead of "a token exists".
+  discordBotOnline  Boolean   @default(false)
+  telegramBotOnline Boolean   @default(false)
+  botCheckedAt      DateTime?
+
   // Bot Customization - Vouch Command
   vouchEmbedTitle   String   @default("New vouch created!")
   vouchEmbedFooter  String   @default("Powered by Vouched.to")
