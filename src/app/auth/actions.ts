@@ -101,9 +101,42 @@ export async function register(formData: FormData) {
   }
 }
 
+// Pre-check: verifies password and tells the client whether a TOTP code is
+// required before making the full signIn call. Uses a separate rate-limit bucket
+// so it doesn't eat into the loginWithCredentials allowance.
+export async function verifyPasswordOnly(username: string, password: string) {
+  const ip = await getClientIp()
+  const rl = rateLimit(`verify:${ip}:${(username || "").toLowerCase()}`, 10, 15 * 60 * 1000)
+  if (!rl.ok) {
+    return { ok: false as const, error: `Too many attempts. Please try again in ${retryAfterText(rl.retryAfterMs)}.` }
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { username: { equals: username, mode: "insensitive" } },
+        { email: { equals: username, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true, password: true, totpEnabled: true },
+  })
+
+  // Constant-time rejection to prevent user enumeration via timing
+  if (!user?.password) {
+    await bcrypt.compare(password, "$2a$12$dummyhashXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+    return { ok: false as const, error: "Invalid username or password" }
+  }
+
+  const isValid = await bcrypt.compare(password, user.password)
+  if (!isValid) return { ok: false as const, error: "Invalid username or password" }
+
+  return { ok: true as const, requiresTotp: user.totpEnabled }
+}
+
 export async function loginWithCredentials(formData: FormData) {
   const username = formData.get("username") as string
   const password = formData.get("password") as string
+  const totp = (formData.get("totp") as string | null) ?? undefined
 
   // Throttle credential logins per IP+username to blunt brute-force / stuffing.
   const ip = await getClientIp()
@@ -116,11 +149,12 @@ export async function loginWithCredentials(formData: FormData) {
     await signIn("credentials", {
       username,
       password,
+      totp,
       redirectTo: "/dashboard",
     })
   } catch (error) {
     if (error instanceof AuthError) {
-      return { error: "Invalid username or password" }
+      return { error: totp ? "Invalid 2FA code. Please try again." : "Invalid username or password" }
     }
     throw error
   }

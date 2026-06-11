@@ -1,9 +1,9 @@
 "use client"
 
 import { signIn, signOut } from "next-auth/react"
-import { Mail, LogOut, User, Lock, ArrowRight } from "lucide-react"
-import { useState } from "react"
-import { loginWithCredentials, register } from "@/app/auth/actions"
+import { Mail, LogOut, User, Lock, ArrowRight, ShieldCheck, ChevronLeft } from "lucide-react"
+import { useState, useRef } from "react"
+import { loginWithCredentials, register, verifyPasswordOnly } from "@/app/auth/actions"
 
 export function SignIn({
   className,
@@ -54,40 +54,137 @@ export function SignIn({
   )
 }
 
+type SignInPhase = "credentials" | "totp"
+
 export function CredentialsForm({ type = "signin" }: { type?: "signin" | "signup" }) {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [phase, setPhase] = useState<SignInPhase>("credentials")
+  const [pendingUsername, setPendingUsername] = useState("")
+  const [pendingPassword, setPendingPassword] = useState("")
+  const [totpCode, setTotpCode] = useState("")
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCredentialsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
-    
+
     const formData = new FormData(e.currentTarget)
-    
+
     try {
-      const result = type === "signup" 
-        ? await register(formData) 
-        : await loginWithCredentials(formData)
-      
-      if (result?.error) {
-        setError(result.error)
+      if (type === "signup") {
+        const result = await register(formData)
+        if (result?.error) setError(result.error)
+        return
       }
-    } catch (err) {
+
+      const username = formData.get("username") as string
+      const password = formData.get("password") as string
+
+      const check = await verifyPasswordOnly(username, password)
+      if (!check.ok) {
+        setError(check.error)
+        return
+      }
+
+      if (check.requiresTotp) {
+        setPendingUsername(username)
+        setPendingPassword(password)
+        setPhase("totp")
+        return
+      }
+
+      // No 2FA — sign in directly
+      const result = await loginWithCredentials(formData)
+      if (result?.error) setError(result.error)
+    } catch {
       setError("An unexpected error occurred")
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handleTotpSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError(null)
+    try {
+      const formData = new FormData()
+      formData.set("username", pendingUsername)
+      formData.set("password", pendingPassword)
+      formData.set("totp", totpCode)
+      const result = await loginWithCredentials(formData)
+      if (result?.error) setError(result.error)
+    } catch {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (phase === "totp") {
+    return (
+      <form onSubmit={handleTotpSubmit} className="space-y-5 w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="flex items-center gap-3 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+          <ShieldCheck className="text-indigo-400 flex-shrink-0" size={20} />
+          <div>
+            <p className="text-sm font-bold text-zinc-900 dark:text-white">2-Factor Authentication</p>
+            <p className="text-xs text-zinc-500 mt-0.5">Open your authenticator app and enter the 6-digit code.</p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm font-medium">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest px-1">Authentication Code</label>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9 ]*"
+            maxLength={7}
+            placeholder="000 000"
+            value={totpCode}
+            onChange={(e) => setTotpCode(e.target.value)}
+            autoFocus
+            autoComplete="one-time-code"
+            required
+            className="w-full bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-300 dark:border-white/5 text-zinc-900 dark:text-white placeholder:text-zinc-400 rounded-2xl px-4 py-4 text-xl tracking-[0.4em] font-mono text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all outline-none"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white h-14 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-600/20"
+        >
+          {isLoading ? "Verifying..." : "Verify & Sign In"}
+          <ArrowRight size={18} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setPhase("credentials"); setError(null); setTotpCode("") }}
+          className="w-full flex items-center justify-center gap-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-white text-sm font-medium transition-colors"
+        >
+          <ChevronLeft size={16} />
+          Back
+        </button>
+      </form>
+    )
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 w-full">
+    <form onSubmit={handleCredentialsSubmit} className="space-y-4 w-full">
       {error && (
         <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm font-medium">
           {error}
         </div>
       )}
-      
+
       {type === "signup" && (
         <div className="space-y-2">
           <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest px-1">Email</label>
@@ -136,7 +233,7 @@ export function CredentialsForm({ type = "signin" }: { type?: "signin" | "signup
         </div>
       </div>
 
-      <button 
+      <button
         type="submit"
         disabled={isLoading}
         className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white h-14 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-600/20"

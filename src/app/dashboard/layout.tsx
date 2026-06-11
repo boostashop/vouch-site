@@ -10,6 +10,7 @@ import {
   Menu,
   Bell,
   ShieldAlert,
+  ShieldCheck,
   Trophy,
   Sparkles
 } from "lucide-react"
@@ -56,6 +57,7 @@ export default async function DashboardLayout({
           <NavItem href="/dashboard/bot" icon={<Settings size={18} />} label="Bot Settings" />
           <NavItem href="/dashboard/vouches" icon={<MessageSquare size={18} />} label="Vouches" />
           <NavItem href="/dashboard/profile" icon={<UserIcon size={18} />} label="Public Profile" />
+          <NavItem href="/dashboard/security" icon={<ShieldCheck size={18} />} label="Security" />
           {session.user?.role === "ADMIN" && (
             <NavItem href="/admin" icon={<ShieldAlert size={18} />} label="Admin Panel" />
           )}

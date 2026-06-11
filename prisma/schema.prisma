@@ -83,6 +83,11 @@ model User {
   telegramBotOnline Boolean   @default(false)
   botCheckedAt      DateTime?
 
+  // TOTP 2FA
+  totpEnabled          Boolean   @default(false)
+  totpSecret           String?   // AES-256-GCM encrypted via crypto.ts
+  totpPendingSecret    String?   // temporary during setup; cleared on confirm/cancel
+
   // Timestamp of the last payments webhook applied to this user — used to drop
   // stale/replayed/out-of-order events (the source signs each with a timestamp).
   lastWebhookAt        DateTime?

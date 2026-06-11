@@ -8,6 +8,8 @@ import bcrypt from "bcryptjs"
 import Resend from "next-auth/providers/resend"
 import { magicLinkEmail } from "@/lib/email"
 import { rateLimit, getClientIp } from "@/lib/rate-limit"
+import { tryDecryptSecret } from "@/lib/crypto"
+import { verifyTotpCode } from "@/lib/totp"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -45,6 +47,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
+        totp: { label: "2FA Code", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) return null
@@ -67,6 +70,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         )
 
         if (!isValid) return null
+
+        if (user.totpEnabled) {
+          const code = (credentials.totp as string | undefined)?.replace(/\s/g, "")
+          if (!code) return null
+          const secret = tryDecryptSecret(user.totpSecret)
+          if (!secret || !verifyTotpCode(secret, code)) return null
+        }
 
         return {
           id: user.id,
