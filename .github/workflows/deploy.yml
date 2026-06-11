@@ -32,9 +32,13 @@ jobs:
             git fetch origin dev
             git reset --hard origin/dev
             
-            # Install dependencies and build
+            # Install dependencies and build. Clean .next first: a stale build
+            # dir can reference an old content-hashed @prisma/client bundle and
+            # crash at runtime ("Cannot find module @prisma/client-<hash>")
+            # after the client is regenerated. A clean build keeps them in sync.
             npm install
             npx prisma generate
+            rm -rf .next
             npm run build
             
             # Restart processes
