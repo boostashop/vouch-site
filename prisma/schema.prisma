@@ -91,27 +91,37 @@ model User {
   lastWeeklySummaryAt  DateTime?
 
   // Bot Customization - Vouch Command
-  vouchEmbedTitle   String   @default("New vouch created!")
-  vouchEmbedFooter  String   @default("Powered by Vouched.to")
-  vouchEmbedColor   String   @default("#5865F2")
-  vouchRequireProof Boolean  @default(false)
-  vouchShowCount    Boolean  @default(true)
-  vouchTagUser      Boolean  @default(true)
-  vouchChannelId    String?
-  vouchRoleId       String?
-  vouchEmoji        String?
+  vouchEmbedTitle        String   @default("New vouch created!")
+  vouchEmbedFooter       String   @default("Powered by Vouched.to")
+  vouchEmbedColor        String   @default("#5865F2")
+  vouchEmbedDescription  String?
+  vouchEmbedAuthorName   String?
+  vouchEmbedAuthorIconUrl String?
+  vouchEmbedThumbnailUrl  String?
+  vouchEmbedFooterIconUrl String?
+  vouchEmbedTimestamp    Boolean  @default(true)
+  vouchRequireProof      Boolean  @default(false)
+  vouchShowCount         Boolean  @default(true)
+  vouchTagUser           Boolean  @default(true)
+  vouchChannelId         String?
+  vouchRoleId            String?
+  vouchEmoji             String?
 
   // Bot Customization - Stats Command
-  statsEmbedTitle       String   @default("Vouched.to Profile Stats")
-  statsEmbedDescription String   @default("Showing my Vouched.to profile stats!")
-  statsEmbedFooter      String   @default("Powered by Vouched.to")
-  statsEmbedColor       String   @default("#5865F2")
-  statsShowCount        Boolean  @default(true)
-  statsShowScore        Boolean  @default(true)
-  statsShowLeaderboard  Boolean  @default(true)
-  statsShowPlan         Boolean  @default(true)
-  statsShowExpiration   Boolean  @default(true)
-  statsShowAge          Boolean  @default(true)
+  statsEmbedTitle          String   @default("Vouched.to Profile Stats")
+  statsEmbedDescription    String   @default("Showing my Vouched.to profile stats!")
+  statsEmbedFooter         String   @default("Powered by Vouched.to")
+  statsEmbedColor          String   @default("#5865F2")
+  statsEmbedAuthorName     String?
+  statsEmbedAuthorIconUrl  String?
+  statsEmbedThumbnailUrl   String?
+  statsEmbedFooterIconUrl  String?
+  statsShowCount           Boolean  @default(true)
+  statsShowScore           Boolean  @default(true)
+  statsShowLeaderboard     Boolean  @default(true)
+  statsShowPlan            Boolean  @default(true)
+  statsShowExpiration      Boolean  @default(true)
+  statsShowAge             Boolean  @default(true)
 
   // Web Profile Customization
   profileTheme           String   @default("dark")

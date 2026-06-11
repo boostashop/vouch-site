@@ -80,9 +80,12 @@ export async function updateVouchSettings(formData: FormData) {
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
-  const vouchEmbedTitle = formData.get("vouchEmbedTitle") as string
-  const vouchEmbedFooter = formData.get("vouchEmbedFooter") as string
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } })
+  const { hasActivePremium } = await import("@/lib/premium")
+  const isPremium = user ? hasActivePremium(user) : false
+
   const vouchEmbedColor = formData.get("vouchEmbedColor") as string
+  const vouchEmbedTimestamp = formData.get("vouchEmbedTimestamp") === "on"
   const vouchRequireProof = formData.get("vouchRequireProof") === "on"
   const vouchShowCount = formData.get("vouchShowCount") === "on"
   const vouchTagUser = formData.get("vouchTagUser") === "on"
@@ -90,20 +93,37 @@ export async function updateVouchSettings(formData: FormData) {
   const vouchRoleId = formData.get("vouchRoleId") as string
   const vouchEmoji = formData.get("vouchEmoji") as string
 
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: {
+  const data: Parameters<typeof prisma.user.update>[0]["data"] = {
+    vouchEmbedColor: vouchEmbedColor || undefined,
+    vouchEmbedTimestamp,
+    vouchRequireProof,
+    vouchShowCount,
+    vouchTagUser,
+    vouchChannelId: isPremium ? (vouchChannelId || null) : undefined,
+    vouchRoleId: isPremium ? (vouchRoleId || null) : undefined,
+    vouchEmoji: isPremium ? (vouchEmoji || null) : undefined,
+  }
+
+  if (isPremium) {
+    const vouchEmbedTitle = formData.get("vouchEmbedTitle") as string
+    const vouchEmbedFooter = formData.get("vouchEmbedFooter") as string
+    const vouchEmbedDescription = formData.get("vouchEmbedDescription") as string
+    const vouchEmbedAuthorName = formData.get("vouchEmbedAuthorName") as string
+    const vouchEmbedAuthorIconUrl = formData.get("vouchEmbedAuthorIconUrl") as string
+    const vouchEmbedThumbnailUrl = formData.get("vouchEmbedThumbnailUrl") as string
+    const vouchEmbedFooterIconUrl = formData.get("vouchEmbedFooterIconUrl") as string
+    Object.assign(data, {
       vouchEmbedTitle: vouchEmbedTitle || undefined,
       vouchEmbedFooter: vouchEmbedFooter || undefined,
-      vouchEmbedColor: vouchEmbedColor || undefined,
-      vouchRequireProof,
-      vouchShowCount,
-      vouchTagUser,
-      vouchChannelId: vouchChannelId || null,
-      vouchRoleId: vouchRoleId || null,
-      vouchEmoji: vouchEmoji || null,
-    }
-  })
+      vouchEmbedDescription: vouchEmbedDescription || null,
+      vouchEmbedAuthorName: vouchEmbedAuthorName || null,
+      vouchEmbedAuthorIconUrl: vouchEmbedAuthorIconUrl || null,
+      vouchEmbedThumbnailUrl: vouchEmbedThumbnailUrl || null,
+      vouchEmbedFooterIconUrl: vouchEmbedFooterIconUrl || null,
+    })
+  }
+
+  await prisma.user.update({ where: { id: session.user.id }, data })
 
   redirect("/dashboard/bot?tab=discord&saved=1")
 }
@@ -127,6 +147,11 @@ export async function updateStatsSettings(formData: FormData) {
   const statsShowExpiration = formData.get("statsShowExpiration") === "on"
   const statsShowAge = formData.get("statsShowAge") === "on"
 
+  const statsEmbedAuthorName = formData.get("statsEmbedAuthorName") as string
+  const statsEmbedAuthorIconUrl = formData.get("statsEmbedAuthorIconUrl") as string
+  const statsEmbedThumbnailUrl = formData.get("statsEmbedThumbnailUrl") as string
+  const statsEmbedFooterIconUrl = formData.get("statsEmbedFooterIconUrl") as string
+
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
@@ -134,6 +159,10 @@ export async function updateStatsSettings(formData: FormData) {
       statsEmbedDescription: statsEmbedDescription || undefined,
       statsEmbedFooter: statsEmbedFooter || undefined,
       statsEmbedColor: statsEmbedColor || undefined,
+      statsEmbedAuthorName: statsEmbedAuthorName || null,
+      statsEmbedAuthorIconUrl: statsEmbedAuthorIconUrl || null,
+      statsEmbedThumbnailUrl: statsEmbedThumbnailUrl || null,
+      statsEmbedFooterIconUrl: statsEmbedFooterIconUrl || null,
       statsShowCount,
       statsShowScore,
       statsShowLeaderboard,

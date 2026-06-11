@@ -341,12 +341,33 @@ async function handleDiscordInteraction(
 
       // Build Custom Embed
       const stars = "⭐".repeat(rating)
+      const embedTitle = config.isPremium ? config.vouchEmbedTitle : "New vouch created!"
+      const embedFooterText = config.isPremium ? config.vouchEmbedFooter : "Powered by Vouched.to"
       const embed = new EmbedBuilder()
-        .setTitle(config.vouchEmbedTitle)
+        .setTitle(embedTitle)
         .setColor(safeEmbedColor(config.vouchEmbedColor))
-        .setFooter({ text: `${config.vouchEmbedFooter} • ID: ${createdVouch.id}` })
-        .setTimestamp()
+        .setFooter({
+          text: `${embedFooterText} • ID: ${createdVouch.id}`,
+          ...(config.isPremium && config.vouchEmbedFooterIconUrl ? { iconURL: config.vouchEmbedFooterIconUrl } : {}),
+        })
         .addFields({ name: "Vouch:", value: embedField(comment) }, { name: "Rating:", value: stars, inline: true })
+
+      if (config.vouchEmbedTimestamp) embed.setTimestamp()
+
+      if (config.isPremium && config.vouchEmbedDescription) {
+        embed.setDescription(config.vouchEmbedDescription)
+      }
+
+      if (config.isPremium && config.vouchEmbedAuthorName) {
+        embed.setAuthor({
+          name: config.vouchEmbedAuthorName,
+          ...(config.vouchEmbedAuthorIconUrl ? { iconURL: config.vouchEmbedAuthorIconUrl } : {}),
+        })
+      }
+
+      if (config.isPremium && config.vouchEmbedThumbnailUrl) {
+        embed.setThumbnail(config.vouchEmbedThumbnailUrl)
+      }
 
       if (permalink) {
         embed.setURL(permalink)
@@ -508,12 +529,27 @@ async function handleDiscordInteraction(
       const totalRating = user.vouchesReceived.reduce((acc, v) => acc + v.rating, 0)
       const averageRating = count > 0 ? (totalRating / count).toFixed(1) : "0.0"
 
+      const statsUserIsPremium = hasActivePremium(user)
       const embed = new EmbedBuilder()
         .setTitle(user.statsEmbedTitle)
         .setDescription(user.statsEmbedDescription)
         .setColor(safeEmbedColor(user.statsEmbedColor))
-        .setFooter({ text: user.statsEmbedFooter })
+        .setFooter({
+          text: user.statsEmbedFooter,
+          ...(statsUserIsPremium && user.statsEmbedFooterIconUrl ? { iconURL: user.statsEmbedFooterIconUrl } : {}),
+        })
         .setTimestamp()
+
+      if (statsUserIsPremium && user.statsEmbedAuthorName) {
+        embed.setAuthor({
+          name: user.statsEmbedAuthorName,
+          ...(user.statsEmbedAuthorIconUrl ? { iconURL: user.statsEmbedAuthorIconUrl } : {}),
+        })
+      }
+
+      if (statsUserIsPremium && user.statsEmbedThumbnailUrl) {
+        embed.setThumbnail(user.statsEmbedThumbnailUrl)
+      }
 
       if (user.statsShowCount) {
         embed.addFields({ name: "Nº Vouches:", value: `${count}`, inline: true })
@@ -1485,12 +1521,33 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
 
       // Build Embed
       const stars = "⭐".repeat(rating)
+      const embedTitle2 = config.isPremium ? config.vouchEmbedTitle : "New vouch created!"
+      const embedFooterText2 = config.isPremium ? config.vouchEmbedFooter : "Powered by Vouched.to"
       const embed = new EmbedBuilder()
-        .setTitle(config.vouchEmbedTitle)
+        .setTitle(embedTitle2)
         .setColor(safeEmbedColor(config.vouchEmbedColor))
-        .setFooter({ text: `${config.vouchEmbedFooter} • ID: ${createdVouch.id}` })
-        .setTimestamp()
+        .setFooter({
+          text: `${embedFooterText2} • ID: ${createdVouch.id}`,
+          ...(config.isPremium && config.vouchEmbedFooterIconUrl ? { iconURL: config.vouchEmbedFooterIconUrl } : {}),
+        })
         .addFields({ name: "Vouch:", value: embedField(comment) }, { name: "Rating:", value: stars, inline: true })
+
+      if (config.vouchEmbedTimestamp) embed.setTimestamp()
+
+      if (config.isPremium && config.vouchEmbedDescription) {
+        embed.setDescription(config.vouchEmbedDescription)
+      }
+
+      if (config.isPremium && config.vouchEmbedAuthorName) {
+        embed.setAuthor({
+          name: config.vouchEmbedAuthorName,
+          ...(config.vouchEmbedAuthorIconUrl ? { iconURL: config.vouchEmbedAuthorIconUrl } : {}),
+        })
+      }
+
+      if (config.isPremium && config.vouchEmbedThumbnailUrl) {
+        embed.setThumbnail(config.vouchEmbedThumbnailUrl)
+      }
 
       if (permalink) {
         embed.setURL(permalink)

@@ -1,12 +1,13 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { updateBotTokens, updateVouchSettings, updateStatsSettings, removeBotToken, generateTelegramLinkCode } from "./actions"
+import { updateBotTokens, removeBotToken, generateTelegramLinkCode } from "./actions"
 import { hasActivePremium } from "@/lib/premium"
 import { tryDecryptSecret } from "@/lib/crypto"
-import { Shield, Info, Bot, Send, ExternalLink, CheckCircle2, MessageSquare, BarChart3, Lock, Settings2, Palette } from "lucide-react"
+import { Shield, Info, Bot, Send, CheckCircle2, MessageSquare, BarChart3, Lock } from "lucide-react"
 import Link from "next/link"
-import { DiscordChannelSelector } from "./DiscordChannelSelector"
 import { FlashToast } from "./FlashToast"
+import { VouchEmbedCustomizer } from "./VouchEmbedCustomizer"
+import { StatsEmbedCustomizer } from "./StatsEmbedCustomizer"
 
 export default async function BotSettingsPage(props: {
   searchParams: Promise<{ tab?: string; saved?: string }>
@@ -254,104 +255,28 @@ export default async function BotSettingsPage(props: {
                 <p className="text-xs text-zinc-500">Customize how your /vouch command looks and behaves.</p>
               </div>
             </div>
-            
-            <form action={updateVouchSettings} className="p-6 space-y-8">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Title</label>
-                    <input 
-                      name="vouchEmbedTitle"
-                      defaultValue={user.vouchEmbedTitle}
-                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Footer</label>
-                    <input 
-                      name="vouchEmbedFooter"
-                      defaultValue={user.vouchEmbedFooter}
-                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-                      <Palette size={14} /> Border Color
-                    </label>
-                    <input 
-                      type="color"
-                      name="vouchEmbedColor"
-                      defaultValue={user.vouchEmbedColor}
-                      className="w-full h-10 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-2 py-1 cursor-pointer transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-white/5 rounded-2xl border border-zinc-200 dark:border-white/5">
-                    <div className="space-y-0.5">
-                      <p className="text-sm font-bold text-zinc-900 dark:text-white">Require Proofs</p>
-                      <p className="text-[11px] text-zinc-500">Force users to upload a screenshot</p>
-                    </div>
-                    <input type="checkbox" name="vouchRequireProof" defaultChecked={user.vouchRequireProof} className="w-5 h-5 accent-green-500" />
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-white/5 rounded-2xl border border-zinc-200 dark:border-white/5">
-                    <div className="space-y-0.5">
-                      <p className="text-sm font-bold text-zinc-900 dark:text-white">Show Vouch Number</p>
-                      <p className="text-[11px] text-zinc-500">Display the vouch count in the embed</p>
-                    </div>
-                    <input type="checkbox" name="vouchShowCount" defaultChecked={user.vouchShowCount} className="w-5 h-5 accent-green-500" />
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-white/5 rounded-2xl border border-zinc-200 dark:border-white/5">
-                    <div className="space-y-0.5">
-                      <p className="text-sm font-bold text-zinc-900 dark:text-white">Tag Giver</p>
-                      <p className="text-[11px] text-zinc-500">Mention the user who vouched</p>
-                    </div>
-                    <input type="checkbox" name="vouchTagUser" defaultChecked={user.vouchTagUser} className="w-5 h-5 accent-green-500" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Premium Features */}
-              <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-white/5">
-                <h3 className="text-xs font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                  Premium Features {!isPremium && <Lock size={12} className="text-amber-500" />}
-                </h3>
-                <div className="space-y-4">
-                  <DiscordChannelSelector
-                    guilds={guilds}
-                    initialGuildId={initialGuildId}
-                    initialChannels={initialChannels}
-                    initialChannelId={user.vouchChannelId || ""}
-                    initialRoles={initialRoles}
-                    initialRoleId={user.vouchRoleId || ""}
-                    isPremium={isPremium}
-                  />
-                  <div className={`space-y-2 ${!isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Success Emoji</label>
-                    <input 
-                      name="vouchEmoji"
-                      defaultValue={user.vouchEmoji || "✅"}
-                      placeholder="✅"
-                      disabled={!isPremium}
-                      className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none"
-                    />
-                  </div>
-                </div>
-                {!isPremium && (
-                  <p className="text-[10px] text-amber-500/80 font-medium">Upgrade to Premium to unlock custom channels, role mentions, and custom emojis.</p>
-                )}
-              </div>
-
-              <div className="pt-4 border-t border-zinc-200 dark:border-white/5 flex justify-end">
-                <button 
-                  type="submit"
-                  className="bg-green-500 text-black px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-green-400 transition-all active:scale-95"
-                >
-                  Update Vouch Settings
-                </button>
-              </div>
-            </form>
+            <VouchEmbedCustomizer
+              vouchEmbedTitle={user.vouchEmbedTitle}
+              vouchEmbedFooter={user.vouchEmbedFooter}
+              vouchEmbedColor={user.vouchEmbedColor}
+              vouchEmbedDescription={user.vouchEmbedDescription}
+              vouchEmbedAuthorName={user.vouchEmbedAuthorName}
+              vouchEmbedAuthorIconUrl={user.vouchEmbedAuthorIconUrl}
+              vouchEmbedThumbnailUrl={user.vouchEmbedThumbnailUrl}
+              vouchEmbedFooterIconUrl={user.vouchEmbedFooterIconUrl}
+              vouchEmbedTimestamp={user.vouchEmbedTimestamp}
+              vouchRequireProof={user.vouchRequireProof}
+              vouchShowCount={user.vouchShowCount}
+              vouchTagUser={user.vouchTagUser}
+              vouchEmoji={user.vouchEmoji}
+              isPremium={isPremium}
+              guilds={guilds}
+              initialGuildId={initialGuildId}
+              initialChannels={initialChannels}
+              initialChannelId={user.vouchChannelId || ""}
+              initialRoles={initialRoles}
+              initialRoleId={user.vouchRoleId || ""}
+            />
           </section>
 
           {/* Stats Command Customization */}
@@ -368,92 +293,23 @@ export default async function BotSettingsPage(props: {
                 <p className="text-xs text-zinc-500">Customize your public reputation statistics card.</p>
               </div>
             </div>
-
-            {isPremium ? (
-              <form action={updateStatsSettings} className="p-6 space-y-8">
-                <div className="grid md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Title</label>
-                      <input
-                        name="statsEmbedTitle"
-                        defaultValue={user.statsEmbedTitle}
-                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Description</label>
-                      <textarea
-                        name="statsEmbedDescription"
-                        defaultValue={user.statsEmbedDescription}
-                        rows={3}
-                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none transition-all"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Embed Footer</label>
-                      <input
-                        name="statsEmbedFooter"
-                        defaultValue={user.statsEmbedFooter}
-                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-                        <Palette size={14} /> Border Color
-                      </label>
-                      <input
-                        type="color"
-                        name="statsEmbedColor"
-                        defaultValue={user.statsEmbedColor}
-                        className="w-full h-10 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-xl px-2 py-1 cursor-pointer transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {[
-                      { label: "Show Count", name: "statsShowCount", current: user.statsShowCount },
-                      { label: "Show Score", name: "statsShowScore", current: user.statsShowScore },
-                      { label: "Leaderboard", name: "statsShowLeaderboard", current: user.statsShowLeaderboard },
-                      { label: "Show Plan", name: "statsShowPlan", current: user.statsShowPlan },
-                      { label: "Expiration", name: "statsShowExpiration", current: user.statsShowExpiration },
-                      { label: "Account Age", name: "statsShowAge", current: user.statsShowAge },
-                    ].map((item) => (
-                      <div key={item.name} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-white/5 rounded-xl border border-zinc-200 dark:border-white/5">
-                        <p className="text-[11px] font-bold text-zinc-900 dark:text-white">{item.label}</p>
-                        <input type="checkbox" name={item.name} defaultChecked={item.current} className="w-4 h-4 accent-blue-500" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-zinc-200 dark:border-white/5 flex justify-end">
-                  <button
-                    type="submit"
-                    className="bg-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-400 transition-all active:scale-95"
-                  >
-                    Update Stats Settings
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="p-10 flex flex-col items-center justify-center gap-5 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center">
-                  <Lock size={24} className="text-amber-500" />
-                </div>
-                <div className="space-y-1.5">
-                  <p className="font-bold text-zinc-900 dark:text-white">Premium Feature</p>
-                  <p className="text-sm text-zinc-500 max-w-xs">Customize your stats embed title, description, color, and which fields are shown.</p>
-                </div>
-                <Link
-                  href="/upgrade"
-                  className="bg-amber-500 text-black px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-amber-400 transition-all active:scale-95"
-                >
-                  Upgrade to Premium
-                </Link>
-              </div>
-            )}
+            <StatsEmbedCustomizer
+              statsEmbedTitle={user.statsEmbedTitle}
+              statsEmbedDescription={user.statsEmbedDescription}
+              statsEmbedFooter={user.statsEmbedFooter}
+              statsEmbedColor={user.statsEmbedColor}
+              statsEmbedAuthorName={user.statsEmbedAuthorName}
+              statsEmbedAuthorIconUrl={user.statsEmbedAuthorIconUrl}
+              statsEmbedThumbnailUrl={user.statsEmbedThumbnailUrl}
+              statsEmbedFooterIconUrl={user.statsEmbedFooterIconUrl}
+              statsShowCount={user.statsShowCount}
+              statsShowScore={user.statsShowScore}
+              statsShowLeaderboard={user.statsShowLeaderboard}
+              statsShowPlan={user.statsShowPlan}
+              statsShowExpiration={user.statsShowExpiration}
+              statsShowAge={user.statsShowAge}
+              isPremium={isPremium}
+            />
           </section>
         </div>
       ) : (
