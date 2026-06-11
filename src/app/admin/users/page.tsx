@@ -1,12 +1,16 @@
 import { prisma } from "@/lib/prisma"
-import { Zap, Search } from "lucide-react"
-import { toggleUserPremium, toggleUserRole } from "../actions"
+import { Search } from "lucide-react"
+import { auth } from "@/auth"
+import { toggleUserRole } from "../actions"
+import { PremiumControl, DeleteUserButton } from "@/components/admin/user-controls"
 
 export default async function AdminUsersPage(props: {
   searchParams: Promise<{ q?: string }>
 }) {
   const { q } = await props.searchParams
   const query = q?.trim()
+  const session = await auth()
+  const currentUserId = session?.user?.id
 
   const users = await prisma.user.findMany({
     where: query
@@ -57,6 +61,7 @@ export default async function AdminUsersPage(props: {
                 <th className="px-6 py-5">Premium</th>
                 <th className="px-6 py-5 text-center">Vouches</th>
                 <th className="px-8 py-5">Bot Status</th>
+                <th className="px-6 py-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-white/5">
@@ -77,7 +82,11 @@ export default async function AdminUsersPage(props: {
                     <UserRoleBadge role={user.role} userId={user.id} />
                   </td>
                   <td className="px-6 py-5">
-                    <PremiumToggle userId={user.id} isPremium={user.isPremium} />
+                    <PremiumControl
+                      userId={user.id}
+                      isPremium={user.isPremium}
+                      premiumExpiresAt={user.premiumExpiresAt ? user.premiumExpiresAt.toISOString() : null}
+                    />
                   </td>
                   <td className="px-6 py-5 text-center font-bold text-sm text-zinc-400">
                     {user._count.vouchesReceived}
@@ -88,6 +97,15 @@ export default async function AdminUsersPage(props: {
                        <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
                          {user.discordBotToken && user.telegramBotToken ? 'Both' : user.discordBotToken ? 'Discord' : user.telegramBotToken ? 'Telegram' : 'No Bot'}
                        </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5">
+                    <div className="flex justify-end">
+                      {user.id === currentUserId ? (
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">You</span>
+                      ) : (
+                        <DeleteUserButton userId={user.id} label={user.name || user.email || user.username || "this user"} />
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -116,27 +134,6 @@ function UserRoleBadge({ role, userId }: { role: string, userId: string }) {
         }`}
       >
         {role}
-      </button>
-    </form>
-  )
-}
-
-function PremiumToggle({ userId, isPremium }: { userId: string, isPremium: boolean }) {
-  return (
-    <form action={async () => {
-      'use server'
-      await toggleUserPremium(userId, !isPremium)
-    }}>
-      <button 
-        type="submit"
-        className={`flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
-          isPremium 
-            ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' 
-            : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-white/5 text-zinc-500 hover:border-zinc-300 dark:hover:border-white/10'
-        }`}
-      >
-        <Zap size={10} fill={isPremium ? 'currentColor' : 'none'} />
-        {isPremium ? 'Premium' : 'Free'}
       </button>
     </form>
   )

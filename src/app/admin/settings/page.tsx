@@ -1,4 +1,4 @@
-import { RefreshCw, Server, Database, Globe, Key, CheckCircle2 } from "lucide-react"
+import { RefreshCw, Server, Database, CheckCircle2 } from "lucide-react"
 import { pruneStaleData } from "./actions"
 
 export default async function AdminSettingsPage(props: {
@@ -20,7 +20,7 @@ export default async function AdminSettingsPage(props: {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-8">
+      <div className="max-w-2xl">
         <div className="space-y-6">
           <h2 className="text-xl font-bold flex items-center gap-2 text-zinc-900 dark:text-white">
             <Server size={20} className="text-indigo-400" />
@@ -57,40 +57,6 @@ export default async function AdminSettingsPage(props: {
                 Prune
               </button>
             </form>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold flex items-center gap-2 text-zinc-900 dark:text-white">
-            <Globe size={20} className="text-emerald-400" />
-            Platform Config
-          </h2>
-
-          <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-[32px] p-8 space-y-6">
-             <div className="space-y-4">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] px-1">Maintenance Mode</label>
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5">
-                   <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <span className="text-sm font-bold text-zinc-900 dark:text-white">Operational</span>
-                   </div>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Coming soon</span>
-                </div>
-             </div>
-
-             <div className="space-y-4 pt-2">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] px-1">Global API Access</label>
-                <div className="relative group opacity-60">
-                   <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-700" size={16} />
-                   <input
-                     type="text"
-                     value="Not configured"
-                     readOnly
-                     className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 rounded-2xl pl-12 pr-4 py-4 text-xs font-mono text-zinc-500 outline-none"
-                   />
-                </div>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-600 px-1 italic">Shared secret for internal service communication. Coming soon.</p>
-             </div>
           </div>
         </div>
       </div>
