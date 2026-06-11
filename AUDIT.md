@@ -6,8 +6,7 @@ uuid→crypto.randomUUID, admin user-management + placeholder removal, MyVouches
 backfill applied, and a test-DB integration harness + CI workflow. Remaining
 (low-value/optional): #19 clear-to-empty embed fields, command-registration
 caching, the ~66 no-explicit-any lint warnings (CI lint is non-blocking until
-cleared), more integration tests (webhook/getActiveConfig), and the external
-VPS key rotation.
+cleared), and the external VPS key rotation.
 
 Deep-dive review of every source file (~11.5k LOC: web app, Discord/Telegram
 bots, auth, payments, admin). Ordered by priority — fix P0s before promoting
@@ -232,9 +231,11 @@ Switch to `revalidate = 300` like the landing page — same freshness, cacheable
   50 slightly. Acceptable; document or use a transaction if it matters.
 - **`dashboard/vouches` / dashboards:** add pagination and proper Vouch typing.
 - ✅ **Tests/CI** — DB-integration harness added (test DB + `*.itest.ts`),
-  `validateVouchRules` covered (7 tests), and a CI workflow (Postgres service,
-  tsc + unit + integration + build) in `.github/workflows/ci.yml`. See
-  TESTING.md. Webhook/getActiveConfig integration tests still welcome.
+  the riskiest logic now covered by 24 integration tests: `validateVouchRules`,
+  the payments webhook (incl. the #23 ordering/replay guard), `getActiveConfig`,
+  moderation (report/approve/remove + auth), blacklist, and the account-delete
+  FK cascade. Plus a CI workflow (Postgres service, tsc + unit + integration +
+  build) in `.github/workflows/ci.yml`. See TESTING.md.
 - **Lint debt:** pre-existing errors (`react/no-unescaped-entities` in
   signin, `no-explicit-any` in leaderboard) keep `npm run lint` red — fix so
   lint can gate.
