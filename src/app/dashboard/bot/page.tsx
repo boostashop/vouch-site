@@ -159,7 +159,7 @@ export default async function BotSettingsPage(props: {
               <div className="space-y-3">
                 <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-black text-sm">1</div>
                 <h3 className="font-bold text-sm text-zinc-900 dark:text-white uppercase tracking-wider">Create Application</h3>
-                <p className="text-xs text-zinc-500 leading-relaxed">Go to the <a href="https://discord.com/developers/applications" target="_blank" className="underline text-indigo-500">Portal</a>, create a "New Application", and navigate to the <strong>Bot</strong> tab.</p>
+                <p className="text-xs text-zinc-500 leading-relaxed">Go to the <a href="https://discord.com/developers/applications" target="_blank" className="underline text-indigo-500">Portal</a>, create a &quot;New Application&quot;, and navigate to the <strong>Bot</strong> tab.</p>
               </div>
               <div className="space-y-3">
                 <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-black text-sm">2</div>

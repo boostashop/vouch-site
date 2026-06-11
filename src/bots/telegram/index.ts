@@ -59,7 +59,7 @@ function esc(text: string | null | undefined): string {
 // Module-level so it's shared across every spawned bot in this process.
 const restoreInProgress = new Set<string>()
 
-interface BotContext extends Scenes.WizardContext {}
+type BotContext = Scenes.WizardContext
 
 const vouchWizard = new Scenes.WizardScene<BotContext>(
   "vouch-wizard",
@@ -903,7 +903,7 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
       where: { userId_guildId: { userId, guildId } },
     })
 
-    let data: any = {}
+    const data: any = {}
     if (key === "channel") {
       data.vouchChannelId = val === "none" || val === "null" ? null : val
     } else if (key === "require_proof") {

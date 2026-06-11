@@ -53,7 +53,7 @@ export default function SignInPage() {
                 <div>
                   <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">Sign in with Email</h2>
                   <p className="text-sm text-zinc-500 leading-relaxed font-medium">
-                    We'll send a magic link to your inbox for instant, password-free access.
+                    We&apos;ll send a magic link to your inbox for instant, password-free access.
                   </p>
                 </div>
                 <SignIn />
@@ -74,7 +74,7 @@ export default function SignInPage() {
 
         <div className="text-center space-y-4">
           <p className="text-sm text-zinc-500 font-medium">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/auth/signup" className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">
               Create one for free
             </Link>
