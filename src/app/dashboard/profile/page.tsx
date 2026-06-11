@@ -5,6 +5,7 @@ import { hasActivePremium } from "@/lib/premium"
 import { getCheckoutUrl } from "@/lib/payments"
 import { EmbedBadgePanel } from "@/components/dashboard/EmbedBadgePanel"
 import { AccentColorField } from "./AccentColorField"
+import { DangerZone } from "./DangerZone"
 import { User, Link as LinkIcon, Shield, CheckCircle, Palette, Globe, Search, Code2 } from "lucide-react"
 
 export default async function ProfileSettingsPage() {
@@ -322,8 +323,8 @@ export default async function ProfileSettingsPage() {
                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Share your reputation with the world.</p>
              </div>
            </div>
-           <a 
-             href={`/u/${user.slug}`} 
+           <a
+             href={`/u/${user.slug}`}
              target="_blank"
              className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
            >
@@ -332,6 +333,8 @@ export default async function ProfileSettingsPage() {
            </a>
          </div>
       )}
+
+      <DangerZone />
     </div>
   )
 }

@@ -1,10 +1,47 @@
 "use server"
 
-import { auth } from "@/auth"
+import { auth, signOut } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { DesignTokens, sanitizeConfig, defaultDarkConfig, defaultLightConfig } from "@/types/design-tokens"
 import { hasActivePremium } from "@/lib/premium"
+
+// Permanent account deletion. Removes the user and every row that references
+// them (vouches received + their reports, blacklist, guild configs, link
+// codes, and — via onDelete: Cascade — Account/Session) in one transaction,
+// then signs out. The bot manager stops their bots on its next sync (the
+// tokens are gone with the user row).
+export async function deleteAccount(formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+  const userId = session.user.id
+
+  // Require an explicit typed confirmation to avoid accidental deletion.
+  if ((formData.get("confirm") as string)?.trim() !== "DELETE") {
+    throw new Error("Confirmation text did not match.")
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
+
+  await prisma.$transaction(async (tx) => {
+    const vouchIds = (
+      await tx.vouch.findMany({ where: { receiverId: userId }, select: { id: true } })
+    ).map((v) => v.id)
+    if (vouchIds.length) {
+      await tx.vouchReport.deleteMany({ where: { vouchId: { in: vouchIds } } })
+    }
+    await tx.vouch.deleteMany({ where: { receiverId: userId } })
+    await tx.blacklist.deleteMany({ where: { userId } })
+    await tx.guildConfig.deleteMany({ where: { userId } })
+    await tx.verificationToken.deleteMany({ where: { identifier: `telegram-link:${userId}` } })
+    if (user?.email) {
+      await tx.verificationToken.deleteMany({ where: { identifier: user.email } })
+    }
+    await tx.user.delete({ where: { id: userId } })
+  })
+
+  await signOut({ redirectTo: "/" })
+}
 
 export async function updateProfile(formData: FormData) {
   const session = await auth()
