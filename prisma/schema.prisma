@@ -71,6 +71,8 @@ model User {
   telegramBotToken String?
   customDomain     String?  @unique
   vouchesReceived  Vouch[]   @relation("ReceivedVouches")
+  blacklist        Blacklist[]
+  guildConfigs     GuildConfig[]
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @default(now()) @updatedAt
@@ -141,7 +143,8 @@ model Vouch {
   editedAt        DateTime?
   createdAt       DateTime @default(now())
 
-  receiver        User     @relation("ReceivedVouches", fields: [receiverId], references: [id])
+  receiver        User          @relation("ReceivedVouches", fields: [receiverId], references: [id], onDelete: Cascade)
+  reports         VouchReport[]
 
   @@index([receiverId, createdAt])
 }
@@ -154,6 +157,8 @@ model Blacklist {
   reason    String?
   createdAt DateTime @default(now())
 
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, platform, blockedId])
 }
 
@@ -163,6 +168,8 @@ model VouchReport {
   reporterId String
   reason     String?
   createdAt  DateTime @default(now())
+
+  vouch      Vouch    @relation(fields: [vouchId], references: [id], onDelete: Cascade)
 }
 
 model GuildConfig {
@@ -174,6 +181,8 @@ model GuildConfig {
   requireProof      Boolean  @default(false)
   minAccountAgeDays Int      @default(0)
   createdAt         DateTime @default(now())
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, guildId])
 }

@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs"
 import { signIn } from "@/auth"
 import { AuthError } from "next-auth"
 import { Prisma } from "@prisma/client"
+import { rateLimit, getClientIp, retryAfterText } from "@/lib/rate-limit"
 
 const TAKEN_MESSAGE =
   "Those account details are unavailable. Try different ones or sign in."
@@ -19,6 +20,13 @@ export async function register(formData: FormData) {
 
   if (!email || !username || !password) {
     return { error: "Missing required fields" }
+  }
+
+  // Throttle account creation per IP to blunt mass/automated signups.
+  const ip = await getClientIp()
+  const rl = rateLimit(`register:${ip}`, 5, 15 * 60 * 1000)
+  if (!rl.ok) {
+    return { error: `Too many sign-up attempts. Please try again in ${retryAfterText(rl.retryAfterMs)}.` }
   }
   if (!EMAIL_RE.test(email)) {
     return { error: "Please enter a valid email address." }
@@ -96,6 +104,13 @@ export async function register(formData: FormData) {
 export async function loginWithCredentials(formData: FormData) {
   const username = formData.get("username") as string
   const password = formData.get("password") as string
+
+  // Throttle credential logins per IP+username to blunt brute-force / stuffing.
+  const ip = await getClientIp()
+  const rl = rateLimit(`login:${ip}:${(username || "").toLowerCase()}`, 10, 15 * 60 * 1000)
+  if (!rl.ok) {
+    return { error: `Too many sign-in attempts. Please try again in ${retryAfterText(rl.retryAfterMs)}.` }
+  }
 
   try {
     await signIn("credentials", {

@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs"
 
 import Resend from "next-auth/providers/resend"
 import { magicLinkEmail } from "@/lib/email"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -16,6 +17,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       apiKey: process.env.AUTH_RESEND_KEY,
       from: process.env.EMAIL_FROM || "onboarding@resend.dev",
       async sendVerificationRequest({ identifier: to, url, provider }) {
+        // Throttle magic-link sends so a target address (or our Resend quota)
+        // can't be flooded. Limit per-email and per-IP.
+        const ip = await getClientIp().catch(() => "unknown")
+        const byEmail = rateLimit(`magiclink:email:${to.toLowerCase()}`, 3, 15 * 60 * 1000)
+        const byIp = rateLimit(`magiclink:ip:${ip}`, 8, 15 * 60 * 1000)
+        if (!byEmail.ok || !byIp.ok) {
+          throw new Error("Too many sign-in link requests. Please wait a few minutes and try again.")
+        }
+
         const { subject, html, text } = magicLinkEmail(url, to)
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
