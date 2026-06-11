@@ -34,6 +34,7 @@ import {
   getActiveConfig,
   safeEmbedColor,
   embedField,
+  autoModerateVouch,
 } from "../vouch-service"
 import { registerDiscordCommands } from "./commands"
 import { getSignedProofUrl } from "../../lib/proof-url"
@@ -322,6 +323,7 @@ async function handleDiscordInteraction(
           createdAt: new Date(),
         },
       })
+      autoModerateVouch(createdVouch.id, comment).catch(console.error)
 
       // Premium: Role rewards
       if (config.isPremium && config.vouchRoleId && interaction.guild) {
@@ -1500,6 +1502,7 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
           createdAt: new Date(),
         },
       })
+      autoModerateVouch(createdVouch.id, comment).catch(console.error)
 
       pendingDiscordVouches.delete(pendingId)
 

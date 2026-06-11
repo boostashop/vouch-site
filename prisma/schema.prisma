@@ -154,6 +154,7 @@ model Vouch {
   comment         String?
   proofImageUrl   String?  // Cloudflare R2 URL
   status          VouchStatus @default(ACTIVE) // ACTIVE | FLAGGED | REMOVED (soft-delete)
+  autoFlagReason  String?  // set by automated content screening; null = no auto-flag
   type            String?  // sale | service | trade | other
   sourceName      String?  // server / group name for context
   sellerReply     String?

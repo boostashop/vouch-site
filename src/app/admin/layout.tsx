@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { prisma } from "@/lib/prisma"
 import {
   Users,
   Settings,
@@ -30,6 +31,8 @@ export default async function AdminLayout({
   // Authoritative DB role check — the JWT role is stale after a grant/revoke.
   if (!(await isAdmin())) redirect("/dashboard")
 
+  const flaggedCount = await prisma.vouch.count({ where: { status: "FLAGGED" } })
+
   return (
     <div className="flex min-h-screen bg-zinc-50 dark:bg-black font-sans transition-colors duration-300">
       {/* Sidebar - Desktop */}
@@ -45,6 +48,7 @@ export default async function AdminLayout({
           <AdminNavItem href="/admin" icon={<Activity size={18} />} label="System Pulse" />
           <AdminNavItem href="/admin/users" icon={<Users size={18} />} label="User Management" />
           <AdminNavItem href="/admin/vouches" icon={<MessageSquare size={18} />} label="Vouch Audit" />
+          <AdminNavItem href="/admin/flagged" icon={<Bell size={18} />} label="Flagged Queue" count={flaggedCount} />
           <AdminNavItem href="/admin/settings" icon={<ShieldAlert size={18} />} label="Core Settings" />
         </nav>
 

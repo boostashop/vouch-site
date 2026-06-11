@@ -11,6 +11,8 @@ import {
   UserX,
   Trophy,
   Activity,
+  AlertTriangle,
+  Bell,
 } from "lucide-react"
 
 export default async function AdminPulsePage() {
@@ -24,6 +26,7 @@ export default async function AdminPulsePage() {
     vouchesToday,
     activeBotCount,
     noBotCount,
+    flaggedCount,
     ratingAgg,
     recentVouches,
     topUsers,
@@ -39,6 +42,7 @@ export default async function AdminPulsePage() {
     prisma.user.count({
       where: { discordBotToken: null, telegramBotToken: null },
     }),
+    prisma.vouch.count({ where: { status: "FLAGGED" } }),
     prisma.vouch.aggregate({ _avg: { rating: true } }),
     prisma.vouch.findMany({
       orderBy: { createdAt: "desc" },
@@ -122,6 +126,14 @@ export default async function AdminPulsePage() {
           value="Healthy"
           trend="VPS Online"
           color="amber"
+        />
+        <PulseCard
+          icon={<AlertTriangle className="text-red-400" />}
+          label="Flagged"
+          value={flaggedCount}
+          trend={flaggedCount > 0 ? "Needs review" : "All clear"}
+          color="red"
+          href="/admin/flagged"
         />
       </div>
 
@@ -252,6 +264,14 @@ export default async function AdminPulsePage() {
             description="Prune stale auth rows and review bot sync status."
             href="/admin/settings"
           />
+          {flaggedCount > 0 && (
+            <AdminAction
+              icon={<Bell className="text-red-400" />}
+              title={`${flaggedCount} Flagged Vouch${flaggedCount !== 1 ? "es" : ""}`}
+              description="Content flagged by automated detection or user reports — requires review."
+              href="/admin/flagged"
+            />
+          )}
         </div>
       </div>
     </div>
@@ -259,15 +279,16 @@ export default async function AdminPulsePage() {
 }
 
 function PulseCard({
-  icon, label, value, trend, color,
+  icon, label, value, trend, color, href,
 }: {
   icon: React.ReactNode
   label: string
   value: string | number
   trend: string
   color: string
+  href?: string
 }) {
-  return (
+  const inner = (
     <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 group hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-all">
       <div className="flex items-center justify-between mb-3">
         <div className="w-9 h-9 rounded-xl bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center border border-zinc-200 dark:border-white/5">
@@ -280,6 +301,7 @@ function PulseCard({
       <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-600 mt-2 truncate">{trend}</p>
     </div>
   )
+  return href ? <a href={href}>{inner}</a> : inner
 }
 
 function PlatformBar({ label, count, pct, color }: { label: string; count: number; pct: number; color: string }) {

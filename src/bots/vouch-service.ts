@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { uploadToR2 } from "../lib/s3"
 import { prisma } from "./prisma"
+import { checkIllegalContent } from "../lib/content-moderation"
 
 // Platform-agnostic helpers shared by the Discord and Telegram bots. As the
 // overhaul progresses (anti-abuse, validation, vouch creation) the shared logic
@@ -275,6 +276,19 @@ export async function removeVouch(userId: string, vouchId: string) {
   return await prisma.vouch.update({
     where: { id: vouchId },
     data: { status: "REMOVED" },
+  })
+}
+
+// Run automated content screening on a newly created vouch. Call fire-and-forget
+// (`.catch(console.error)`) — a failure must never block the user flow.
+export async function autoModerateVouch(vouchId: string, comment: string | null): Promise<void> {
+  if (!comment) return
+  const flag = checkIllegalContent(comment)
+  if (!flag) return
+  const reason = `${flag.label} (matched: "${flag.match}")`
+  await prisma.vouch.update({
+    where: { id: vouchId },
+    data: { status: "FLAGGED", autoFlagReason: reason },
   })
 }
 

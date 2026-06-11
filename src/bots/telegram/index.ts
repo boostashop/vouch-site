@@ -15,6 +15,7 @@ import {
   removeVouch,
   isMilestone,
   getActiveConfig,
+  autoModerateVouch,
 } from "../vouch-service"
 import { getSignedProofUrl } from "../../lib/proof-url"
 
@@ -269,6 +270,7 @@ const vouchWizard = new Scenes.WizardScene<BotContext>(
               createdAt: new Date(),
             },
           })
+          autoModerateVouch(createdVouch.id, state.comment).catch(console.error)
 
           const config = await getActiveConfig(state.receiverId, ctx.chat?.id.toString() || null)
           const baseUrl = process.env.AUTH_URL || "https://vouched.to"
@@ -465,6 +467,7 @@ export async function spawnTelegramBot(userId: string, token: string): Promise<T
           createdAt: new Date(),
         },
       })
+      autoModerateVouch(createdVouch.id, comment).catch(console.error)
 
       // Generate verification permalink
       const baseUrl = process.env.AUTH_URL || "https://vouched.to"
