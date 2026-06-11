@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from "uuid"
+import { randomUUID } from "node:crypto"
 import { uploadToR2 } from "../lib/s3"
 import { prisma } from "./prisma"
 
@@ -47,7 +47,7 @@ export async function persistProofToR2(
 
 export function proofKey(platform: "discord" | "telegram", ext: string): string {
   const prefix = platform === "telegram" ? "tg-" : ""
-  return `proofs/${prefix}${uuidv4()}.${ext}`
+  return `proofs/${prefix}${randomUUID()}.${ext}`
 }
 
 // Global leaderboard position by vouch count (1 = most vouches). Returns 0 for

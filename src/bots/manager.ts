@@ -154,13 +154,17 @@ export class BotManager {
   }
 
   async sendWeeklySummaries() {
+    // Resilient weekly cadence. The hourly tick used to require landing exactly
+    // on Sunday 18:00 — a restart during that hour meant a skipped week. Now we
+    // gate per-user on lastWeeklySummaryAt: send during the Sunday-evening
+    // window (at most once/week), and recover if a user has gone >8 days
+    // without one (process was down for the window). New premium users only get
+    // their first summary during the window, so a deploy doesn't blast everyone.
     const now = new Date()
-    // Trigger weekly summary on Sunday at 18:00 (6 PM) local time
-    if (now.getDay() !== 0 || now.getHours() !== 18) {
-      return
-    }
+    const inWindow = now.getDay() === 0 && now.getHours() >= 18
+    const WEEK_GUARD_MS = 6 * 24 * 60 * 60 * 1000
+    const RECOVER_MS = 8 * 24 * 60 * 60 * 1000
 
-    console.log("Generating weekly reputation summaries for premium users...")
     const users = await prisma.user.findMany({
       where: {
         OR: [{ discordBotToken: { not: null } }, { telegramBotToken: { not: null } }],
@@ -168,10 +172,23 @@ export class BotManager {
     })
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    let sentAny = false
 
     for (const user of users) {
       const isPremium = hasActivePremium(user)
       if (!isPremium) continue // premium-gated
+
+      const last = user.lastWeeklySummaryAt?.getTime() ?? null
+      const sinceLast = last === null ? Infinity : Date.now() - last
+      const due =
+        (inWindow && sinceLast >= WEEK_GUARD_MS) ||
+        (last !== null && sinceLast >= RECOVER_MS)
+      if (!due) continue
+
+      if (!sentAny) {
+        console.log("Generating weekly reputation summaries for premium users...")
+        sentAny = true
+      }
 
       try {
         // Fetch new vouches in last 7 days
@@ -232,6 +249,13 @@ export class BotManager {
             }
           }
         }
+
+        // Mark sent so we don't resend until next week (and so the window guard
+        // above works across restarts).
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastWeeklySummaryAt: new Date() },
+        })
       } catch (err) {
         console.error(`Failed to process weekly summary for user ${user.id}:`, err)
       }

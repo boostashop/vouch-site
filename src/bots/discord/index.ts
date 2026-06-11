@@ -13,8 +13,9 @@ import {
   TextInputStyle,
   ModalSubmitInteraction,
   ButtonInteraction,
+  MessageFlags,
 } from "discord.js"
-import { v4 as uuidv4 } from "uuid"
+import { randomUUID } from "node:crypto"
 import { prisma } from "../prisma"
 import {
   hasActivePremium,
@@ -199,7 +200,7 @@ async function handleDiscordInteraction(
         .setStyle(ButtonStyle.Success)
     )
 
-    return interaction.reply({ embeds: [embed], components: [row], ephemeral: true })
+    return interaction.reply({ embeds: [embed], components: [row], flags: MessageFlags.Ephemeral })
   }
 
   if (interaction.commandName === "vouch") {
@@ -215,7 +216,7 @@ async function handleDiscordInteraction(
         return interaction.reply({
           content:
             "📸 This user requires a proof screenshot with every vouch. Please use `/vouch rating:<1-5> comment:<text> proof:<screenshot>` so you can attach one.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
       }
 
@@ -252,7 +253,7 @@ async function handleDiscordInteraction(
     try {
       const config = await getActiveConfig(userId, interaction.guildId)
       if (!config) {
-        return interaction.reply({ content: "❌ User not found.", ephemeral: true })
+        return interaction.reply({ content: "❌ User not found.", flags: MessageFlags.Ephemeral })
       }
 
       const totalVouches = await prisma.vouch.count({
@@ -262,14 +263,14 @@ async function handleDiscordInteraction(
       if (!config.isPremium && totalVouches >= FREE_VOUCH_LIMIT) {
         return interaction.reply({
           content: `❌ This user has reached the maximum limit of ${FREE_VOUCH_LIMIT} vouches for free accounts. They need to upgrade to Premium to receive more.`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
       }
 
       if (config.requireProof && !proof) {
         return interaction.reply({
           content: "❌ This user requires proof (screenshot) for every vouch.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
       }
 
@@ -286,7 +287,7 @@ async function handleDiscordInteraction(
       } catch (validationErr: any) {
         return interaction.reply({
           content: `❌ ${validationErr.message}`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
       }
 
@@ -302,7 +303,7 @@ async function handleDiscordInteraction(
         if (config.requireProof && !proofUrl) {
           return interaction.reply({
             content: "❌ Could not save your proof image right now (storage unavailable). Please try again later.",
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           })
         }
       }
@@ -414,7 +415,6 @@ async function handleDiscordInteraction(
         embeds: [embed],
         components: permalink ? [profileRow] : [],
         allowedMentions: roleMention && !announcedToChannel ? roleAllowedMentions : undefined,
-        ephemeral: false,
       })
 
       // Trigger pinned live card update
@@ -479,12 +479,12 @@ async function handleDiscordInteraction(
         await interaction
           .followUp({
             content: "⚠️ Your vouch was recorded, but a follow-up step (announcement/notification) failed.",
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           })
           .catch(() => {})
       } else {
         await interaction
-          .reply({ content: "❌ Failed to save vouch. Please try again later.", ephemeral: true })
+          .reply({ content: "❌ Failed to save vouch. Please try again later.", flags: MessageFlags.Ephemeral })
           .catch(() => {})
       }
     }
@@ -501,7 +501,7 @@ async function handleDiscordInteraction(
       })
 
       if (!user) {
-        return interaction.reply({ content: "❌ User not found.", ephemeral: true })
+        return interaction.reply({ content: "❌ User not found.", flags: MessageFlags.Ephemeral })
       }
 
       const count = user._count.vouchesReceived
@@ -562,7 +562,7 @@ async function handleDiscordInteraction(
       await interaction.reply({ embeds: [embed], components: [row] })
     } catch (err) {
       console.error("Error fetching stats:", err)
-      await interaction.reply({ content: "❌ Failed to fetch stats.", ephemeral: true })
+      await interaction.reply({ content: "❌ Failed to fetch stats.", flags: MessageFlags.Ephemeral })
     }
   }
 
@@ -572,18 +572,18 @@ async function handleDiscordInteraction(
       const baseUrl = process.env.AUTH_URL || "https://vouched.to"
 
       if (!user) {
-        return interaction.reply({ content: "❌ User not found.", ephemeral: true })
+        return interaction.reply({ content: "❌ User not found.", flags: MessageFlags.Ephemeral })
       }
       if (!hasActivePremium(user)) {
         return interaction.reply({
           content: `🔒 The embeddable reputation badge is a Premium feature. Upgrade at ${baseUrl}/dashboard to unlock it.`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
       }
       if (!user.slug) {
         return interaction.reply({
           content: "⚠️ Set a profile slug in your dashboard first to generate your badge.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
       }
 
@@ -611,10 +611,10 @@ async function handleDiscordInteraction(
         new ButtonBuilder().setLabel("View Profile").setStyle(ButtonStyle.Link).setURL(profileUrl)
       )
 
-      await interaction.reply({ embeds: [embed], components: [row], ephemeral: true })
+      await interaction.reply({ embeds: [embed], components: [row], flags: MessageFlags.Ephemeral })
     } catch (err) {
       console.error("Error building badge:", err)
-      await interaction.reply({ content: "❌ Failed to build badge.", ephemeral: true })
+      await interaction.reply({ content: "❌ Failed to build badge.", flags: MessageFlags.Ephemeral })
     }
   }
 
@@ -623,7 +623,7 @@ async function handleDiscordInteraction(
     const user = await prisma.user.findUnique({ where: { id: userId } })
 
     if (!user || user.discordId !== interaction.user.id) {
-      return interaction.reply({ content: "❌ Only the owner can use this command.", ephemeral: true })
+      return interaction.reply({ content: "❌ Only the owner can use this command.", flags: MessageFlags.Ephemeral })
     }
 
     // A restore can run for minutes (1.5s/vouch). Guard against the owner
@@ -632,13 +632,13 @@ async function handleDiscordInteraction(
     if (restoreInProgress.has(userId)) {
       return interaction.reply({
         content: "⏳ A restore is already running for your account. Please wait for it to finish.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     }
     restoreInProgress.add(userId)
 
     try {
-      await interaction.reply({ content: "⏳ Starting restoration of all vouches...", ephemeral: true })
+      await interaction.reply({ content: "⏳ Starting restoration of all vouches...", flags: MessageFlags.Ephemeral })
 
       const vouches = await prisma.vouch.findMany({
         where: { receiverId: userId, status: "ACTIVE" },
@@ -672,7 +672,7 @@ async function handleDiscordInteraction(
         await new Promise((resolve) => setTimeout(resolve, 1500))
       }
 
-      await interaction.followUp({ content: "✅ Restoration complete!", ephemeral: true })
+      await interaction.followUp({ content: "✅ Restoration complete!", flags: MessageFlags.Ephemeral })
     } finally {
       restoreInProgress.delete(userId)
     }
@@ -682,7 +682,7 @@ async function handleDiscordInteraction(
     // Check if it's the owner
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user || user.discordId !== interaction.user.id) {
-      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", flags: MessageFlags.Ephemeral })
     }
 
     const subcommand = interaction.options.getSubcommand()
@@ -698,7 +698,7 @@ async function handleDiscordInteraction(
       })
       return interaction.reply({
         content: `✅ User with ID \`${targetUserId}\` has been blacklisted.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     } else if (subcommand === "remove") {
       const success = await removeFromBlacklist({
@@ -709,12 +709,12 @@ async function handleDiscordInteraction(
       if (success) {
         return interaction.reply({
           content: `✅ User with ID \`${targetUserId}\` has been removed from the blacklist.`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
       } else {
         return interaction.reply({
           content: `❌ User with ID \`${targetUserId}\` was not on the blacklist.`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
       }
     }
@@ -732,12 +732,12 @@ async function handleDiscordInteraction(
       })
       return interaction.reply({
         content: `⚠️ Vouch \`${vouchId}\` has been reported to the seller for moderation.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     } catch (err: any) {
       return interaction.reply({
         content: `❌ Error: ${err.message}`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     }
   }
@@ -746,7 +746,7 @@ async function handleDiscordInteraction(
     // Check if it's the owner
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user || user.discordId !== interaction.user.id) {
-      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", flags: MessageFlags.Ephemeral })
     }
 
     const subcommand = interaction.options.getSubcommand()
@@ -754,7 +754,7 @@ async function handleDiscordInteraction(
     if (subcommand === "list") {
       const reports = await getPendingReports(userId)
       if (reports.length === 0) {
-        return interaction.reply({ content: "✅ No pending reports in your moderation queue.", ephemeral: true })
+        return interaction.reply({ content: "✅ No pending reports in your moderation queue.", flags: MessageFlags.Ephemeral })
       }
 
       const embed = new EmbedBuilder()
@@ -773,7 +773,7 @@ async function handleDiscordInteraction(
         embed.setFooter({ text: `Showing first 10 of ${reports.length} pending reports.` })
       }
 
-      return interaction.reply({ embeds: [embed], ephemeral: true })
+      return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral })
     }
 
     if (subcommand === "approve") {
@@ -782,12 +782,12 @@ async function handleDiscordInteraction(
         await approveVouch(userId, vouchId)
         return interaction.reply({
           content: `✅ Vouch \`${vouchId}\` has been approved and marked active.`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
       } catch (err: any) {
         return interaction.reply({
           content: `❌ Error: ${err.message}`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
       }
     }
@@ -798,12 +798,12 @@ async function handleDiscordInteraction(
         await removeVouch(userId, vouchId)
         return interaction.reply({
           content: `✅ Vouch \`${vouchId}\` has been soft-deleted and removed from public profile.`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
       } catch (err: any) {
         return interaction.reply({
           content: `❌ Error: ${err.message}`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
       }
     }
@@ -819,7 +819,7 @@ async function handleDiscordInteraction(
       if (!u) {
         return interaction.reply({
           content: `❌ This user does not have a Vouched.to seller profile linked.`,
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         })
       }
       targetId = u.id
@@ -834,7 +834,7 @@ async function handleDiscordInteraction(
         }
       })
       if (!profileUser) {
-        return interaction.reply({ content: "❌ Profile not found.", ephemeral: true })
+        return interaction.reply({ content: "❌ Profile not found.", flags: MessageFlags.Ephemeral })
       }
       const count = profileUser._count.vouchesReceived
       const totalRating = profileUser.vouchesReceived.reduce((acc, v) => acc + v.rating, 0)
@@ -877,7 +877,7 @@ async function handleDiscordInteraction(
       return interaction.reply({ embeds: [embed], components: [row] })
     } catch (err) {
       console.error("Error fetching profile:", err)
-      return interaction.reply({ content: "❌ Failed to fetch profile.", ephemeral: true })
+      return interaction.reply({ content: "❌ Failed to fetch profile.", flags: MessageFlags.Ephemeral })
     }
   }
 
@@ -908,7 +908,7 @@ async function handleDiscordInteraction(
       }
 
       if (topSellers.length === 0) {
-        return interaction.reply({ content: "ℹ️ No vouches recorded yet.", ephemeral: true })
+        return interaction.reply({ content: "ℹ️ No vouches recorded yet.", flags: MessageFlags.Ephemeral })
       }
 
       const embed = new EmbedBuilder()
@@ -935,7 +935,7 @@ async function handleDiscordInteraction(
       return interaction.reply({ embeds: [embed] })
     } catch (err) {
       console.error("Error fetching leaderboard:", err)
-      return interaction.reply({ content: "❌ Failed to fetch leaderboard.", ephemeral: true })
+      return interaction.reply({ content: "❌ Failed to fetch leaderboard.", flags: MessageFlags.Ephemeral })
     }
   }
 
@@ -945,7 +945,7 @@ async function handleDiscordInteraction(
         where: { id: userId },
       })
       if (!user) {
-        return interaction.reply({ content: "❌ Seller profile not found.", ephemeral: true })
+        return interaction.reply({ content: "❌ Seller profile not found.", flags: MessageFlags.Ephemeral })
       }
 
       const recentVouches = await prisma.vouch.findMany({
@@ -960,7 +960,7 @@ async function handleDiscordInteraction(
       })
 
       if (recentVouches.length === 0) {
-        return interaction.reply({ content: "ℹ️ No vouches recorded for this profile yet.", ephemeral: true })
+        return interaction.reply({ content: "ℹ️ No vouches recorded for this profile yet.", flags: MessageFlags.Ephemeral })
       }
 
       const embed = new EmbedBuilder()
@@ -983,7 +983,7 @@ async function handleDiscordInteraction(
       return interaction.reply({ embeds: [embed] })
     } catch (err) {
       console.error("Error in recent command:", err)
-      return interaction.reply({ content: "❌ Error fetching recent vouches.", ephemeral: true })
+      return interaction.reply({ content: "❌ Error fetching recent vouches.", flags: MessageFlags.Ephemeral })
     }
   }
 
@@ -1011,7 +1011,7 @@ async function handleDiscordInteraction(
       })
 
       if (results.length === 0) {
-        return interaction.reply({ content: `ℹ️ No active vouches found matching \`${query}\`.`, ephemeral: true })
+        return interaction.reply({ content: `ℹ️ No active vouches found matching \`${query}\`.`, flags: MessageFlags.Ephemeral })
       }
 
       const embed = new EmbedBuilder()
@@ -1035,14 +1035,14 @@ async function handleDiscordInteraction(
       return interaction.reply({ embeds: [embed] })
     } catch (err) {
       console.error("Error searching vouches:", err)
-      return interaction.reply({ content: "❌ Error searching vouches.", ephemeral: true })
+      return interaction.reply({ content: "❌ Error searching vouches.", flags: MessageFlags.Ephemeral })
     }
   }
 
   if (interaction.commandName === "config") {
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user || user.discordId !== interaction.user.id) {
-      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", flags: MessageFlags.Ephemeral })
     }
 
     const channel = interaction.options.getChannel("channel")
@@ -1051,7 +1051,7 @@ async function handleDiscordInteraction(
 
     const guildId = interaction.guildId
     if (!guildId) {
-      return interaction.reply({ content: "❌ This command must be used in a server.", ephemeral: true })
+      return interaction.reply({ content: "❌ This command must be used in a server.", flags: MessageFlags.Ephemeral })
     }
 
     const existing = await prisma.guildConfig.findUnique({
@@ -1083,14 +1083,14 @@ async function handleDiscordInteraction(
                `• **Announcement Channel:** ${channelMention}\n` +
                `• **Require Proof:** \`${updated.requireProof}\`\n` +
                `• **Min Account Age:** \`${updated.minAccountAgeDays} days\``,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     })
   }
 
   if (interaction.commandName === "remove") {
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user || user.discordId !== interaction.user.id) {
-      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", flags: MessageFlags.Ephemeral })
     }
 
     const vouchId = interaction.options.getString("vouch_id", true)
@@ -1102,12 +1102,12 @@ async function handleDiscordInteraction(
       }
       return interaction.reply({
         content: `✅ Vouch \`${vouchId}\` has been soft-deleted and removed from public profile.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     } catch (err: any) {
       return interaction.reply({
         content: `❌ Error: ${err.message}`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     }
   }
@@ -1115,18 +1115,18 @@ async function handleDiscordInteraction(
   if (interaction.commandName === "export") {
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user || user.discordId !== interaction.user.id) {
-      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", flags: MessageFlags.Ephemeral })
     }
 
     const config = await getActiveConfig(userId, interaction.guildId)
     if (!config || !config.isPremium) {
       return interaction.reply({
         content: "❌ This command is premium-gated. Upgrade to Premium to export your vouch data.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     }
 
-    await interaction.deferReply({ ephemeral: true })
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
     try {
       const vouches = await prisma.vouch.findMany({
@@ -1162,7 +1162,7 @@ async function handleDiscordInteraction(
   if (interaction.commandName === "reply") {
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user || user.discordId !== interaction.user.id) {
-      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", flags: MessageFlags.Ephemeral })
     }
 
     const vouchId = interaction.options.getString("vouch_id", true)
@@ -1174,7 +1174,7 @@ async function handleDiscordInteraction(
       })
 
       if (!vouch || vouch.receiverId !== userId) {
-        return interaction.reply({ content: "❌ Vouch not found or unauthorized.", ephemeral: true })
+        return interaction.reply({ content: "❌ Vouch not found or unauthorized.", flags: MessageFlags.Ephemeral })
       }
 
       await prisma.vouch.update({
@@ -1188,12 +1188,12 @@ async function handleDiscordInteraction(
 
       return interaction.reply({
         content: `✅ Successfully replied to vouch \`${vouchId}\`!\n\n**Reply:** "${response}"`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     } catch (err: any) {
       return interaction.reply({
         content: `❌ Error: ${err.message}`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     }
   }
@@ -1201,7 +1201,7 @@ async function handleDiscordInteraction(
   if (interaction.commandName === "import") {
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user || user.discordId !== interaction.user.id) {
-      return interaction.reply({ content: "❌ Only the profile owner can use this command.", ephemeral: true })
+      return interaction.reply({ content: "❌ Only the profile owner can use this command.", flags: MessageFlags.Ephemeral })
     }
 
     // Bulk-importing reputation is a Premium feature, and only for premium
@@ -1210,12 +1210,12 @@ async function handleDiscordInteraction(
     if (!importConfig?.isPremium) {
       return interaction.reply({
         content: "🔒 Importing existing vouches from channel history is a Premium feature.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     }
 
     const limit = interaction.options.getInteger("limit") || 100
-    await interaction.deferReply({ ephemeral: true })
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
     try {
       let messagesList: any[] = []
@@ -1303,7 +1303,7 @@ async function handleDiscordInteraction(
         })
       }
 
-      const pendingId = uuidv4()
+      const pendingId = randomUUID()
       pendingDiscordImports.set(pendingId, { receiverId: userId, entries, createdAt: Date.now() })
 
       const confirmEmbed = new EmbedBuilder()
@@ -1345,7 +1345,7 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
       return interaction.reply({
         content:
           "📸 This user requires a proof screenshot with every vouch. Please use `/vouch rating:<1-5> comment:<text> proof:<screenshot>` so you can attach one.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     }
 
@@ -1624,7 +1624,7 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
       return interaction
         .followUp({
           content: "❌ An error occurred while saving your vouch.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
         .catch(() => {})
     }
@@ -1663,7 +1663,7 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
     // Only the owner may confirm an import.
     const owner = await prisma.user.findUnique({ where: { id: botUserId }, select: { discordId: true } })
     if (!owner || owner.discordId !== interaction.user.id) {
-      return interaction.reply({ content: "❌ Only the profile owner can confirm an import.", ephemeral: true })
+      return interaction.reply({ content: "❌ Only the profile owner can confirm an import.", flags: MessageFlags.Ephemeral })
     }
 
     pendingDiscordImports.delete(pendingId)
@@ -1727,7 +1727,7 @@ async function handleDiscordModalSubmit(interaction: ModalSubmitInteraction<Cach
     if (isNaN(rating) || rating < 1 || rating > 5) {
       return interaction.reply({
         content: "❌ Invalid rating. Please enter a number between 1 and 5.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     }
 
@@ -1742,12 +1742,12 @@ async function handleDiscordModalSubmit(interaction: ModalSubmitInteraction<Cach
     } catch (err: any) {
       return interaction.reply({
         content: `❌ ${err.message}`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       })
     }
 
     // Save pending vouch
-    const pendingId = uuidv4()
+    const pendingId = randomUUID()
     pendingDiscordVouches.set(pendingId, { receiverId, rating, comment, createdAt: Date.now() })
 
     // Build Preview Embed
@@ -1776,7 +1776,7 @@ async function handleDiscordModalSubmit(interaction: ModalSubmitInteraction<Cach
     await interaction.reply({
       embeds: [previewEmbed],
       components: [row],
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     })
   }
 }

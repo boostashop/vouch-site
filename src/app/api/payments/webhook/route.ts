@@ -28,15 +28,22 @@ const DEACTIVATING = new Set([
 export async function POST(request: Request) {
   const rawBody = await request.text()
 
+  const timestampHeader = request.headers.get("x-vouched-timestamp")
   if (
     !verifyWebhookSignature(
       rawBody,
-      request.headers.get("x-vouched-timestamp"),
+      timestampHeader,
       request.headers.get("x-vouched-signature"),
     )
   ) {
     return Response.json({ error: "Invalid signature" }, { status: 401 })
   }
+
+  // The signed timestamp doubles as an ordering/replay key: we record the most
+  // recent one applied per user and ignore anything at or before it. This drops
+  // exact replays (same timestamp) and out-of-order deliveries (an older event
+  // arriving after a newer one) without needing per-event ids from the source.
+  const eventTime = new Date(Number(timestampHeader) * 1000)
 
   let payload: {
     event?: string
@@ -64,10 +71,15 @@ export async function POST(request: Request) {
   // Resolve the user: prefer the explicit ref, fall back to the stored mapping.
   const user = await prisma.user.findFirst({
     where: userId ? { id: userId } : { paymentCustomerId: customerId },
-    select: { id: true },
+    select: { id: true, lastWebhookAt: true },
   })
   if (!user) {
     return Response.json({ error: "User not found" }, { status: 404 })
+  }
+
+  // Drop stale/replayed/out-of-order events for this user.
+  if (user.lastWebhookAt && eventTime <= user.lastWebhookAt) {
+    return Response.json({ ok: true, stale: true })
   }
 
   if (ACTIVATING.has(event)) {
@@ -76,13 +88,14 @@ export async function POST(request: Request) {
       data: {
         isPremium: true,
         premiumExpiresAt: expiresAt ? new Date(expiresAt) : null,
+        lastWebhookAt: eventTime,
         ...(customerId ? { paymentCustomerId: customerId } : {}),
       },
     })
   } else if (DEACTIVATING.has(event)) {
     await prisma.user.update({
       where: { id: user.id },
-      data: { isPremium: false, premiumExpiresAt: null },
+      data: { isPremium: false, premiumExpiresAt: null, lastWebhookAt: eventTime },
     })
   } else {
     // Unknown event — acknowledge so the payments site doesn't retry forever.

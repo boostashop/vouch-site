@@ -83,6 +83,13 @@ model User {
   telegramBotOnline Boolean   @default(false)
   botCheckedAt      DateTime?
 
+  // Timestamp of the last payments webhook applied to this user — used to drop
+  // stale/replayed/out-of-order events (the source signs each with a timestamp).
+  lastWebhookAt        DateTime?
+  // When the last weekly reputation summary was sent — makes the weekly job
+  // resilient to process restarts instead of depending on an exact-hour tick.
+  lastWeeklySummaryAt  DateTime?
+
   // Bot Customization - Vouch Command
   vouchEmbedTitle   String   @default("New vouch created!")
   vouchEmbedFooter  String   @default("Powered by Vouched.to")
