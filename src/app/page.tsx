@@ -17,9 +17,9 @@ export default async function Home() {
   // (not loading rows) keeps this cheap; with ISR these run at build + every
   // 5 min, not on every request.
   const [totalVouches, totalProfiles, ratingAgg] = await Promise.all([
-    prisma.vouch.count(),
+    prisma.vouch.count({ where: { status: "ACTIVE" } }),
     prisma.user.count({ where: { slug: { not: null } } }),
-    prisma.vouch.aggregate({ _avg: { rating: true } }),
+    prisma.vouch.aggregate({ where: { status: "ACTIVE" }, _avg: { rating: true } }),
   ]);
 
   const avgRating = ratingAgg._avg.rating ?? 0;

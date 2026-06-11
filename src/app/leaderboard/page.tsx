@@ -12,6 +12,7 @@ export default async function LeaderboardPage() {
   // pulling every user and every rating row into memory.
   const top = await prisma.vouch.groupBy({
     by: ["receiverId"],
+    where: { status: "ACTIVE" },
     _count: { _all: true },
     _avg: { rating: true },
     orderBy: { _count: { receiverId: "desc" } },

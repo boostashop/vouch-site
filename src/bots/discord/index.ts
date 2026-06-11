@@ -31,12 +31,26 @@ import {
   removeVouch,
   isMilestone,
   getActiveConfig,
+  safeEmbedColor,
+  embedField,
 } from "../vouch-service"
 import { registerDiscordCommands } from "./commands"
 import { getSignedProofUrl } from "../../lib/proof-url"
 
-// In-memory cache for pending modal/button vouches to support preview/confirmation
-const pendingDiscordVouches = new Map<string, { receiverId: string; rating: number; comment: string }>()
+// In-memory cache for pending modal/button vouches to support preview/confirmation.
+// Entries are swept after a TTL — abandoned previews must not accumulate forever
+// in this long-lived multi-tenant process.
+const PENDING_VOUCH_TTL_MS = 15 * 60 * 1000
+const pendingDiscordVouches = new Map<
+  string,
+  { receiverId: string; rating: number; comment: string; createdAt: number }
+>()
+setInterval(() => {
+  const cutoff = Date.now() - PENDING_VOUCH_TTL_MS
+  for (const [id, pending] of pendingDiscordVouches) {
+    if (pending.createdAt < cutoff) pendingDiscordVouches.delete(id)
+  }
+}, 60 * 1000).unref()
 
 // Spawn a Discord client for a user's bot token. Returns the logged-in client,
 // or null if login failed (so the manager can back off). The manager owns the
@@ -142,6 +156,17 @@ async function handleDiscordInteraction(
     const proof = interaction.options.getAttachment("proof")
 
     if (rating === null || comment === null) {
+      // The modal flow has no attachment support, so when proof is required the
+      // only valid path is the full /vouch command with the proof option.
+      const modalConfig = await getActiveConfig(userId, interaction.guildId)
+      if (modalConfig?.requireProof) {
+        return interaction.reply({
+          content:
+            "📸 This user requires a proof screenshot with every vouch. Please use `/vouch rating:<1-5> comment:<text> proof:<screenshot>` so you can attach one.",
+          ephemeral: true,
+        })
+      }
+
       const modal = new ModalBuilder()
         .setCustomId(`vouch_modal_${userId}`)
         .setTitle("Leave a Vouch")
@@ -265,10 +290,10 @@ async function handleDiscordInteraction(
       const stars = "⭐".repeat(rating)
       const embed = new EmbedBuilder()
         .setTitle(config.vouchEmbedTitle)
-        .setColor(config.vouchEmbedColor as any)
+        .setColor(safeEmbedColor(config.vouchEmbedColor))
         .setFooter({ text: `${config.vouchEmbedFooter} • ID: ${createdVouch.id}` })
         .setTimestamp()
-        .addFields({ name: "Vouch:", value: comment }, { name: "Rating:", value: stars, inline: true })
+        .addFields({ name: "Vouch:", value: embedField(comment) }, { name: "Rating:", value: stars, inline: true })
 
       if (permalink) {
         embed.setURL(permalink)
@@ -356,7 +381,7 @@ async function handleDiscordInteraction(
               .setDescription(`You received a new vouch from **${interaction.user.username}**!`)
               .addFields(
                 { name: "Rating:", value: "⭐".repeat(rating), inline: true },
-                { name: "Comment:", value: comment }
+                { name: "Comment:", value: embedField(comment) }
               )
               .setFooter({ text: `Vouch ID: ${createdVouch.id}` })
               .setTimestamp()
@@ -395,10 +420,21 @@ async function handleDiscordInteraction(
       }
     } catch (err) {
       console.error("Error saving vouch:", err)
-      await interaction.reply({
-        content: "❌ Failed to save vouch. Please try again later.",
-        ephemeral: true,
-      })
+      // If we already replied, the vouch WAS recorded and only a follow-up step
+      // failed — don't tell the giver to retry (that creates duplicates), and
+      // don't double-acknowledge the interaction.
+      if (interaction.replied || interaction.deferred) {
+        await interaction
+          .followUp({
+            content: "⚠️ Your vouch was recorded, but a follow-up step (announcement/notification) failed.",
+            ephemeral: true,
+          })
+          .catch(() => {})
+      } else {
+        await interaction
+          .reply({ content: "❌ Failed to save vouch. Please try again later.", ephemeral: true })
+          .catch(() => {})
+      }
     }
   }
 
@@ -407,8 +443,8 @@ async function handleDiscordInteraction(
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: {
-          _count: { select: { vouchesReceived: true } },
-          vouchesReceived: { select: { rating: true } },
+          _count: { select: { vouchesReceived: { where: { status: "ACTIVE" } } } },
+          vouchesReceived: { where: { status: "ACTIVE" }, select: { rating: true } },
         },
       })
 
@@ -423,7 +459,7 @@ async function handleDiscordInteraction(
       const embed = new EmbedBuilder()
         .setTitle(user.statsEmbedTitle)
         .setDescription(user.statsEmbedDescription)
-        .setColor(user.statsEmbedColor as any)
+        .setColor(safeEmbedColor(user.statsEmbedColor))
         .setFooter({ text: user.statsEmbedFooter })
         .setTimestamp()
 
@@ -515,7 +551,7 @@ async function handleDiscordInteraction(
             `• Banner: ${bannerUrl}\n` +
             `• Compact: ${chipUrl}`
         )
-        .setColor((user.profileAccentColor || "#6366f1") as any)
+        .setColor(safeEmbedColor(user.profileAccentColor, "#6366f1"))
         .setImage(bannerUrl)
         .setFooter({ text: "Powered by Vouched.to" })
 
@@ -541,7 +577,7 @@ async function handleDiscordInteraction(
     await interaction.reply({ content: "⏳ Starting restoration of all vouches...", ephemeral: true })
 
     const vouches = await prisma.vouch.findMany({
-      where: { receiverId: userId },
+      where: { receiverId: userId, status: "ACTIVE" },
       orderBy: { createdAt: "asc" },
     })
 
@@ -726,8 +762,8 @@ async function handleDiscordInteraction(
       const profileUser = await prisma.user.findUnique({
         where: { id: targetId },
         include: {
-          _count: { select: { vouchesReceived: true } },
-          vouchesReceived: { select: { rating: true } }
+          _count: { select: { vouchesReceived: { where: { status: "ACTIVE" } } } },
+          vouchesReceived: { where: { status: "ACTIVE" }, select: { rating: true } }
         }
       })
       if (!profileUser) {
@@ -740,7 +776,7 @@ async function handleDiscordInteraction(
 
       const embed = new EmbedBuilder()
         .setTitle(`👤 ${profileUser.name || profileUser.username || "Seller"}'s Profile`)
-        .setColor((profileUser.vouchEmbedColor as any) || "#6366f1")
+        .setColor(safeEmbedColor(profileUser.vouchEmbedColor, "#6366f1"))
         .setDescription(profileUser.profileMetaDescription || "Check out my verified reputation!")
         .addFields(
           { name: "Score:", value: `⭐ ${averageRating} / 5.0`, inline: true },
@@ -1199,6 +1235,16 @@ async function handleDiscordInteraction(
 
 async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, botUserId: string) {
   if (interaction.customId === "vouch_btn") {
+    // Proof can't be attached through a modal — route those users to /vouch.
+    const btnConfig = await getActiveConfig(botUserId, interaction.guildId)
+    if (btnConfig?.requireProof) {
+      return interaction.reply({
+        content:
+          "📸 This user requires a proof screenshot with every vouch. Please use `/vouch rating:<1-5> comment:<text> proof:<screenshot>` so you can attach one.",
+        ephemeral: true,
+      })
+    }
+
     // Open the modal
     const modal = new ModalBuilder()
       .setCustomId(`vouch_modal_${botUserId}`)
@@ -1274,6 +1320,18 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
         })
       }
 
+      // Re-check proof at confirm too: the requirement may have been enabled
+      // between the preview and the confirm click.
+      if (config.requireProof) {
+        pendingDiscordVouches.delete(pendingId)
+        return interaction.update({
+          content:
+            "📸 This user requires a proof screenshot with every vouch. Please use `/vouch` with the proof attachment instead.",
+          embeds: [],
+          components: [],
+        })
+      }
+
       const totalVouches = await prisma.vouch.count({
         where: { receiverId, status: "ACTIVE" },
       })
@@ -1325,10 +1383,10 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
       const stars = "⭐".repeat(rating)
       const embed = new EmbedBuilder()
         .setTitle(config.vouchEmbedTitle)
-        .setColor(config.vouchEmbedColor as any)
+        .setColor(safeEmbedColor(config.vouchEmbedColor))
         .setFooter({ text: `${config.vouchEmbedFooter} • ID: ${createdVouch.id}` })
         .setTimestamp()
-        .addFields({ name: "Vouch:", value: comment }, { name: "Rating:", value: stars, inline: true })
+        .addFields({ name: "Vouch:", value: embedField(comment) }, { name: "Rating:", value: stars, inline: true })
 
       if (permalink) {
         embed.setURL(permalink)
@@ -1420,7 +1478,7 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
               .setDescription(`You received a new vouch from **${interaction.user.username}**!`)
               .addFields(
                 { name: "Rating:", value: "⭐".repeat(rating), inline: true },
-                { name: "Comment:", value: comment }
+                { name: "Comment:", value: embedField(comment) }
               )
               .setFooter({ text: `Vouch ID: ${createdVouch.id}` })
               .setTimestamp()
@@ -1459,10 +1517,12 @@ async function handleDiscordButton(interaction: ButtonInteraction<CacheType>, bo
       }
     } catch (err) {
       console.error("Error finalizing vouch button confirm:", err)
-      return interaction.followUp({
-        content: "❌ An error occurred while saving your vouch.",
-        ephemeral: true,
-      })
+      return interaction
+        .followUp({
+          content: "❌ An error occurred while saving your vouch.",
+          ephemeral: true,
+        })
+        .catch(() => {})
     }
     return
   }
@@ -1509,7 +1569,7 @@ async function handleDiscordModalSubmit(interaction: ModalSubmitInteraction<Cach
 
     // Save pending vouch
     const pendingId = uuidv4()
-    pendingDiscordVouches.set(pendingId, { receiverId, rating, comment })
+    pendingDiscordVouches.set(pendingId, { receiverId, rating, comment, createdAt: Date.now() })
 
     // Build Preview Embed
     const stars = "⭐".repeat(rating)
@@ -1519,7 +1579,7 @@ async function handleDiscordModalSubmit(interaction: ModalSubmitInteraction<Cach
       .setDescription("Please review your vouch before submitting.")
       .addFields(
         { name: "Rating:", value: stars, inline: true },
-        { name: "Feedback:", value: comment }
+        { name: "Feedback:", value: embedField(comment) }
       )
       .setFooter({ text: "This is a preview. Click Confirm to post it." })
 
@@ -1551,8 +1611,8 @@ export async function updatePinnedLiveCard(
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        _count: { select: { vouchesReceived: true } },
-        vouchesReceived: { select: { rating: true } },
+        _count: { select: { vouchesReceived: { where: { status: "ACTIVE" } } } },
+        vouchesReceived: { where: { status: "ACTIVE" }, select: { rating: true } },
       },
     })
     if (!user) return
@@ -1578,7 +1638,7 @@ export async function updatePinnedLiveCard(
     // Build the stats embed
     const embed = new EmbedBuilder()
       .setTitle(`📈 ${user.name || user.username}'s Reputation Live Stats`)
-      .setColor((user.vouchEmbedColor as any) || "#6366f1")
+      .setColor(safeEmbedColor(user.vouchEmbedColor, "#6366f1"))
       .setDescription(user.profileMetaDescription || "Real-time reputation stats. Click the buttons below to interact!")
       .addFields(
         { name: "Rating:", value: `${stars} (${averageRating} / 5.0)`, inline: true },

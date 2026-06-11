@@ -16,7 +16,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { Metadata } from "next"
-import { tokensToCSS, DesignTokens, defaultLightTokens, defaultDarkTokens } from "@/types/design-tokens"
+import { tokensToCSS, sanitizeConfig, defaultLightTokens, defaultDarkTokens } from "@/types/design-tokens"
 import { hasActivePremium } from "@/lib/premium"
 import { standingLabel } from "@/lib/reputation"
 import { getSignedProofUrl } from "@/lib/proof-url"
@@ -51,11 +51,14 @@ export default async function PublicProfilePage({ params, searchParams }: Public
 
   // Count + average are aggregated in the DB; only one page of vouches is loaded
   // (premium accounts can have thousands).
+  // Only ACTIVE vouches are public — REMOVED (soft-deleted) and FLAGGED
+  // (pending moderation) must not affect counts, averages, or the feed.
+  const activeWhere = { receiverId: user.id, status: "ACTIVE" as const }
   const [vouchCount, ratingAgg, vouches] = await Promise.all([
-    prisma.vouch.count({ where: { receiverId: user.id } }),
-    prisma.vouch.aggregate({ where: { receiverId: user.id }, _avg: { rating: true } }),
+    prisma.vouch.count({ where: activeWhere }),
+    prisma.vouch.aggregate({ where: activeWhere, _avg: { rating: true } }),
     prisma.vouch.findMany({
-      where: { receiverId: user.id },
+      where: activeWhere,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * VOUCHES_PER_PAGE,
       take: VOUCHES_PER_PAGE,
@@ -72,10 +75,11 @@ export default async function PublicProfilePage({ params, searchParams }: Public
   const isGlass = theme === "glass"
   const bannerImage = user.profileBannerImage || null
 
-  // Design token CSS from the user's saved tokens (sanitized in tokensToCSS).
+  // Saved tokens are sanitized again on read (defense in depth — also covers
+  // legacy rows written before server-side validation existed).
   const defaults = theme === "light" ? defaultLightTokens : defaultDarkTokens
   const saved = user.profileDesignTokens as Record<string, unknown> | null
-  const activeTokens = saved && "pageBgType" in saved ? (saved as unknown as DesignTokens) : defaults
+  const activeTokens = saved && "pageBgType" in saved ? sanitizeConfig(saved, defaults) : defaults
   const tokenCSS = tokensToCSS(activeTokens)
 
   const fontMap: Record<string, string> = {

@@ -25,7 +25,7 @@ export default async function DashboardPage() {
     where: { id: session.user.id },
     include: {
       _count: {
-        select: { vouchesReceived: true }
+        select: { vouchesReceived: { where: { status: "ACTIVE" } } }
       }
     }
   })
@@ -33,12 +33,12 @@ export default async function DashboardPage() {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   const [recentVouches, vouchesThisWeek] = await Promise.all([
     prisma.vouch.findMany({
-      where: { receiverId: session.user.id },
+      where: { receiverId: session.user.id, status: "ACTIVE" },
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
     prisma.vouch.count({
-      where: { receiverId: session.user.id, createdAt: { gte: weekAgo } },
+      where: { receiverId: session.user.id, status: "ACTIVE", createdAt: { gte: weekAgo } },
     }),
   ])
 

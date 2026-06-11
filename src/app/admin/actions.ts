@@ -13,12 +13,15 @@ async function ensureAdmin() {
 
 export async function toggleUserPremium(userId: string, isPremium: boolean) {
   await ensureAdmin()
-  
+
+  // Always clear the expiry: a stale past date would make an admin grant
+  // useless (hasActivePremium checks the date), and a revoke should not leave
+  // a dangling expiry behind. Admin-granted premium has no expiry by design.
   await prisma.user.update({
     where: { id: userId },
-    data: { isPremium }
+    data: { isPremium, premiumExpiresAt: null }
   })
-  
+
   revalidatePath("/admin/users")
 }
 

@@ -56,9 +56,10 @@ export async function GET(
     return imageResponse(<Promo size={size} />, size)
   }
 
+  const activeWhere = { receiverId: user.id, status: "ACTIVE" as const }
   const [vouchCount, ratingAgg] = await Promise.all([
-    prisma.vouch.count({ where: { receiverId: user.id } }),
-    prisma.vouch.aggregate({ where: { receiverId: user.id }, _avg: { rating: true } }),
+    prisma.vouch.count({ where: activeWhere }),
+    prisma.vouch.aggregate({ where: activeWhere, _avg: { rating: true } }),
   ])
   const avgRating = ratingAgg._avg.rating != null ? ratingAgg._avg.rating.toFixed(1) : null
   const accent = sanitizeColor(user.profileAccentColor) || "#6366f1"

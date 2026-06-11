@@ -16,9 +16,10 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   let vouchCount = 0
   let avgRating: string | null = null
   if (user) {
+    const activeWhere = { receiverId: user.id, status: "ACTIVE" as const }
     const [count, agg] = await Promise.all([
-      prisma.vouch.count({ where: { receiverId: user.id } }),
-      prisma.vouch.aggregate({ where: { receiverId: user.id }, _avg: { rating: true } }),
+      prisma.vouch.count({ where: activeWhere }),
+      prisma.vouch.aggregate({ where: activeWhere, _avg: { rating: true } }),
     ])
     vouchCount = count
     avgRating = agg._avg.rating != null ? agg._avg.rating.toFixed(1) : null

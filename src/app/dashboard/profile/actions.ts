@@ -3,7 +3,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { DesignTokens } from "@/types/design-tokens"
+import { DesignTokens, sanitizeConfig, defaultDarkConfig, defaultLightConfig } from "@/types/design-tokens"
 import { hasActivePremium } from "@/lib/premium"
 
 export async function updateProfile(formData: FormData) {
@@ -63,13 +63,18 @@ export async function saveDesignTokens(tokens: DesignTokens, slug: string) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { isPremium: true, premiumExpiresAt: true },
+    select: { isPremium: true, premiumExpiresAt: true, profileTheme: true },
   })
   if (!hasActivePremium(user)) throw new Error("Premium required")
 
+  // Never store the client payload verbatim: these values are interpolated
+  // into a <style> tag on the public profile, so validate/clamp every field.
+  const defaults = user!.profileTheme === "light" ? defaultLightConfig : defaultDarkConfig
+  const clean = sanitizeConfig(tokens, defaults)
+
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { profileDesignTokens: tokens as object },
+    data: { profileDesignTokens: clean as object },
   })
 
   revalidatePath(`/u/${slug}`)

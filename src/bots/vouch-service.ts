@@ -11,6 +11,18 @@ export { hasActivePremium }
 
 export const FREE_VOUCH_LIMIT = 50
 
+// Discord's EmbedBuilder.setColor throws on anything that isn't a valid color,
+// which would crash a reply mid-flow — only let plain hex through.
+export function safeEmbedColor(value: string | null | undefined, fallback = "#5865F2"): `#${string}` {
+  if (value && /^#[0-9a-fA-F]{6}$/.test(value)) return value as `#${string}`
+  return fallback as `#${string}`
+}
+
+// Discord embed field values cap at 1024 chars; longer input throws.
+export function embedField(text: string, max = 1024): string {
+  return text.length > max ? text.slice(0, max - 1) + "…" : text
+}
+
 // Persist a remote proof image to R2 and return its public URL, or null if R2
 // isn't configured or the upload fails. We deliberately never fall back to the
 // source URL: Discord CDN links are short-lived, and Telegram file links embed
@@ -44,7 +56,7 @@ export async function getLeaderboardRank(vouchCount: number): Promise<number> {
   if (vouchCount <= 0) return 0
   const rows = await prisma.$queryRaw<{ count: number }[]>`
     SELECT COUNT(*)::int AS count FROM (
-      SELECT "receiverId" FROM "Vouch" GROUP BY "receiverId" HAVING COUNT(*) > ${vouchCount}
+      SELECT "receiverId" FROM "Vouch" WHERE "status" = 'ACTIVE' GROUP BY "receiverId" HAVING COUNT(*) > ${vouchCount}
     ) t`
   return Number(rows[0]?.count ?? 0) + 1
 }

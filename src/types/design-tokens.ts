@@ -234,6 +234,84 @@ export function configToCSS(c: ProfileDesignConfig): string {
   return sanitizeStyleContent(rules.join("\n"))
 }
 
+// ── Validation ──────────────────────────────────────────────────────────────
+//
+// Token values come from the client and end up interpolated into a <style>
+// tag on the public profile, so every field must be validated server-side:
+// colors restricted to hex/rgb(a) literals (no url(), no extra declarations),
+// numbers clamped to their documented ranges, enums whitelisted. Unknown or
+// invalid values fall back to the theme default.
+
+const HEX_RE = /^#[0-9a-fA-F]{3,8}$/
+const RGBA_RE = /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*(?:0|1|0?\.\d+)\s*)?\)$/
+
+function safeColor(value: unknown, fallback: string): string {
+  if (typeof value === "string" && (HEX_RE.test(value) || RGBA_RE.test(value))) return value
+  return fallback
+}
+
+function safeNumber(value: unknown, min: number, max: number, fallback: number): number {
+  const n = typeof value === "number" ? value : NaN
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(min, n))
+}
+
+function safeBool(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback
+}
+
+function safeEnum<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(value as T) ? (value as T) : fallback
+}
+
+export function sanitizeConfig(input: unknown, defaults: ProfileDesignConfig): ProfileDesignConfig {
+  const raw = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>
+  const d = defaults
+  return {
+    pageBg: safeColor(raw.pageBg, d.pageBg),
+    pageBgType: safeEnum(raw.pageBgType, ["solid", "gradient"] as const, d.pageBgType),
+    pageBgGradientTo: safeColor(raw.pageBgGradientTo, d.pageBgGradientTo),
+    pageBgGradientAngle: safeNumber(raw.pageBgGradientAngle, 0, 360, d.pageBgGradientAngle),
+    glowEnabled: safeBool(raw.glowEnabled, d.glowEnabled),
+    glowIntensity: safeNumber(raw.glowIntensity, 0, 30, d.glowIntensity),
+    fontFamily: safeEnum(raw.fontFamily, ["sans", "serif", "mono"] as const, d.fontFamily),
+    nameColor: safeColor(raw.nameColor, d.nameColor),
+    nameFontSize: safeNumber(raw.nameFontSize, 28, 72, d.nameFontSize),
+    nameWeight: safeNumber(raw.nameWeight, 400, 900, d.nameWeight),
+    nameLetterSpacing: safeNumber(raw.nameLetterSpacing, -5, 10, d.nameLetterSpacing),
+    subtleColor: safeColor(raw.subtleColor, d.subtleColor),
+    avatarRadius: safeNumber(raw.avatarRadius, 0, 9999, d.avatarRadius),
+    avatarBorderColor: safeColor(raw.avatarBorderColor, d.avatarBorderColor),
+    avatarBorderWidth: safeNumber(raw.avatarBorderWidth, 1, 4, d.avatarBorderWidth),
+    avatarShadow: safeBool(raw.avatarShadow, d.avatarShadow),
+    cardBg: safeColor(raw.cardBg, d.cardBg),
+    cardBorderColor: safeColor(raw.cardBorderColor, d.cardBorderColor),
+    cardBorderWidth: safeNumber(raw.cardBorderWidth, 1, 3, d.cardBorderWidth),
+    cardRadius: safeNumber(raw.cardRadius, 0, 48, d.cardRadius),
+    cardShadow: safeEnum(raw.cardShadow, ["none", "sm", "md", "lg"] as const, d.cardShadow),
+    cardPadding: safeNumber(raw.cardPadding, 0.75, 3, d.cardPadding),
+    cardCommentColor: safeColor(raw.cardCommentColor, d.cardCommentColor),
+    cardCommentSize: safeNumber(raw.cardCommentSize, 12, 18, d.cardCommentSize),
+    ratingBg: safeColor(raw.ratingBg, d.ratingBg),
+    ratingColor: safeColor(raw.ratingColor, d.ratingColor),
+    ratingBorderColor: safeColor(raw.ratingBorderColor, d.ratingBorderColor),
+    ratingRadius: safeNumber(raw.ratingRadius, 0, 48, d.ratingRadius),
+    statBg: safeColor(raw.statBg, d.statBg),
+    statBorderColor: safeColor(raw.statBorderColor, d.statBorderColor),
+    statRadius: safeNumber(raw.statRadius, 0, 48, d.statRadius),
+    statLabelColor: safeColor(raw.statLabelColor, d.statLabelColor),
+    statValueColor: safeColor(raw.statValueColor, d.statValueColor),
+    badgeBg: safeColor(raw.badgeBg, d.badgeBg),
+    badgeBorderColor: safeColor(raw.badgeBorderColor, d.badgeBorderColor),
+    badgeTextColor: safeColor(raw.badgeTextColor, d.badgeTextColor),
+    badgeRadius: safeNumber(raw.badgeRadius, 0, 48, d.badgeRadius),
+    ctaBg: safeColor(raw.ctaBg, d.ctaBg),
+    ctaTextColor: safeColor(raw.ctaTextColor, d.ctaTextColor),
+    ctaRadius: safeNumber(raw.ctaRadius, 0, 48, d.ctaRadius),
+    dividerColor: safeColor(raw.dividerColor, d.dividerColor),
+  }
+}
+
 // Keep old alias for any lingering references
 export type DesignTokens = ProfileDesignConfig
 export const defaultDarkTokens = defaultDarkConfig
