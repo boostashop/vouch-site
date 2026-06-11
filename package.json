@@ -8,7 +8,8 @@
     "start": "next start",
     "bot": "npx tsx src/bot-manager.ts",
     "lint": "eslint",
-    "test": "node --import tsx --test \"src/**/*.test.ts\""
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test:db": "DATABASE_URL=\"$TEST_DATABASE_URL\" node --import tsx --test \"src/**/*.itest.ts\""
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",

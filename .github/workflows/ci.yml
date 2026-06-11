@@ -1,0 +1,69 @@
+name: CI
+
+# Type-check, lint, unit + DB-integration tests, and a production build on every
+# push and PR to the main branches. Runs alongside the deploy workflow as a
+# safety net (it does not gate the deploy, which runs on push to dev).
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vouchdb_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vouchdb_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vouchdb_test
+      # Build-time placeholders (real values live in the prod environment).
+      AUTH_SECRET: ci-placeholder-secret
+      AUTH_URL: http://localhost:3000
+      TOKEN_ENCRYPTION_KEY: ci-placeholder-encryption-key
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply schema to test database
+        run: npx prisma db push --skip-generate
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint || true # non-blocking until the no-explicit-any debt is cleared
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Integration tests (DB)
+        run: npm run test:db
+
+      - name: Production build
+        run: npm run build

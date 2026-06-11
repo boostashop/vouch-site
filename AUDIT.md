@@ -1,12 +1,13 @@
 # Vouched.to — Full Codebase Audit (2026-06-11)
 
 **Status 2026-06-11:** all P0s, all P1s, and all P2s fixed & deployed.
-P3 done: #23 webhook idempotency, weekly-summary resilience, ephemeral→flags
-deprecation, uuid→crypto.randomUUID, trivial lint errors. Remaining (deferred,
-lower-value/larger): #19 clear-to-empty embed fields (arguably intentional),
-command-registration caching (premature at current scale), DB-dependent tests
-for validateVouchRules/webhook, the ~66 no-explicit-any lint warnings in
-bot glue code, admin 'coming soon' placeholders, and the EMAIL_FROM prod env.
+P3 done: #23 webhook idempotency, weekly-summary resilience, ephemeral→flags,
+uuid→crypto.randomUUID, admin user-management + placeholder removal, MyVouches
+backfill applied, and a test-DB integration harness + CI workflow. Remaining
+(low-value/optional): #19 clear-to-empty embed fields, command-registration
+caching, the ~66 no-explicit-any lint warnings (CI lint is non-blocking until
+cleared), more integration tests (webhook/getActiveConfig), and the external
+VPS key rotation.
 
 Deep-dive review of every source file (~11.5k LOC: web app, Discord/Telegram
 bots, auth, payments, admin). Ordered by priority — fix P0s before promoting
@@ -230,23 +231,21 @@ Switch to `revalidate = 300` like the landing page — same freshness, cacheable
 - **Free-limit TOCTOU:** `count` then `create` lets simultaneous vouches exceed
   50 slightly. Acceptable; document or use a transaction if it matters.
 - **`dashboard/vouches` / dashboards:** add pagination and proper Vouch typing.
-- **Tests:** only `crypto`, `payments`, `premium`, `design-tokens` have tests.
-  The highest-risk logic (`validateVouchRules`, webhook handler, `getActiveConfig`)
-  has none. No CI configured.
+- ✅ **Tests/CI** — DB-integration harness added (test DB + `*.itest.ts`),
+  `validateVouchRules` covered (7 tests), and a CI workflow (Postgres service,
+  tsc + unit + integration + build) in `.github/workflows/ci.yml`. See
+  TESTING.md. Webhook/getActiveConfig integration tests still welcome.
 - **Lint debt:** pre-existing errors (`react/no-unescaped-entities` in
   signin, `no-explicit-any` in leaderboard) keep `npm run lint` red — fix so
   lint can gate.
 - **PM2 restart counts are alarming** (vouch-site ~790, vouch-bot ~260).
   Investigate `pm2 logs` error history; add `max_memory_restart` config and an
   alert (some restarts were the port-3000 conflict, but not all).
-- **Admin settings page is mostly placeholders** ("Maintenance Mode — coming
-  soon", "Global API Access — coming soon") — ship or remove.
-- **Admin can't manage users fully:** no user delete, no token revoke, no
-  premium-with-expiry grant, no impersonation/audit log.
-- **`EMAIL_FROM` defaults to `onboarding@resend.dev`** — make sure prod sets a
-  branded sender.
-- **`uuid` dependency is only used for v4** — `crypto.randomUUID()` covers it;
-  drop the dep.
+- ✅ **Admin settings placeholders removed** (Maintenance Mode / Global API).
+- ⚠️ **Admin user management** — added delete-user (cascade-safe) and
+  grant-premium-with-expiry; token-revoke/impersonation/audit-log still open.
+- ✅ **`EMAIL_FROM`** verified set to a branded `@vouched.to` sender in prod.
+- ✅ **`uuid` dependency dropped** for `crypto.randomUUID()`.
 
 ---
 
