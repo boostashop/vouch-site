@@ -91,6 +91,23 @@ interface BadgeProps {
   avgRating: string | null
 }
 
+// Inline SVGs — ImageResponse has no emoji font, so ⭐/🔒 render as tofu boxes.
+function StarIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="#f59e0b">
+      <path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 7.1-1.01L12 2z" />
+    </svg>
+  )
+}
+function LockIcon({ size = 16, color = "#a1a1aa" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0110 0v4" />
+    </svg>
+  )
+}
+
 function Banner({ name, accent, vouchCount, avgRating }: BadgeProps) {
   const initial = (name[0] || "V").toUpperCase()
   return (
@@ -192,7 +209,9 @@ function Banner({ name, accent, vouchCount, avgRating }: BadgeProps) {
           </div>
           {avgRating && (
             <div style={{ display: "flex", alignItems: "center", marginTop: 4 }}>
-              <span style={{ color: "#f59e0b", fontSize: 16, fontWeight: 900 }}>⭐ {avgRating}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#f59e0b", fontSize: 16, fontWeight: 900 }}>
+                <StarIcon size={15} /> {avgRating}
+              </span>
               <span
                 style={{
                   color: "#52525b",
@@ -265,8 +284,8 @@ function Chip({ accent, vouchCount, avgRating }: BadgeProps) {
       <div style={{ display: "flex", width: 1, height: 20, background: "#27272a", margin: "0 10px" }} />
       <span style={{ color: "#fff", fontSize: 14, fontWeight: 900 }}>{vouchCount}</span>
       {avgRating && (
-        <span style={{ color: "#f59e0b", fontSize: 13, fontWeight: 900, marginLeft: 9 }}>
-          ⭐ {avgRating}
+        <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#f59e0b", fontSize: 13, fontWeight: 900, marginLeft: 9 }}>
+          <StarIcon size={13} /> {avgRating}
         </span>
       )}
       <div
@@ -292,7 +311,9 @@ function Promo({ size }: { size: Size }) {
           borderRadius: 8,
         }}
       >
-        <span style={{ color: "#a1a1aa", fontSize: 13, fontWeight: 800 }}>🔒 vouched.to</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#a1a1aa", fontSize: 13, fontWeight: 800 }}>
+          <LockIcon size={13} /> vouched.to
+        </span>
       </div>
     )
   }
@@ -332,10 +353,9 @@ function Promo({ size }: { size: Size }) {
             height: 64,
             borderRadius: 18,
             background: "rgba(255,255,255,0.05)",
-            fontSize: 30,
           }}
         >
-          🔒
+          <LockIcon size={30} color="#fff" />
         </div>
         <div style={{ display: "flex", flexDirection: "column", marginLeft: 20 }}>
           <span style={{ color: "#fff", fontSize: 24, fontWeight: 900, letterSpacing: "-0.02em" }}>

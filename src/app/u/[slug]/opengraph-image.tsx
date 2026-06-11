@@ -142,8 +142,11 @@ export default async function Image({ params }: { params: Promise<{ slug: string
                   <span style={{ color: "#78716c", fontSize: 12, fontWeight: 700, letterSpacing: "0.15em" }}>
                     AVG RATING
                   </span>
-                  <span style={{ color: "#f59e0b", fontSize: 36, fontWeight: 900 }}>
-                    ★ {avgRating}
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, color: "#f59e0b", fontSize: 36, fontWeight: 900 }}>
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="#f59e0b">
+                      <path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 7.1-1.01L12 2z" />
+                    </svg>
+                    {avgRating}
                   </span>
                 </div>
               )}
@@ -162,7 +165,12 @@ export default async function Image({ params }: { params: Promise<{ slug: string
                 <span style={{ color: "#71717a", fontSize: 12, fontWeight: 700, letterSpacing: "0.15em" }}>
                   STATUS
                 </span>
-                <span style={{ color: "#10b981", fontSize: 20, fontWeight: 900 }}>✓ Verified</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 8, color: "#10b981", fontSize: 20, fontWeight: 900 }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                  Verified
+                </span>
               </div>
             </div>
           </div>
