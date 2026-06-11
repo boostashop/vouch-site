@@ -2,7 +2,7 @@
 
 import { signIn, signOut } from "next-auth/react"
 import { Mail, LogOut, User, Lock, ArrowRight, ShieldCheck, ChevronLeft } from "lucide-react"
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { loginWithCredentials, register, verifyPasswordOnly } from "@/app/auth/actions"
 
 export function SignIn({

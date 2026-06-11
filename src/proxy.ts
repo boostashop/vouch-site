@@ -44,6 +44,12 @@ export default auth((req: NextRequest & { auth?: unknown }) => {
   const isDashboardPage = req.nextUrl.pathname.startsWith("/dashboard")
   const isAdminPage = req.nextUrl.pathname.startsWith("/admin")
 
+  // Redirect logged-in users off the landing page to avoid the "Sign In" flash
+  // and the blank-page symptom from stale ISR cache.
+  if (req.nextUrl.pathname === "/" && isAuth) {
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin))
+  }
+
   if ((isDashboardPage || isAdminPage) && !isAuth) {
     return NextResponse.redirect(new URL("/auth/signin", req.nextUrl.origin))
   }
