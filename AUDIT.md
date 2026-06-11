@@ -3,7 +3,8 @@
 **Status 2026-06-11:** all P0s, all P1s, and most P2s fixed & deployed (see ✅
 markers). Remaining: #21 (FK constraints + account deletion), #23 (webhook
 dedupe), #24 (auth rate limiting), #25 (OG emoji tofu), #19 (clear-to-empty),
-and the P3 cleanup list.
+and the P3 cleanup list. Account deletion (part of #21) and OG emoji (#25)
+are now done; remaining #21 work is adding DB-level FK constraints.
 
 Deep-dive review of every source file (~11.5k LOC: web app, Discord/Telegram
 bots, auth, payments, admin). Ordered by priority — fix P0s before promoting
@@ -168,7 +169,7 @@ for free users too (harmless — bot gates at read — but confusing).
 credentials signups → "N/A". Add `createdAt`/`updatedAt` to `User` (and
 backfill).
 
-### 21. Missing FK relations / cascade rules
+### 21. ⚠️ PARTIAL — account deletion shipped; FK constraints still TODO
 `VouchReport.vouchId`, `Blacklist.userId`, `GuildConfig.userId` have no
 relations; `Vouch.receiver` has no `onDelete`. Admin `deleteVouch` leaves
 orphaned reports; deleting a user row is impossible while vouches exist. There
@@ -196,7 +197,7 @@ table when convenient.
 - No password reset flow for credentials accounts (magic link only works if
   the email matches, which it does — but the UI never says so).
 
-### 25. OG/badge images render emoji as tofu
+### 25. ✅ FIXED — OG/badge images render emoji as tofu
 `u/[slug]/opengraph-image.tsx` ("★", "✓ Verified") renders missing-glyph boxes
 (seen in generated output). Replace glyph characters with inline SVG (as the
 badge chip now does for the logo) or load a font into `ImageResponse`.
