@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Lets the deploy build into a staging directory (NEXT_DIST_DIR=.next-staging)
+  // and atomically swap it into `.next` only after a successful build, so a
+  // flaky build never leaves the running server pointing at a half-written
+  // `.next`. Unset at runtime (`next start`), so the server always reads `.next`.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
+
   // Tree-shake the lucide-react icon barrel so only the icons we use ship to
   // the client, instead of pulling the whole index into the bundle.
   experimental: {

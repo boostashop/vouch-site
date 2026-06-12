@@ -31,19 +31,42 @@ jobs:
             # Sync code
             git fetch origin dev
             git reset --hard origin/dev
-            
-            # Install dependencies and build. Clean .next first: a stale build
-            # dir can reference an old content-hashed @prisma/client bundle and
-            # crash at runtime ("Cannot find module @prisma/client-<hash>")
-            # after the client is regenerated. A clean build keeps them in sync.
+
             npm install
             npx prisma generate
-            rm -rf .next
-            npm run build
-            
-            # Restart processes
+
+            # Build into a STAGING dir and only swap it into place after a fully
+            # successful build. The old approach (`rm -rf .next && npm run build`)
+            # was fragile: `next build` intermittently flakes with
+            # "ENOENT .next/server/pages-manifest.json", and because the live
+            # `.next` had already been deleted, the running server was left
+            # pointing at a half-written build and crash-looped on ChunkLoadError
+            # (which also poisons the ISR cache). Build-then-swap keeps the
+            # last-good `.next` intact until the new build is proven complete.
+            # `distDir` is read from NEXT_DIST_DIR in next.config.ts.
+            build_staging() {
+              rm -rf .next-staging
+              NEXT_DIST_DIR=.next-staging npm run build
+              # Sanity-check the build actually completed before we trust it.
+              test -f .next-staging/BUILD_ID
+            }
+            if ! build_staging; then
+              echo "Build failed; retrying once after a short cooldown..."
+              sleep 5
+              build_staging
+            fi
+
+            # Atomically swap in the new build, then restart immediately so the
+            # server doesn't lazily read swapped-out chunks. The previous build
+            # is kept as .next-prev for one cycle as a quick manual rollback.
+            rm -rf .next-prev
+            mv .next .next-prev 2>/dev/null || true
+            mv .next-staging .next
+
+            # Restart only this app's processes — NOT `pm2 restart all`, which
+            # would needlessly bounce the separate payment-platform processes.
             if command -v pm2 &> /dev/null; then
-              pm2 restart all || {
+              pm2 restart vouch-site vouch-bot --update-env || {
                 echo "PM2 restart failed, attempting to start fresh"
                 pm2 delete vouch-site || true
                 pm2 delete vouch-bot || true
@@ -56,6 +79,6 @@ jobs:
               pm2 start npm --name "vouch-site" -- start -- -p 3000
               pm2 start npm --name "vouch-bot" -- run bot
             fi
-            
+
             echo "Deployment successful!"
             pm2 status

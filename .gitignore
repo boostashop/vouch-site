@@ -15,6 +15,9 @@
 
 # next.js
 /.next/
+# deploy build-then-swap staging/rollback dirs
+/.next-staging/
+/.next-prev/
 /out/
 
 # production
