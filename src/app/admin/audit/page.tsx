@@ -5,16 +5,16 @@ const PAGE_SIZE = 50
 
 // Visual treatment per action category.
 const ACTION_STYLE: Record<string, { label: string; cls: string }> = {
-  USER_BAN: { label: "Ban", cls: "bg-red-500/10 text-red-500" },
-  USER_UNBAN: { label: "Unban", cls: "bg-emerald-500/10 text-emerald-500" },
-  USER_DELETE: { label: "Delete user", cls: "bg-red-500/10 text-red-500" },
-  PREMIUM_GRANT: { label: "Premium grant", cls: "bg-amber-500/10 text-amber-500" },
-  PREMIUM_REVOKE: { label: "Premium revoke", cls: "bg-zinc-500/10 text-zinc-500" },
-  ROLE_CHANGE: { label: "Role change", cls: "bg-indigo-500/10 text-indigo-500" },
-  VOUCH_DELETE: { label: "Vouch delete", cls: "bg-red-500/10 text-red-500" },
-  VOUCH_APPROVE: { label: "Vouch approve", cls: "bg-emerald-500/10 text-emerald-500" },
-  VOUCH_REMOVE: { label: "Vouch remove", cls: "bg-orange-500/10 text-orange-500" },
-  SIGNUPS_TOGGLE: { label: "Signups toggle", cls: "bg-sky-500/10 text-sky-500" },
+  USER_BAN: { label: "Ban", cls: "bg-red-500/10 text-red-600 ring-red-500/20 dark:text-red-400" },
+  USER_UNBAN: { label: "Unban", cls: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20 dark:text-emerald-400" },
+  USER_DELETE: { label: "Delete user", cls: "bg-red-500/10 text-red-600 ring-red-500/20 dark:text-red-400" },
+  PREMIUM_GRANT: { label: "Premium grant", cls: "bg-amber-500/10 text-amber-600 ring-amber-500/20 dark:text-amber-400" },
+  PREMIUM_REVOKE: { label: "Premium revoke", cls: "bg-zinc-500/10 text-zinc-500 ring-zinc-500/20" },
+  ROLE_CHANGE: { label: "Role change", cls: "bg-indigo-500/10 text-indigo-600 ring-indigo-500/20 dark:text-indigo-400" },
+  VOUCH_DELETE: { label: "Vouch delete", cls: "bg-red-500/10 text-red-600 ring-red-500/20 dark:text-red-400" },
+  VOUCH_APPROVE: { label: "Vouch approve", cls: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20 dark:text-emerald-400" },
+  VOUCH_REMOVE: { label: "Vouch remove", cls: "bg-orange-500/10 text-orange-600 ring-orange-500/20 dark:text-orange-400" },
+  SIGNUPS_TOGGLE: { label: "Signups toggle", cls: "bg-sky-500/10 text-sky-600 ring-sky-500/20 dark:text-sky-400" },
 }
 
 export default async function AdminAuditPage(props: {
@@ -39,57 +39,57 @@ export default async function AdminAuditPage(props: {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white flex items-center gap-3">
-          <ScrollText className="text-red-500" size={28} />
+        <h1 className="page-title flex items-center gap-2.5">
+          <ScrollText className="text-red-500" size={20} />
           Audit Log
         </h1>
-        <p className="text-zinc-500 mt-1 font-medium">
+        <p className="page-subtitle">
           {total.toLocaleString()} recorded admin action{total !== 1 ? "s" : ""} — every ban, deletion, premium grant, role change and moderation decision.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-[32px] overflow-hidden">
+      <div className="card overflow-hidden">
         {entries.length === 0 ? (
-          <div className="p-20 text-center">
-            <ShieldCheck size={40} className="mx-auto text-zinc-700 mb-4" />
-            <p className="text-zinc-500 font-medium">No admin actions recorded yet.</p>
+          <div className="px-6 py-16 text-center">
+            <ShieldCheck size={32} className="mx-auto mb-3 text-zinc-300 dark:text-zinc-600" />
+            <p className="text-sm text-zinc-500">No admin actions recorded yet.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-zinc-200 dark:border-white/5 text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-900/20">
-                  <th className="px-6 py-4">When</th>
-                  <th className="px-4 py-4">Admin</th>
-                  <th className="px-4 py-4">Action</th>
-                  <th className="px-6 py-4">Details</th>
+                <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[11px] font-medium uppercase tracking-wide text-zinc-400 dark:border-white/[0.06] dark:bg-white/[0.02] dark:text-zinc-500">
+                  <th className="px-5 py-3 font-medium">When</th>
+                  <th className="px-4 py-3 font-medium">Admin</th>
+                  <th className="px-4 py-3 font-medium">Action</th>
+                  <th className="px-5 py-3 font-medium">Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-white/[0.04]">
+              <tbody className="divide-y divide-zinc-100 dark:divide-white/[0.05]">
                 {entries.map((e) => {
-                  const style = ACTION_STYLE[e.action] ?? { label: e.action, cls: "bg-zinc-500/10 text-zinc-500" }
+                  const style = ACTION_STYLE[e.action] ?? { label: e.action, cls: "bg-zinc-500/10 text-zinc-500 ring-zinc-500/20" }
                   return (
-                    <tr key={e.id} className="hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-3 whitespace-nowrap">
-                        <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-300">
+                    <tr key={e.id} className="transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
+                      <td className="whitespace-nowrap px-5 py-3">
+                        <p className="text-[13px] font-medium text-zinc-900 dark:text-zinc-300">
                           {new Date(e.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}
                         </p>
-                        <p className="text-[10px] text-zinc-500">
+                        <p className="text-[11px] text-zinc-500">
                           {new Date(e.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-xs font-bold text-zinc-900 dark:text-white truncate max-w-[180px]">
+                        <p className="max-w-[180px] truncate text-[13px] font-medium text-zinc-900 dark:text-white">
                           {e.actorEmail || e.actorId || "—"}
                         </p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full ${style.cls}`}>
+                        <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide ring-1 ring-inset ${style.cls}`}>
                           {style.label}
                         </span>
                       </td>
-                      <td className="px-6 py-3">
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400">{e.summary}</p>
+                      <td className="px-5 py-3">
+                        <p className="text-[13px] text-zinc-600 dark:text-zinc-400">{e.summary}</p>
                       </td>
                     </tr>
                   )
@@ -100,25 +100,25 @@ export default async function AdminAuditPage(props: {
         )}
 
         {total > 0 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/20">
-            <p className="text-xs font-medium text-zinc-500">
+          <div className="flex items-center justify-between border-t border-zinc-100 bg-zinc-50/60 px-5 py-3 dark:border-white/[0.06] dark:bg-white/[0.02]">
+            <p className="text-xs text-zinc-500">
               Showing {from}–{to} of {total.toLocaleString()}
             </p>
             <div className="flex items-center gap-1">
               {page > 1 ? (
-                <a href={`/admin/audit?page=${page - 1}`} className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-white/5 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-all">
-                  <ChevronLeft size={16} />
+                <a href={`/admin/audit?page=${page - 1}`} className="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-white/[0.06] dark:hover:text-white">
+                  <ChevronLeft size={15} />
                 </a>
               ) : (
-                <span className="p-2 text-zinc-300 dark:text-zinc-700"><ChevronLeft size={16} /></span>
+                <span className="p-2 text-zinc-300 dark:text-zinc-700"><ChevronLeft size={15} /></span>
               )}
-              <span className="px-3 text-xs font-bold text-zinc-500">Page {page} / {totalPages}</span>
+              <span className="px-3 text-xs font-medium text-zinc-500">Page {page} / {totalPages}</span>
               {page < totalPages ? (
-                <a href={`/admin/audit?page=${page + 1}`} className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-white/5 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-all">
-                  <ChevronRight size={16} />
+                <a href={`/admin/audit?page=${page + 1}`} className="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-white/[0.06] dark:hover:text-white">
+                  <ChevronRight size={15} />
                 </a>
               ) : (
-                <span className="p-2 text-zinc-300 dark:text-zinc-700"><ChevronRight size={16} /></span>
+                <span className="p-2 text-zinc-300 dark:text-zinc-700"><ChevronRight size={15} /></span>
               )}
             </div>
           </div>

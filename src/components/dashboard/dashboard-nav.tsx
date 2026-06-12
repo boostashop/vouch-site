@@ -241,7 +241,7 @@ export function MobileNav({
     <>
       {/* Bottom tab bar */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0c0c0e]/95 lg:hidden">
-        <div className="flex h-[60px] items-stretch px-1">
+        <div className="flex h-16 items-stretch">
           {MOBILE_TABS.map((item) => {
             const active = isActive(pathname, item)
             const Icon = item.icon
@@ -250,18 +250,23 @@ export function MobileNav({
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className="flex flex-1 flex-col items-center justify-center gap-1"
+                className="group relative flex flex-1 flex-col items-center justify-center gap-1"
               >
-                <span
-                  className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
-                    active ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" : "text-zinc-500 dark:text-zinc-400"
-                  }`}
-                >
-                  <Icon size={19} strokeWidth={active ? 2.2 : 2} />
-                </span>
+                {active && (
+                  <span className="absolute top-0 h-0.5 w-8 rounded-full bg-indigo-500" />
+                )}
+                <Icon
+                  size={20}
+                  strokeWidth={active ? 2.3 : 1.9}
+                  className={
+                    active
+                      ? "text-indigo-600 dark:text-indigo-400"
+                      : "text-zinc-400 dark:text-zinc-500"
+                  }
+                />
                 <span
                   className={`text-[10px] font-medium ${
-                    active ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-500 dark:text-zinc-400"
+                    active ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-400 dark:text-zinc-500"
                   }`}
                 >
                   {item.label}
@@ -274,18 +279,16 @@ export function MobileNav({
             onClick={() => setOpen(true)}
             aria-label="Open menu"
             aria-expanded={open}
-            className="flex flex-1 flex-col items-center justify-center gap-1"
+            className="relative flex flex-1 flex-col items-center justify-center gap-1"
           >
-            <span
-              className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
-                open ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" : "text-zinc-500 dark:text-zinc-400"
-              }`}
-            >
-              <Menu size={19} />
-            </span>
+            <Menu
+              size={20}
+              strokeWidth={1.9}
+              className={open ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-400 dark:text-zinc-500"}
+            />
             <span
               className={`text-[10px] font-medium ${
-                open ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-500 dark:text-zinc-400"
+                open ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-400 dark:text-zinc-500"
               }`}
             >
               Menu
@@ -294,7 +297,7 @@ export function MobileNav({
         </div>
       </nav>
 
-      {/* Drawer */}
+      {/* Drawer — slides in from the right to match the Menu tab's position */}
       {open && (
         <div className="fixed inset-0 z-[60] lg:hidden">
           {/* Backdrop */}
@@ -306,7 +309,7 @@ export function MobileNav({
           />
 
           {/* Panel */}
-          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[82vw] flex-col border-r border-zinc-200 bg-white shadow-2xl animate-in slide-in-from-left duration-200 dark:border-white/10 dark:bg-[#0c0c0e]">
+          <div className="absolute inset-y-0 right-0 flex w-72 max-w-[82vw] flex-col border-l border-zinc-200 bg-white shadow-2xl animate-in slide-in-from-right duration-200 dark:border-white/10 dark:bg-[#0c0c0e]">
             <div className="flex h-16 items-center justify-between border-b border-zinc-100 px-4 dark:border-white/[0.06]">
               <Link href="/dashboard" className="flex items-center gap-2.5 text-zinc-950 dark:text-white">
                 <LogoMark size={28} className="rounded-lg" />

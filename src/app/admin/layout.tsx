@@ -2,21 +2,9 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
-import {
-  Users,
-  Settings,
-  MessageSquare,
-  ShieldAlert,
-  ChevronRight,
-  ShieldCheck,
-  Bell,
-  Activity,
-  ScrollText,
-  User as UserIcon,
-  LayoutDashboard
-} from "lucide-react"
-import { SignOut, MobileSignOut } from "@/components/auth-components"
-import { AdminNavItem } from "@/components/admin/admin-nav"
+import { ShieldAlert, LayoutDashboard, User as UserIcon } from "lucide-react"
+import { SignOut } from "@/components/auth-components"
+import { AdminSidebarNav, AdminMobileNav, AdminBreadcrumbs } from "@/components/admin/admin-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogoMark } from "@/components/logo"
 import { isAdmin } from "@/lib/admin"
@@ -35,90 +23,88 @@ export default async function AdminLayout({
   const flaggedCount = await prisma.vouch.count({ where: { status: "FLAGGED" } })
 
   return (
-    <div className="flex min-h-screen bg-zinc-50 dark:bg-black font-sans transition-colors duration-300">
+    <div className="flex min-h-screen bg-background font-sans text-foreground transition-colors duration-300">
       {/* Sidebar - Desktop */}
-      <aside className="w-64 border-r border-zinc-200 dark:border-white/5 hidden lg:flex flex-col fixed inset-y-0 left-0 bg-white dark:bg-[#050505] z-30 transition-colors duration-300">
-        <div className="p-6">
-          <Link href="/admin" className="flex items-center gap-2.5">
-            <LogoMark size={32} tone="red" className="rounded-lg shadow-lg shadow-red-600/20" />
-            <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white uppercase italic">Admin</span>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-zinc-200 bg-white transition-colors duration-300 dark:border-white/[0.08] dark:bg-[#0c0c0e] lg:flex">
+        <div className="flex h-16 shrink-0 items-center border-b border-zinc-100 px-5 dark:border-white/[0.06]">
+          <Link href="/admin" className="flex items-center gap-2.5 text-zinc-950 dark:text-white">
+            <LogoMark size={28} tone="red" className="rounded-lg" />
+            <span className="text-[15px] font-semibold tracking-tight">Admin</span>
+            <span className="ml-1 rounded-md bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-600 ring-1 ring-inset ring-red-500/20 dark:text-red-400">
+              Staff
+            </span>
           </Link>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1">
-          <AdminNavItem href="/admin" icon={<Activity size={18} />} label="System Pulse" />
-          <AdminNavItem href="/admin/users" icon={<Users size={18} />} label="User Management" />
-          <AdminNavItem href="/admin/vouches" icon={<MessageSquare size={18} />} label="Vouch Audit" />
-          <AdminNavItem href="/admin/flagged" icon={<Bell size={18} />} label="Flagged Queue" count={flaggedCount} />
-          <AdminNavItem href="/admin/audit" icon={<ScrollText size={18} />} label="Audit Log" />
-          <AdminNavItem href="/admin/settings" icon={<ShieldAlert size={18} />} label="Core Settings" />
-        </nav>
+        <AdminSidebarNav flaggedCount={flaggedCount} />
 
-        <div className="p-4 border-t border-zinc-200 dark:border-white/5">
-          <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-900/50 mb-4 border border-zinc-200 dark:border-white/5">
-            <div className="w-9 h-9 rounded-xl bg-red-600/10 border border-red-500/10 flex items-center justify-center text-red-400">
-              <ShieldAlert size={18} />
+        <div className="space-y-1.5 border-t border-zinc-100 p-3 dark:border-white/[0.06]">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2.5 rounded-lg border border-indigo-500/20 px-3 py-2 text-[13px] font-medium text-indigo-600 transition-colors hover:bg-indigo-500/10 dark:text-indigo-400"
+          >
+            <LayoutDashboard size={15} />
+            Exit to Dashboard
+          </Link>
+          <div className="flex items-center gap-3 rounded-lg px-2 py-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/10 text-red-600 ring-1 ring-inset ring-red-500/20 dark:text-red-400">
+              <ShieldAlert size={15} />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">{session.user?.name || 'Admin'}</p>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate font-medium uppercase tracking-wider">{session.user?.email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-white">
+                {session.user?.name || "Admin"}
+              </p>
+              <p className="truncate text-xs text-zinc-500 dark:text-zinc-500">{session.user?.email}</p>
             </div>
           </div>
           <SignOut />
-          <Link
-            href="/dashboard"
-            className="mt-2 w-full flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-white hover:bg-indigo-600 dark:hover:bg-indigo-600/10 transition-all border border-indigo-500/20"
-          >
-            ← Exit Admin
-          </Link>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-60">
         {/* Header */}
-        <header className="h-16 border-b border-zinc-200 dark:border-white/5 flex items-center justify-between px-4 md:px-8 bg-white/80 dark:bg-black/80 backdrop-blur-xl sticky top-0 z-20 transition-colors duration-300">
-          <div className="flex items-center gap-4 text-sm font-medium">
-            <div className="lg:hidden flex items-center gap-2 mr-2">
-              <LogoMark size={28} tone="red" className="rounded-md" />
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-zinc-200 bg-white/90 px-4 backdrop-blur-xl transition-colors duration-300 dark:border-white/[0.08] dark:bg-[#09090b]/90 md:px-8">
+          <div className="flex items-center gap-4">
+            <div className="hidden md:block">
+              <AdminBreadcrumbs />
             </div>
-            <span className="text-zinc-500">Root</span>
-            <ChevronRight size={14} className="text-zinc-300 dark:text-zinc-700" />
-            <span className="text-zinc-900 dark:text-white">Admin Dashboard</span>
+            <Link href="/admin" className="flex items-center gap-2 md:hidden">
+              <LogoMark size={28} tone="red" className="rounded-lg" />
+              <span className="text-[15px] font-semibold tracking-tight text-zinc-950 dark:text-white">Admin</span>
+            </Link>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/5 border border-red-500/10">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest">Live Security</span>
+            <div className="hidden items-center gap-2 rounded-full border border-red-500/15 bg-red-500/5 px-3 py-1.5 sm:flex">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
+                Live
+              </span>
             </div>
-            <div className="h-6 w-[1px] bg-zinc-200 dark:bg-white/10 mx-1" />
             <ThemeToggle />
-            <div className="h-6 w-[1px] bg-zinc-200 dark:bg-white/10 mx-1" />
             {session.user?.image ? (
-              <img src={session.user.image} alt="Profile" className="w-8 h-8 rounded-full border border-zinc-200 dark:border-white/10" />
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={session.user.image}
+                alt="Profile"
+                className="h-7 w-7 rounded-full border border-zinc-200 dark:border-white/10"
+              />
             ) : (
-              <div className="w-8 h-8 rounded-full border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-zinc-500">
-                <UserIcon size={14} />
-              </div>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500/10 text-red-600 ring-1 ring-inset ring-red-500/20 dark:text-red-400">
+                <UserIcon size={13} />
+              </span>
             )}
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-6 md:px-8 md:pt-8 lg:pb-12">
           {children}
         </main>
       </div>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/90 dark:bg-black/90 backdrop-blur-xl border-t border-zinc-200 dark:border-white/5 px-4 flex items-center justify-between z-30 transition-colors duration-300">
-        <Link href="/admin" className="p-3 text-red-500"><Activity size={20} /></Link>
-        <Link href="/admin/users" className="p-3 text-zinc-400 dark:text-zinc-600"><Users size={20} /></Link>
-        <Link href="/admin/vouches" className="p-3 text-zinc-400 dark:text-zinc-600"><MessageSquare size={20} /></Link>
-        <Link href="/dashboard" className="p-3 text-zinc-400 dark:text-zinc-600"><LayoutDashboard size={20} /></Link>
-        <MobileSignOut />
-      </nav>
-      <div className="h-16 lg:hidden" />
+      {/* Mobile navigation */}
+      <AdminMobileNav user={session.user ?? {}} flaggedCount={flaggedCount} />
     </div>
   )
 }

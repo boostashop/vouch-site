@@ -46,34 +46,29 @@ export default async function AdminUserDetailPage(props: {
   const label = user.name || user.username || user.email || "this user"
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl">
-      <Link href="/admin/users" className="inline-flex items-center gap-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
-        <ArrowLeft size={16} /> Back to users
+    <div className="max-w-4xl space-y-6 animate-in fade-in duration-500">
+      <Link href="/admin/users" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 transition-colors hover:text-zinc-900 dark:hover:text-white">
+        <ArrowLeft size={15} /> Back to users
       </Link>
 
       {/* Header */}
-      <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-[32px] p-8">
-        <div className="flex items-start justify-between gap-6 flex-wrap">
+      <div className="card p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-3xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-white/5 flex items-center justify-center text-2xl font-black text-zinc-500 overflow-hidden">
-              {user.image ? <img src={user.image} alt="" /> : (user.email?.[0] ?? user.username?.[0] ?? "?").toUpperCase()}
+            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 text-xl font-semibold text-zinc-500 dark:border-white/[0.08] dark:bg-white/[0.04]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {user.image ? <img src={user.image} alt="" className="h-full w-full object-cover" /> : (user.email?.[0] ?? user.username?.[0] ?? "?").toUpperCase()}
             </div>
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white">{user.name || user.username || "Anonymous"}</h1>
-                {user.role === "ADMIN" && (
-                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-red-500/10 text-red-500">Admin</span>
-                )}
-                {premium && (
-                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-amber-500/10 text-amber-500">Premium</span>
-                )}
-                {user.bannedAt && (
-                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-red-500/10 text-red-500">Banned</span>
-                )}
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-white">{user.name || user.username || "Anonymous"}</h1>
+                {user.role === "ADMIN" && <span className="chip-zinc !bg-red-500/10 !text-red-600 !ring-red-500/20 dark:!text-red-400">Admin</span>}
+                {premium && <span className="chip-amber">Premium</span>}
+                {user.bannedAt && <span className="chip-zinc !bg-red-500/10 !text-red-600 !ring-red-500/20 dark:!text-red-400">Banned</span>}
               </div>
-              <p className="text-sm text-zinc-500 font-medium mt-1">{user.email}</p>
+              <p className="mt-1 text-[13px] text-zinc-500">{user.email}</p>
               {user.slug && (
-                <a href={`/u/${user.slug}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-400 font-bold mt-1">
+                <a href={`/u/${user.slug}`} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
                   /u/{user.slug} <ExternalLink size={11} />
                 </a>
               )}
@@ -82,10 +77,10 @@ export default async function AdminUserDetailPage(props: {
 
           {/* Controls */}
           {!isSelf && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2">
               <PremiumControl userId={user.id} isPremium={user.isPremium} premiumExpiresAt={user.premiumExpiresAt ? user.premiumExpiresAt.toISOString() : null} />
               <form action={async () => { "use server"; await toggleUserRole(user.id, user.role === "ADMIN" ? "USER" : "ADMIN") }}>
-                <button type="submit" className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:border-zinc-300 dark:hover:border-white/10 transition-all">
+                <button type="submit" className="rounded-md bg-zinc-500/10 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-zinc-500 ring-1 ring-inset ring-zinc-500/20 transition-colors hover:text-zinc-700 dark:hover:text-zinc-300">
                   {user.role === "ADMIN" ? "Demote" : "Make admin"}
                 </button>
               </form>
@@ -96,60 +91,64 @@ export default async function AdminUserDetailPage(props: {
         </div>
 
         {user.bannedAt && (
-          <div className="mt-6 p-4 rounded-2xl bg-red-500/5 border border-red-500/15">
-            <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1">Suspended {timeAgo(user.bannedAt)}</p>
-            <p className="text-sm text-zinc-700 dark:text-zinc-300">{user.banReason || <span className="text-zinc-500 italic">No reason recorded</span>}</p>
+          <div className="mt-5 rounded-lg border border-red-500/15 bg-red-500/5 p-4">
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-red-600 dark:text-red-400">Suspended {timeAgo(user.bannedAt)}</p>
+            <p className="text-[13px] text-zinc-700 dark:text-zinc-300">{user.banReason || <span className="italic text-zinc-500">No reason recorded</span>}</p>
           </div>
         )}
       </div>
 
       {/* Facts grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Fact icon={<MessageSquare size={16} className="text-indigo-400" />} label="Vouches" value={String(user._count.vouchesReceived)} />
-        <Fact icon={<Calendar size={16} className="text-blue-400" />} label="Joined" value={new Date(user.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} />
-        <Fact icon={<Clock size={16} className="text-zinc-400" />} label="Last active" value={timeAgo(user.updatedAt)} />
-        <Fact icon={<ShieldCheck size={16} className="text-amber-400" />} label="2FA" value={user.totpEnabled ? "Enabled" : "Off"} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Fact icon={<MessageSquare size={15} className="text-indigo-500" />} label="Vouches" value={String(user._count.vouchesReceived)} />
+        <Fact icon={<Calendar size={15} className="text-blue-500" />} label="Joined" value={new Date(user.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} />
+        <Fact icon={<Clock size={15} className="text-zinc-400" />} label="Last active" value={timeAgo(user.updatedAt)} />
+        <Fact icon={<ShieldCheck size={15} className="text-amber-500" />} label="2FA" value={user.totpEnabled ? "Enabled" : "Off"} />
       </div>
 
       {/* Identity + bot status */}
-      <div className="grid lg:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-[32px] p-8 space-y-4">
-          <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500">Identity</h2>
-          <Row icon={<Mail size={14} />} label="Email" value={user.email || "—"} />
-          <Row icon={<AtSign size={14} />} label="Username" value={user.username || "—"} />
-          <Row icon={<Globe size={14} />} label="Custom domain" value={user.customDomain || "—"} />
-          <Row icon={<ShieldCheck size={14} />} label="Password set" value={user.password ? "Yes" : "No (magic-link only)"} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="card p-5">
+          <h2 className="mb-4 text-[11px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Identity</h2>
+          <div className="space-y-3">
+            <Row icon={<Mail size={14} />} label="Email" value={user.email || "—"} />
+            <Row icon={<AtSign size={14} />} label="Username" value={user.username || "—"} />
+            <Row icon={<Globe size={14} />} label="Custom domain" value={user.customDomain || "—"} />
+            <Row icon={<ShieldCheck size={14} />} label="Password set" value={user.password ? "Yes" : "No (magic-link only)"} />
+          </div>
         </div>
-        <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-[32px] p-8 space-y-4">
-          <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500">Bot status</h2>
-          <BotRow platform="Discord" hasToken={!!user.discordBotToken} online={user.discordBotOnline} />
-          <BotRow platform="Telegram" hasToken={!!user.telegramBotToken} online={user.telegramBotOnline} />
-          <p className="text-[11px] text-zinc-500 pt-1 flex items-center gap-1.5">
-            <Bot size={12} /> Last health check: {timeAgo(user.botCheckedAt)}
-          </p>
+        <div className="card p-5">
+          <h2 className="mb-4 text-[11px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Bot status</h2>
+          <div className="space-y-3">
+            <BotRow platform="Discord" hasToken={!!user.discordBotToken} online={user.discordBotOnline} />
+            <BotRow platform="Telegram" hasToken={!!user.telegramBotToken} online={user.telegramBotOnline} />
+            <p className="flex items-center gap-1.5 pt-1 text-xs text-zinc-500">
+              <Bot size={12} /> Last health check: {timeAgo(user.botCheckedAt)}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Recent vouches */}
-      <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-[32px] p-8 space-y-4">
-        <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500">Recent vouches received</h2>
+      <div className="card">
+        <div className="card-header">
+          <h2 className="card-title">Recent vouches received</h2>
+        </div>
         {recentVouches.length === 0 ? (
-          <p className="text-sm text-zinc-500 py-4">No vouches yet.</p>
+          <p className="px-5 py-8 text-center text-sm text-zinc-500">No vouches yet.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="divide-y divide-zinc-100 dark:divide-white/[0.05]">
             {recentVouches.map((v) => (
-              <div key={v.id} className="flex items-start gap-3 p-3 rounded-2xl bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5">
-                <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-xs font-black text-zinc-700 dark:text-zinc-300">{v.rating}★</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                    <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">{v.giverName}</span>
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${v.platform === "discord" ? "bg-indigo-500/10 text-indigo-500" : "bg-sky-500/10 text-sky-500"}`}>{v.platform}</span>
-                    {v.status !== "ACTIVE" && (
-                      <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-zinc-500/10 text-zinc-500">{v.status}</span>
-                    )}
-                    <span className="ml-auto text-[10px] text-zinc-500">{new Date(v.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}</span>
+              <div key={v.id} className="flex items-start gap-3 px-5 py-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center gap-0.5 rounded-lg bg-amber-500/10 text-xs font-semibold text-amber-600 ring-1 ring-inset ring-amber-500/20 dark:text-amber-400">{v.rating}★</div>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-0.5 flex flex-wrap items-center gap-2">
+                    <span className="truncate text-[13px] font-semibold text-zinc-900 dark:text-white">{v.giverName}</span>
+                    <span className={v.platform === "discord" ? "chip-indigo" : "chip-sky"}>{v.platform === "discord" ? "Discord" : "Telegram"}</span>
+                    {v.status !== "ACTIVE" && <span className="chip-zinc">{v.status}</span>}
+                    <span className="ml-auto text-[11px] text-zinc-400 dark:text-zinc-500">{new Date(v.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}</span>
                   </div>
-                  {v.comment && <p className="text-[11px] text-zinc-500 truncate">{v.comment}</p>}
+                  {v.comment && <p className="truncate text-xs text-zinc-500">{v.comment}</p>}
                 </div>
               </div>
             ))}
@@ -162,10 +161,10 @@ export default async function AdminUserDetailPage(props: {
 
 function Fact({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="p-5 rounded-3xl bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5">
-      <div className="w-9 h-9 rounded-xl bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center border border-zinc-200 dark:border-white/5 mb-3">{icon}</div>
-      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">{label}</p>
-      <p className="text-lg font-black text-zinc-900 dark:text-white">{value}</p>
+    <div className="card p-4">
+      <div className="card-icon mb-3">{icon}</div>
+      <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{label}</p>
+      <p className="mt-0.5 text-base font-semibold text-zinc-900 dark:text-white">{value}</p>
     </div>
   )
 }
@@ -173,20 +172,20 @@ function Fact({ icon, label, value }: { icon: React.ReactNode; label: string; va
 function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className="flex items-center gap-2 text-xs font-bold text-zinc-500"><span className="text-zinc-400">{icon}</span>{label}</span>
-      <span className="text-xs font-semibold text-zinc-900 dark:text-white truncate max-w-[60%] text-right">{value}</span>
+      <span className="flex items-center gap-2 text-[13px] text-zinc-500"><span className="text-zinc-400">{icon}</span>{label}</span>
+      <span className="max-w-[60%] truncate text-right text-[13px] font-medium text-zinc-900 dark:text-white">{value}</span>
     </div>
   )
 }
 
 function BotRow({ platform, hasToken, online }: { platform: string; hasToken: boolean; online: boolean }) {
   const state = !hasToken ? "Not configured" : online ? "Online" : "Offline"
-  const dot = !hasToken ? "bg-zinc-300 dark:bg-zinc-700" : online ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-amber-500"
+  const dot = !hasToken ? "bg-zinc-300 dark:bg-zinc-700" : online ? "bg-emerald-500" : "bg-amber-500"
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className="text-xs font-bold text-zinc-500">{platform}</span>
-      <span className="flex items-center gap-2 text-xs font-semibold text-zinc-900 dark:text-white">
-        <span className={`w-1.5 h-1.5 rounded-full ${dot}`} /> {state}
+      <span className="text-[13px] text-zinc-500">{platform}</span>
+      <span className="flex items-center gap-2 text-[13px] font-medium text-zinc-900 dark:text-white">
+        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} /> {state}
       </span>
     </div>
   )

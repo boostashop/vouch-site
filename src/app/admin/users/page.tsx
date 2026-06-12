@@ -51,95 +51,94 @@ export default async function AdminUsersPage(props: {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">User Management</h1>
-          <p className="text-zinc-500 mt-2 font-medium">
+          <h1 className="page-title">User Management</h1>
+          <p className="page-subtitle">
             {total.toLocaleString()} account{total !== 1 ? "s" : ""}{query ? " matching your search" : ""}.
           </p>
         </div>
 
-        <form method="get" className="relative w-full md:w-64">
-           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-           <input
-             type="text"
-             name="q"
-             defaultValue={query || ""}
-             placeholder="Search users..."
-             className="w-full bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 rounded-xl pl-12 pr-4 py-2.5 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all outline-none"
-           />
+        <form method="get" className="relative w-full sm:w-64">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
+          <input
+            type="text"
+            name="q"
+            defaultValue={query || ""}
+            placeholder="Search users..."
+            className="input pl-10"
+          />
         </form>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-[32px] overflow-hidden">
+      <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-white/5 text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-900/20">
-                <th className="px-8 py-5">User</th>
-                <th className="px-6 py-5">Role</th>
-                <th className="px-6 py-5">Premium</th>
-                <th className="px-6 py-5 text-center">Vouches</th>
-                <th className="px-6 py-5">Joined</th>
-                <th className="px-6 py-5">Bot</th>
-                <th className="px-8 py-5 text-right">Actions</th>
+              <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[11px] font-medium uppercase tracking-wide text-zinc-400 dark:border-white/[0.06] dark:bg-white/[0.02] dark:text-zinc-500">
+                <th className="px-5 py-3 font-medium">User</th>
+                <th className="px-4 py-3 font-medium">Role</th>
+                <th className="px-4 py-3 font-medium">Premium</th>
+                <th className="px-4 py-3 text-center font-medium">Vouches</th>
+                <th className="px-4 py-3 font-medium">Joined</th>
+                <th className="px-4 py-3 font-medium">Bot</th>
+                <th className="px-5 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-white/5">
+            <tbody className="divide-y divide-zinc-100 dark:divide-white/[0.05]">
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-8 py-16 text-center text-sm text-zinc-500">No users found.</td>
+                  <td colSpan={7} className="px-5 py-16 text-center text-sm text-zinc-500">No users found.</td>
                 </tr>
               ) : users.map((user) => (
-                <tr key={user.id} className="group hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="px-8 py-5">
+                <tr key={user.id} className="group transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
+                  <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-white/5 flex items-center justify-center text-zinc-500 overflow-hidden">
-                        {user.image ? <img src={user.image} alt="" /> : (user.email?.[0] ?? user.username?.[0] ?? "?").toUpperCase()}
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 text-[13px] font-medium text-zinc-500 dark:border-white/10 dark:bg-white/[0.04]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {user.image ? <img src={user.image} alt="" className="h-full w-full object-cover" /> : (user.email?.[0] ?? user.username?.[0] ?? "?").toUpperCase()}
                       </div>
-                      <div className="flex flex-col min-w-0">
-                        <Link href={`/admin/users/${user.id}`} className="flex items-center gap-1.5 text-sm font-bold text-zinc-900 dark:text-white leading-none mb-1 hover:text-red-500 transition-colors">
+                      <div className="flex min-w-0 flex-col">
+                        <Link href={`/admin/users/${user.id}`} className="mb-0.5 flex items-center gap-1.5 text-[13px] font-semibold leading-none text-zinc-900 transition-colors hover:text-red-500 dark:text-white">
                           <span className="truncate">{user.name || user.username || 'Anonymous'}</span>
-                          {user.bannedAt && (
-                            <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-red-500/10 text-red-500 flex-shrink-0">Banned</span>
-                          )}
-                          <ExternalLink size={11} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                          {user.bannedAt && <span className="chip-zinc shrink-0 !bg-red-500/10 !text-red-500 !ring-red-500/20">Banned</span>}
+                          <ExternalLink size={11} className="shrink-0 text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100" />
                         </Link>
-                        <span className="text-[11px] font-medium text-zinc-500 truncate">{user.email}</span>
+                        <span className="truncate text-xs text-zinc-500">{user.email}</span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-3.5">
                     <UserRoleBadge role={user.role} userId={user.id} />
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-3.5">
                     <PremiumControl
                       userId={user.id}
                       isPremium={user.isPremium}
                       premiumExpiresAt={user.premiumExpiresAt ? user.premiumExpiresAt.toISOString() : null}
                     />
                   </td>
-                  <td className="px-6 py-5 text-center font-bold text-sm text-zinc-400">
+                  <td className="px-4 py-3.5 text-center text-[13px] font-semibold text-zinc-500">
                     {user._count.vouchesReceived}
                   </td>
-                  <td className="px-6 py-5">
-                    <span className="text-xs text-zinc-500 whitespace-nowrap">
+                  <td className="px-4 py-3.5">
+                    <span className="whitespace-nowrap text-xs text-zinc-500">
                       {new Date(user.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}
                     </span>
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2">
-                       <div className={`w-1.5 h-1.5 rounded-full ${user.discordBotToken || user.telegramBotToken ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
-                       <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
-                         {user.discordBotToken && user.telegramBotToken ? 'Both' : user.discordBotToken ? 'Discord' : user.telegramBotToken ? 'Telegram' : 'None'}
-                       </span>
+                      <span className={`h-1.5 w-1.5 rounded-full ${user.discordBotToken || user.telegramBotToken ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
+                      <span className="text-xs font-medium text-zinc-500">
+                        {user.discordBotToken && user.telegramBotToken ? 'Both' : user.discordBotToken ? 'Discord' : user.telegramBotToken ? 'Telegram' : 'None'}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-8 py-5">
+                  <td className="px-5 py-3.5">
                     <div className="flex items-center justify-end gap-2">
                       {user.id === currentUserId ? (
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">You</span>
+                        <span className="text-xs font-medium text-zinc-400">You</span>
                       ) : (
                         <>
                           <BanControl userId={user.id} banned={!!user.bannedAt} label={user.name || user.email || user.username || "this user"} />
@@ -155,19 +154,19 @@ export default async function AdminUsersPage(props: {
         </div>
 
         {total > 0 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/20">
-            <p className="text-xs font-medium text-zinc-500">Showing {from}–{to} of {total.toLocaleString()}</p>
+          <div className="flex items-center justify-between border-t border-zinc-100 bg-zinc-50/60 px-5 py-3 dark:border-white/[0.06] dark:bg-white/[0.02]">
+            <p className="text-xs text-zinc-500">Showing {from}–{to} of {total.toLocaleString()}</p>
             <div className="flex items-center gap-1">
               {page > 1 ? (
-                <a href={pageUrl(page - 1)} className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-white/5 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-all"><ChevronLeft size={16} /></a>
+                <a href={pageUrl(page - 1)} className="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-white/[0.06] dark:hover:text-white"><ChevronLeft size={15} /></a>
               ) : (
-                <span className="p-2 text-zinc-300 dark:text-zinc-700"><ChevronLeft size={16} /></span>
+                <span className="p-2 text-zinc-300 dark:text-zinc-700"><ChevronLeft size={15} /></span>
               )}
-              <span className="px-3 text-xs font-bold text-zinc-500">Page {page} / {totalPages}</span>
+              <span className="px-3 text-xs font-medium text-zinc-500">Page {page} / {totalPages}</span>
               {page < totalPages ? (
-                <a href={pageUrl(page + 1)} className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-white/5 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-all"><ChevronRight size={16} /></a>
+                <a href={pageUrl(page + 1)} className="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-white/[0.06] dark:hover:text-white"><ChevronRight size={15} /></a>
               ) : (
-                <span className="p-2 text-zinc-300 dark:text-zinc-700"><ChevronRight size={16} /></span>
+                <span className="p-2 text-zinc-300 dark:text-zinc-700"><ChevronRight size={15} /></span>
               )}
             </div>
           </div>
@@ -186,10 +185,10 @@ function UserRoleBadge({ role, userId }: { role: string, userId: string }) {
     }}>
       <button
         type="submit"
-        className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
+        className={`rounded-md px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ring-1 ring-inset transition-colors ${
           isAdmin
-            ? 'bg-red-500/10 border-red-500/20 text-red-500'
-            : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-white/5 text-zinc-500 hover:border-zinc-300 dark:hover:border-white/10'
+            ? 'bg-red-500/10 text-red-600 ring-red-500/20 dark:text-red-400'
+            : 'bg-zinc-500/10 text-zinc-500 ring-zinc-500/20 hover:text-zinc-700 dark:hover:text-zinc-300'
         }`}
       >
         {role}

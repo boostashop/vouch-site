@@ -43,10 +43,10 @@ export function PremiumControl({
       <button
         onClick={() => setOpen((v) => !v)}
         disabled={pending}
-        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
+        className={`flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ring-1 ring-inset transition-colors ${
           isPremium
-            ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
-            : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-white/5 text-zinc-500 hover:border-zinc-300 dark:hover:border-white/10"
+            ? "bg-amber-500/10 text-amber-600 ring-amber-500/20 dark:text-amber-400"
+            : "bg-zinc-500/10 text-zinc-500 ring-zinc-500/20 hover:text-zinc-700 dark:hover:text-zinc-300"
         }`}
       >
         {pending ? <Loader2 size={10} className="animate-spin" /> : <Zap size={10} fill={isPremium ? "currentColor" : "none"} />}
@@ -55,8 +55,8 @@ export function PremiumControl({
       </button>
 
       {open && (
-        <div className="absolute right-0 z-20 mt-1 w-40 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-2xl py-1 animate-in fade-in zoom-in-95 duration-100">
-          <p className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-zinc-400">Grant premium</p>
+        <div className="absolute right-0 z-20 mt-1.5 w-40 rounded-xl border border-zinc-200 bg-white py-1 shadow-xl shadow-black/5 animate-in fade-in zoom-in-95 duration-100 dark:border-white/10 dark:bg-[#141416] dark:shadow-black/40">
+          <p className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-zinc-400">Grant premium</p>
           {GRANT_OPTIONS.map((opt) => (
             <button
               key={opt.label}
@@ -64,7 +64,7 @@ export function PremiumControl({
                 setOpen(false)
                 startTransition(() => grantPremium(userId, opt.days))
               }}
-              className="w-full text-left px-3 py-1.5 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors"
+              className="w-full px-3 py-1.5 text-left text-[13px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-white/[0.06]"
             >
               {opt.label}
             </button>
@@ -75,7 +75,7 @@ export function PremiumControl({
                 setOpen(false)
                 startTransition(() => toggleUserPremium(userId, false))
               }}
-              className="w-full text-left px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-500/10 border-t border-zinc-100 dark:border-white/5 mt-1 transition-colors"
+              className="mt-1 w-full border-t border-zinc-100 px-3 py-1.5 text-left text-[13px] font-medium text-red-600 transition-colors hover:bg-red-500/10 dark:border-white/[0.06] dark:text-red-400"
             >
               Revoke
             </button>
@@ -101,20 +101,15 @@ export function BanControl({
 
   if (banned) {
     return (
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20">
-          Banned
-        </span>
-        <button
-          disabled={pending}
-          onClick={() => startTransition(() => unbanUser(userId))}
-          title="Unban user"
-          className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-emerald-500 hover:border-emerald-500/20 transition-all disabled:opacity-50"
-        >
-          {pending ? <Loader2 size={10} className="animate-spin" /> : <RotateCcw size={10} />}
-          Unban
-        </button>
-      </div>
+      <button
+        disabled={pending}
+        onClick={() => startTransition(() => unbanUser(userId))}
+        title="Unban user"
+        className="flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ring-1 ring-inset ring-zinc-500/20 bg-zinc-500/10 text-zinc-500 transition-colors hover:text-emerald-600 hover:ring-emerald-500/25 disabled:opacity-50 dark:hover:text-emerald-400"
+      >
+        {pending ? <Loader2 size={10} className="animate-spin" /> : <RotateCcw size={10} />}
+        Unban
+      </button>
     )
   }
 
@@ -129,7 +124,7 @@ export function BanControl({
         }
       }}
       title="Ban user"
-      className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-red-500 hover:border-red-500/20 transition-all disabled:opacity-50"
+      className="flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ring-1 ring-inset ring-zinc-500/20 bg-zinc-500/10 text-zinc-500 transition-colors hover:text-red-600 hover:ring-red-500/25 disabled:opacity-50 dark:hover:text-red-400"
     >
       {pending ? <Loader2 size={10} className="animate-spin" /> : <Ban size={10} />}
       Ban
@@ -149,7 +144,7 @@ export function DeleteUserButton({ userId, label }: { userId: string; label: str
         }
       }}
       title="Delete user"
-      className="flex items-center justify-center w-8 h-8 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-500/10 transition-all disabled:opacity-50"
+      className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"
     >
       {pending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
     </button>

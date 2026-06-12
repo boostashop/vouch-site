@@ -3,7 +3,6 @@ import {
   MessageSquare,
   Search,
   Trash2,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
   Star,
@@ -85,25 +84,23 @@ export default async function AdminVouchesPage(props: {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Title */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
-            Vouch Audit
-          </h1>
-          <p className="text-zinc-500 mt-1 font-medium">
+          <h1 className="page-title">Vouch Audit</h1>
+          <p className="page-subtitle">
             {total.toLocaleString()} vouch{total !== 1 ? "es" : ""} total
           </p>
         </div>
 
         {/* Search */}
-        <form method="get" className="relative w-full md:w-72">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+        <form method="get" className="relative w-full sm:w-72">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
           <input
             type="text"
             name="q"
             defaultValue={q}
             placeholder="Search giver, comment, ID…"
-            className="w-full bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 rounded-xl pl-12 pr-4 py-2.5 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all outline-none"
+            className="input pl-10"
           />
           {platform && <input type="hidden" name="platform" value={platform} />}
           {status && <input type="hidden" name="status" value={status} />}
@@ -112,7 +109,7 @@ export default async function AdminVouchesPage(props: {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2.5">
         <FilterSelect
           label="Platform"
           name="platform"
@@ -151,60 +148,48 @@ export default async function AdminVouchesPage(props: {
           buildUrl={buildUrl}
         />
         {(q || platform || status || rating) && (
-          <a
-            href="/admin/vouches"
-            className="px-4 py-2 rounded-xl border border-zinc-200 dark:border-white/5 text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-300 dark:hover:border-white/10 transition-all"
-          >
+          <a href="/admin/vouches" className="btn-secondary !py-2 text-[13px]">
             Clear filters
           </a>
         )}
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-[32px] overflow-hidden">
+      <div className="card overflow-hidden">
         {vouches.length === 0 ? (
-          <div className="p-20 text-center">
-            <MessageSquare size={40} className="mx-auto text-zinc-700 mb-4" />
-            <p className="text-zinc-500 font-medium">No vouches match your filters.</p>
+          <div className="px-6 py-16 text-center">
+            <MessageSquare size={32} className="mx-auto mb-3 text-zinc-300 dark:text-zinc-600" />
+            <p className="text-sm text-zinc-500">No vouches match your filters.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-zinc-200 dark:border-white/5 text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-900/20">
-                  <th className="px-6 py-4">Giver</th>
-                  <th className="px-4 py-4 text-center">Rating</th>
-                  <th className="px-4 py-4">Comment</th>
-                  <th className="px-4 py-4">Receiver</th>
-                  <th className="px-4 py-4 text-center">Status</th>
-                  <th className="px-4 py-4">Date</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[11px] font-medium uppercase tracking-wide text-zinc-400 dark:border-white/[0.06] dark:bg-white/[0.02] dark:text-zinc-500">
+                  <th className="px-5 py-3 font-medium">Giver</th>
+                  <th className="px-4 py-3 text-center font-medium">Rating</th>
+                  <th className="px-4 py-3 font-medium">Comment</th>
+                  <th className="px-4 py-3 font-medium">Receiver</th>
+                  <th className="px-4 py-3 text-center font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Date</th>
+                  <th className="px-5 py-3 text-right font-medium">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-white/[0.04]">
+              <tbody className="divide-y divide-zinc-100 dark:divide-white/[0.05]">
                 {vouches.map((v) => (
-                  <tr
-                    key={v.id}
-                    className="group hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors"
-                  >
+                  <tr key={v.id} className="group transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
                     {/* Giver */}
-                    <td className="px-6 py-3">
+                    <td className="px-5 py-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-white/5 flex items-center justify-center text-xs font-black text-zinc-500 flex-shrink-0">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-100 text-[13px] font-semibold text-zinc-500 dark:border-white/[0.08] dark:bg-white/[0.04]">
                           {v.giverName[0]?.toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-zinc-900 dark:text-white truncate max-w-[120px]">
+                          <p className="max-w-[120px] truncate text-[13px] font-semibold text-zinc-900 dark:text-white">
                             {v.giverName}
                           </p>
-                          <span
-                            className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${
-                              v.platform === "discord"
-                                ? "bg-indigo-500/10 text-indigo-500"
-                                : "bg-sky-500/10 text-sky-500"
-                            }`}
-                          >
-                            {v.platform}
+                          <span className={v.platform === "discord" ? "chip-indigo" : "chip-sky"}>
+                            {v.platform === "discord" ? "Discord" : "Telegram"}
                           </span>
                         </div>
                       </div>
@@ -218,27 +203,20 @@ export default async function AdminVouchesPage(props: {
                             key={i}
                             size={10}
                             fill={i < v.rating ? "currentColor" : "none"}
-                            className={i < v.rating ? "opacity-100" : "opacity-20"}
+                            className={i < v.rating ? "opacity-100" : "opacity-25"}
                           />
                         ))}
                       </div>
-                      <span className="text-[10px] font-black text-zinc-500">{v.rating}/5</span>
+                      <span className="text-[11px] font-medium text-zinc-500">{v.rating}/5</span>
                     </td>
 
                     {/* Comment */}
-                    <td className="px-4 py-3 max-w-[260px]">
-                      <p
-                        className="text-xs text-zinc-400 truncate"
-                        title={v.comment ?? ""}
-                      >
-                        {v.comment ? (
-                          <span className="italic">"{v.comment}"</span>
-                        ) : (
-                          <span className="text-zinc-600">—</span>
-                        )}
+                    <td className="max-w-[260px] px-4 py-3">
+                      <p className="truncate text-xs text-zinc-500" title={v.comment ?? ""}>
+                        {v.comment ? `"${v.comment}"` : <span className="text-zinc-400 dark:text-zinc-600">—</span>}
                       </p>
                       {v.autoFlagReason && (
-                        <p className="flex items-center gap-1 text-[10px] text-red-400 mt-0.5 truncate" title={v.autoFlagReason}>
+                        <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-red-500" title={v.autoFlagReason}>
                           <AlertTriangle size={9} />
                           {v.autoFlagReason}
                         </p>
@@ -247,7 +225,7 @@ export default async function AdminVouchesPage(props: {
 
                     {/* Receiver */}
                     <td className="px-4 py-3">
-                      <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-300 truncate max-w-[120px]">
+                      <p className="max-w-[120px] truncate text-[13px] font-medium text-zinc-900 dark:text-zinc-300">
                         {v.receiver.name || v.receiver.username || v.receiver.email || "—"}
                       </p>
                     </td>
@@ -259,7 +237,7 @@ export default async function AdminVouchesPage(props: {
 
                     {/* Date */}
                     <td className="px-4 py-3">
-                      <p className="text-xs text-zinc-500 whitespace-nowrap">
+                      <p className="whitespace-nowrap text-xs text-zinc-500">
                         {new Date(v.createdAt).toLocaleDateString("en-GB", {
                           day: "2-digit",
                           month: "short",
@@ -269,14 +247,14 @@ export default async function AdminVouchesPage(props: {
                     </td>
 
                     {/* Actions */}
-                    <td className="px-6 py-3">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center justify-end gap-1">
                         {v.proofImageUrl && (
                           <a
                             href={getSignedProofUrl(v.proofImageUrl) ?? undefined}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                            className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-indigo-500/10 hover:text-indigo-500"
                             title="View proof"
                           >
                             <Image size={14} />
@@ -289,7 +267,7 @@ export default async function AdminVouchesPage(props: {
                           }}
                         >
                           <button
-                            className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                            className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-red-500/10 hover:text-red-500"
                             title="Delete vouch"
                           >
                             <Trash2 size={14} />
@@ -306,37 +284,30 @@ export default async function AdminVouchesPage(props: {
 
         {/* Pagination footer */}
         {total > 0 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/20">
-            <p className="text-xs font-medium text-zinc-500">
+          <div className="flex items-center justify-between border-t border-zinc-100 bg-zinc-50/60 px-5 py-3 dark:border-white/[0.06] dark:bg-white/[0.02]">
+            <p className="text-xs text-zinc-500">
               Showing {showing.from}–{showing.to} of {total.toLocaleString()}
             </p>
             <div className="flex items-center gap-1">
               {page > 1 ? (
-                <a
-                  href={buildUrl({ page: page - 1 })}
-                  className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-white/5 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-all"
-                >
-                  <ChevronLeft size={16} />
+                <a href={buildUrl({ page: page - 1 })} className="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-white/[0.06] dark:hover:text-white">
+                  <ChevronLeft size={15} />
                 </a>
               ) : (
-                <span className="p-2 text-zinc-300 dark:text-zinc-700">
-                  <ChevronLeft size={16} />
-                </span>
+                <span className="p-2 text-zinc-300 dark:text-zinc-700"><ChevronLeft size={15} /></span>
               )}
 
               {buildPageRange(page, totalPages).map((p, i) =>
                 p === "…" ? (
-                  <span key={`ellipsis-${i}`} className="px-2 text-zinc-500 text-xs">
-                    …
-                  </span>
+                  <span key={`ellipsis-${i}`} className="px-2 text-xs text-zinc-400">…</span>
                 ) : (
                   <a
                     key={p}
                     href={buildUrl({ page: p as number })}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-medium transition-colors ${
                       p === page
-                        ? "bg-red-600 text-white shadow-lg shadow-red-600/20"
-                        : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-white/5"
+                        ? "bg-red-600 text-white"
+                        : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-white/[0.06] dark:hover:text-white"
                     }`}
                   >
                     {p}
@@ -345,16 +316,11 @@ export default async function AdminVouchesPage(props: {
               )}
 
               {page < totalPages ? (
-                <a
-                  href={buildUrl({ page: page + 1 })}
-                  className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-white/5 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-all"
-                >
-                  <ChevronRight size={16} />
+                <a href={buildUrl({ page: page + 1 })} className="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-white/[0.06] dark:hover:text-white">
+                  <ChevronRight size={15} />
                 </a>
               ) : (
-                <span className="p-2 text-zinc-300 dark:text-zinc-700">
-                  <ChevronRight size={16} />
-                </span>
+                <span className="p-2 text-zinc-300 dark:text-zinc-700"><ChevronRight size={15} /></span>
               )}
             </div>
           </div>
@@ -365,23 +331,9 @@ export default async function AdminVouchesPage(props: {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  if (status === "ACTIVE")
-    return (
-      <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500">
-        Active
-      </span>
-    )
-  if (status === "FLAGGED")
-    return (
-      <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-red-500/10 text-red-500">
-        Flagged
-      </span>
-    )
-  return (
-    <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-zinc-500/10 text-zinc-500">
-      Removed
-    </span>
-  )
+  if (status === "ACTIVE") return <span className="chip-emerald">Active</span>
+  if (status === "FLAGGED") return <span className="chip-zinc !bg-red-500/10 !text-red-600 !ring-red-500/20 dark:!text-red-400">Flagged</span>
+  return <span className="chip-zinc">Removed</span>
 }
 
 function FilterSelect({
@@ -398,8 +350,8 @@ function FilterSelect({
   buildUrl: (overrides: Record<string, string | number | undefined>) => string
 }) {
   return (
-    <div className="flex items-center gap-0 rounded-xl border border-zinc-200 dark:border-white/5 overflow-hidden bg-white dark:bg-zinc-900/50">
-      <span className="px-3 text-[10px] font-black text-zinc-500 uppercase tracking-widest border-r border-zinc-200 dark:border-white/5 py-2.5 bg-zinc-50 dark:bg-zinc-900/20 whitespace-nowrap">
+    <div className="flex items-center overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-white/[0.08] dark:bg-[#101012]">
+      <span className="whitespace-nowrap border-r border-zinc-200 bg-zinc-50/60 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-zinc-400 dark:border-white/[0.06] dark:bg-white/[0.02] dark:text-zinc-500">
         {label}
       </span>
       <div className="flex items-center">
@@ -407,9 +359,9 @@ function FilterSelect({
           <a
             key={opt.value}
             href={buildUrl({ [name]: opt.value || undefined, page: 1 })}
-            className={`px-3 py-2.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`whitespace-nowrap px-3 py-2 text-[13px] font-medium transition-colors ${
               current === opt.value
-                ? "text-zinc-900 dark:text-white bg-zinc-100 dark:bg-white/5"
+                ? "bg-zinc-100 text-zinc-900 dark:bg-white/[0.06] dark:text-white"
                 : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
