@@ -34,6 +34,11 @@ jobs:
 
             npm install
             npx prisma generate
+            # Apply schema changes. This project uses `db push` (no migrations
+            # dir); changes are additive, so push is non-destructive. Without
+            # this, a deploy that adds columns/tables leaves the app 500-ing on
+            # the missing schema.
+            npx prisma db push --skip-generate
 
             # Build into a STAGING dir and only swap it into place after a fully
             # successful build. The old approach (`rm -rf .next && npm run build`)

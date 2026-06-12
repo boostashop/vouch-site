@@ -22,7 +22,9 @@ export default async function LeaderboardPage() {
   })
 
   const users = await prisma.user.findMany({
-    where: { id: { in: top.map((t) => t.receiverId) } },
+    // Exclude banned users — rankedUsers drops any receiverId without a matching
+    // row, so a banned profile simply disappears from the board.
+    where: { id: { in: top.map((t) => t.receiverId) }, bannedAt: null },
     select: {
       id: true,
       name: true,

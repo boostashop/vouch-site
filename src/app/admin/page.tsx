@@ -13,7 +13,9 @@ import {
   Activity,
   AlertTriangle,
   Bell,
+  ScrollText,
 } from "lucide-react"
+import Link from "next/link"
 
 export default async function AdminPulsePage() {
   const todayStart = new Date()
@@ -24,23 +26,26 @@ export default async function AdminPulsePage() {
     vouchCount,
     premiumCount,
     vouchesToday,
-    activeBotCount,
+    signupsToday,
     noBotCount,
+    botsOnlineCount,
     flaggedCount,
     ratingAgg,
     recentVouches,
     topUsers,
     platformGroups,
+    recentAudit,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.vouch.count(),
     prisma.user.count({ where: { isPremium: true } }),
     prisma.vouch.count({ where: { createdAt: { gte: todayStart } } }),
-    prisma.user.count({
-      where: { OR: [{ discordBotToken: { not: null } }, { telegramBotToken: { not: null } }] },
-    }),
+    prisma.user.count({ where: { createdAt: { gte: todayStart } } }),
     prisma.user.count({
       where: { discordBotToken: null, telegramBotToken: null },
+    }),
+    prisma.user.count({
+      where: { OR: [{ discordBotOnline: true }, { telegramBotOnline: true }] },
     }),
     prisma.vouch.count({ where: { status: "FLAGGED" } }),
     prisma.vouch.aggregate({ _avg: { rating: true } }),
@@ -61,6 +66,7 @@ export default async function AdminPulsePage() {
       take: 8,
     }),
     prisma.vouch.groupBy({ by: ["platform"], _count: { _all: true } }),
+    prisma.adminAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 6 }),
   ])
 
   const conversionRate = userCount > 0
@@ -89,7 +95,7 @@ export default async function AdminPulsePage() {
           icon={<Users className="text-blue-400" />}
           label="Total Users"
           value={userCount}
-          trend={`${activeBotCount} with active bots`}
+          trend={`+${signupsToday} new today`}
           color="blue"
         />
         <PulseCard
@@ -122,9 +128,9 @@ export default async function AdminPulsePage() {
         />
         <PulseCard
           icon={<Server className="text-amber-400" />}
-          label="Node Status"
-          value="Healthy"
-          trend="VPS Online"
+          label="Bots Online"
+          value={botsOnlineCount}
+          trend={botsOnlineCount > 0 ? "Connected now" : "None connected"}
           color="amber"
         />
         <PulseCard
@@ -273,6 +279,36 @@ export default async function AdminPulsePage() {
             />
           )}
         </div>
+      </div>
+
+      {/* Recent Admin Activity */}
+      <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-[32px] p-8 space-y-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+            <ScrollText size={18} className="text-red-400" />
+            Recent Admin Activity
+          </h2>
+          <Link href="/admin/audit" className="text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
+            View all →
+          </Link>
+        </div>
+        {recentAudit.length === 0 ? (
+          <p className="text-sm text-zinc-500 text-center py-6">No admin actions recorded yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {recentAudit.map((e) => (
+              <div key={e.id} className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-200 truncate">{e.summary}</p>
+                  <p className="text-[10px] text-zinc-500 truncate">{e.actorEmail || "—"}</p>
+                </div>
+                <span className="text-[10px] text-zinc-500 whitespace-nowrap flex-shrink-0">
+                  {new Date(e.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

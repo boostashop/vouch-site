@@ -31,9 +31,9 @@ export async function generateMetadata({ params }: PublicProfileProps): Promise<
   const { slug } = await params
   const user = await prisma.user.findUnique({
     where: { slug },
-    select: { name: true, profileMetaTitle: true, profileMetaDescription: true },
+    select: { name: true, profileMetaTitle: true, profileMetaDescription: true, bannedAt: true },
   })
-  if (!user) return { title: "Profile Not Found" }
+  if (!user || user.bannedAt) return { title: "Profile Not Found" }
   return {
     title: user.profileMetaTitle || `${user.name || "User"}'s Vouch Profile | Vouched.to`,
     description: user.profileMetaDescription || `View verified vouches and reputation for ${user.name || "this user"} on Vouched.to.`,
@@ -46,7 +46,7 @@ export default async function PublicProfilePage({ params, searchParams }: Public
   const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1)
 
   const user = await prisma.user.findUnique({ where: { slug } })
-  if (!user) notFound()
+  if (!user || user.bannedAt) notFound()
 
   // Count + average are aggregated in the DB; only one page of vouches is loaded
   // (premium accounts can have thousands).

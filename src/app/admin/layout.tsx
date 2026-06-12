@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Bell,
   Activity,
+  ScrollText,
   User as UserIcon,
   LayoutDashboard
 } from "lucide-react"
@@ -49,6 +50,7 @@ export default async function AdminLayout({
           <AdminNavItem href="/admin/users" icon={<Users size={18} />} label="User Management" />
           <AdminNavItem href="/admin/vouches" icon={<MessageSquare size={18} />} label="Vouch Audit" />
           <AdminNavItem href="/admin/flagged" icon={<Bell size={18} />} label="Flagged Queue" count={flaggedCount} />
+          <AdminNavItem href="/admin/audit" icon={<ScrollText size={18} />} label="Audit Log" />
           <AdminNavItem href="/admin/settings" icon={<ShieldAlert size={18} />} label="Core Settings" />
         </nav>
 

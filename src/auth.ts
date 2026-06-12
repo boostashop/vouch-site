@@ -10,6 +10,7 @@ import { magicLinkEmail } from "@/lib/email"
 import { rateLimit, getClientIp } from "@/lib/rate-limit"
 import { tryDecryptSecret } from "@/lib/crypto"
 import { verifyTotpCode } from "@/lib/totp"
+import { isSignupsPaused } from "@/lib/settings"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -26,6 +27,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const byIp = rateLimit(`magiclink:ip:${ip}`, 8, 15 * 60 * 1000)
         if (!byEmail.ok || !byIp.ok) {
           throw new Error("Too many sign-in link requests. Please wait a few minutes and try again.")
+        }
+
+        // Beta kill-switch: when signups are paused, only existing accounts may
+        // request a link — a brand-new email can't create an account via the
+        // magic-link flow (PrismaAdapter would auto-create one on verify).
+        if (await isSignupsPaused()) {
+          const existing = await prisma.user.findUnique({
+            where: { email: to.toLowerCase() },
+            select: { id: true },
+          })
+          if (!existing) {
+            throw new Error("New sign-ups are paused right now. Please check back soon.")
+          }
         }
 
         const { subject, html, text } = magicLinkEmail(url, to)
@@ -78,6 +92,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (!secret || !verifyTotpCode(secret, code)) return null
         }
 
+        // Banned accounts cannot sign in (checked after the password/TOTP gate so
+        // ban state isn't leaked to someone who doesn't already have the password).
+        if (user.bannedAt) return null
+
         return {
           id: user.id,
           name: user.name || undefined,
@@ -88,6 +106,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  callbacks: {
+    // Preserve the edge-safe session/jwt callbacks from authConfig, and add a
+    // DB-backed sign-in gate. This runs for every provider (credentials and
+    // magic link), so a banned user is refused at the point of sign-in even if
+    // they reach it through the email flow (which bypasses `authorize`).
+    ...authConfig.callbacks,
+    async signIn({ user }) {
+      const email = user?.email
+      if (!email) return true
+      const existing = await prisma.user.findUnique({
+        where: { email },
+        select: { bannedAt: true },
+      })
+      if (existing?.bannedAt) return false
+      return true
+    },
+  },
   pages: {
     signIn: "/auth/signin",
     verifyRequest: "/auth/verify-request",

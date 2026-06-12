@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect, useTransition } from "react"
-import { Zap, ChevronDown, Trash2, Loader2 } from "lucide-react"
-import { grantPremium, deleteUser, toggleUserPremium } from "@/app/admin/actions"
+import { Zap, ChevronDown, Trash2, Loader2, Ban, RotateCcw } from "lucide-react"
+import { grantPremium, deleteUser, toggleUserPremium, banUser, unbanUser } from "@/app/admin/actions"
 
 const GRANT_OPTIONS = [
   { label: "30 days", days: 30 },
@@ -83,6 +83,57 @@ export function PremiumControl({
         </div>
       )}
     </div>
+  )
+}
+
+// Reversible moderation. Not banned → a "Ban" button that prompts for a reason.
+// Banned → a "Banned" pill plus an "Unban" button.
+export function BanControl({
+  userId,
+  banned,
+  label,
+}: {
+  userId: string
+  banned: boolean
+  label: string
+}) {
+  const [pending, startTransition] = useTransition()
+
+  if (banned) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20">
+          Banned
+        </span>
+        <button
+          disabled={pending}
+          onClick={() => startTransition(() => unbanUser(userId))}
+          title="Unban user"
+          className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-emerald-500 hover:border-emerald-500/20 transition-all disabled:opacity-50"
+        >
+          {pending ? <Loader2 size={10} className="animate-spin" /> : <RotateCcw size={10} />}
+          Unban
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <button
+      disabled={pending}
+      onClick={() => {
+        const reason = prompt(`Ban ${label}? They won't be able to sign in and their public profile will be hidden.\n\nReason (optional):`)
+        // prompt returns null on cancel; "" (OK with no text) still bans.
+        if (reason !== null) {
+          startTransition(() => banUser(userId, reason))
+        }
+      }}
+      title="Ban user"
+      className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-red-500 hover:border-red-500/20 transition-all disabled:opacity-50"
+    >
+      {pending ? <Loader2 size={10} className="animate-spin" /> : <Ban size={10} />}
+      Ban
+    </button>
   )
 }
 

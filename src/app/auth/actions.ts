@@ -6,6 +6,7 @@ import { signIn } from "@/auth"
 import { AuthError } from "next-auth"
 import { Prisma } from "@prisma/client"
 import { rateLimit, getClientIp, retryAfterText } from "@/lib/rate-limit"
+import { isSignupsPaused } from "@/lib/settings"
 
 const TAKEN_MESSAGE =
   "Those account details are unavailable. Try different ones or sign in."
@@ -20,6 +21,11 @@ export async function register(formData: FormData) {
 
   if (!email || !username || !password) {
     return { error: "Missing required fields" }
+  }
+
+  // Beta kill-switch: new account creation can be paused from the admin panel.
+  if (await isSignupsPaused()) {
+    return { error: "New sign-ups are paused right now. Please check back soon." }
   }
 
   // Throttle account creation per IP to blunt mass/automated signups.

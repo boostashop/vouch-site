@@ -35,9 +35,16 @@ export default async function DashboardLayout({
   const premiumUser = session.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { isPremium: true, premiumExpiresAt: true },
+        select: { isPremium: true, premiumExpiresAt: true, bannedAt: true },
       })
     : null
+
+  // Enforce bans on already-issued JWT sessions: the proxy is JWT-only (can't
+  // see ban state), so this DB-backed check is the real gate for logged-in users.
+  if (premiumUser?.bannedAt) {
+    redirect("/banned")
+  }
+
   const isPremium = hasActivePremium(premiumUser)
 
   return (

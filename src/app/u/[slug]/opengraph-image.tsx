@@ -10,13 +10,16 @@ export default async function Image({ params }: { params: Promise<{ slug: string
 
   const user = await prisma.user.findUnique({
     where: { slug },
-    select: { id: true, name: true, profileAccentColor: true },
+    select: { id: true, name: true, profileAccentColor: true, bannedAt: true },
   })
+
+  // A banned profile is hidden — render the generic card, same as an unknown slug.
+  const pub = user && !user.bannedAt ? user : null
 
   let vouchCount = 0
   let avgRating: string | null = null
-  if (user) {
-    const activeWhere = { receiverId: user.id, status: "ACTIVE" as const }
+  if (pub) {
+    const activeWhere = { receiverId: pub.id, status: "ACTIVE" as const }
     const [count, agg] = await Promise.all([
       prisma.vouch.count({ where: activeWhere }),
       prisma.vouch.aggregate({ where: activeWhere, _avg: { rating: true } }),
@@ -25,8 +28,8 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     avgRating = agg._avg.rating != null ? agg._avg.rating.toFixed(1) : null
   }
 
-  const accent = user?.profileAccentColor || "#6366f1"
-  const name = user?.name || slug
+  const accent = pub?.profileAccentColor || "#6366f1"
+  const name = pub?.name || slug
 
   return new ImageResponse(
     (

@@ -88,6 +88,12 @@ model User {
   totpSecret           String?   // AES-256-GCM encrypted via crypto.ts
   totpPendingSecret    String?   // temporary during setup; cleared on confirm/cancel
 
+  // Moderation: a reversible ban. When bannedAt is set the user cannot sign in
+  // (credentials or magic link) and their public profile/vouches are hidden,
+  // but all data is retained so an admin can review and unban.
+  bannedAt             DateTime?
+  banReason            String?
+
   // Timestamp of the last payments webhook applied to this user — used to drop
   // stale/replayed/out-of-order events (the source signs each with a timestamp).
   lastWebhookAt        DateTime?
@@ -208,6 +214,30 @@ model GuildConfig {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, guildId])
+}
+
+// Append-only record of privileged admin actions (bans, deletes, premium grants,
+// role changes, moderation, settings toggles). actorEmail is denormalized so the
+// trail survives if the admin account is later deleted. Not FK-linked to User for
+// the same reason.
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?  // admin user id at time of action
+  actorEmail String?  // denormalized admin identity, survives actor deletion
+  action     String   // e.g. USER_BAN, USER_DELETE, PREMIUM_GRANT, ROLE_CHANGE
+  targetType String   // user | vouch | setting
+  targetId   String?
+  summary    String   // human-readable description shown in the admin UI
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// Key/value store for runtime-toggleable global flags (e.g. signups_paused).
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 

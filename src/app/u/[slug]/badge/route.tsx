@@ -48,11 +48,12 @@ export async function GET(
       isPremium: true,
       premiumExpiresAt: true,
       profileAccentColor: true,
+      bannedAt: true,
     },
   })
 
-  // Unknown slug or non-premium account → show the promo badge.
-  if (!user || !hasActivePremium(user)) {
+  // Unknown slug, banned, or non-premium account → show the promo badge.
+  if (!user || user.bannedAt || !hasActivePremium(user)) {
     return imageResponse(<Promo size={size} />, size)
   }
 
