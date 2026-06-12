@@ -44,11 +44,12 @@ export default auth((req: NextRequest & { auth?: unknown }) => {
   const isDashboardPage = req.nextUrl.pathname.startsWith("/dashboard")
   const isAdminPage = req.nextUrl.pathname.startsWith("/admin")
 
-  // Redirect logged-in users off the landing page to avoid the "Sign In" flash
-  // and the blank-page symptom from stale ISR cache.
-  if (req.nextUrl.pathname === "/" && isAuth) {
-    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin))
-  }
+  // NOTE: we intentionally do NOT redirect signed-in users off "/" here.
+  // Conditionally redirecting a route based on auth is unreliable when the
+  // route is also served from a static/RSC cache — a hard navigation gets the
+  // redirect while an RSC prefetch/soft-nav gets the cached page, which leaves
+  // the client router in a broken (blank) state. The landing page is
+  // session-agnostic; AuthNavButton deep-links signed-in users to /dashboard.
 
   if ((isDashboardPage || isAdminPage) && !isAuth) {
     return NextResponse.redirect(new URL("/auth/signin", req.nextUrl.origin))

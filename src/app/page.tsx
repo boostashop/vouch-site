@@ -5,12 +5,18 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthNavButton } from "@/components/auth-nav-button";
 import { LogoMark } from "@/components/logo";
 
-// Marketing page: prerender it and refresh the stats every 5 minutes. This
-// makes the HTML CDN-cacheable (emits `s-maxage`) instead of `no-store`, so
-// Cloudflare can serve it from the edge — far faster on mobile/high-latency
-// than round-tripping to origin on every visit. Kept session-agnostic on
-// purpose; logged-in users navigate via /dashboard.
-export const revalidate = 300;
+// Render the landing page dynamically on every request (like /dashboard).
+//
+// It used to be ISR-prerendered (`revalidate = 300`) to emit `s-maxage` for CDN
+// caching, but that cache is what broke the page: during a bad deploy the
+// prerendered `/` snapshot got poisoned, and because it's served from cache the
+// proxy's auth redirect couldn't run consistently (hard navigation 307'd to
+// /dashboard while RSC prefetch/soft-nav got the cached 200), which left the
+// client router in a broken/blank state for signed-in users. The three COUNT
+// queries below are cheap, so rendering fresh per request is the safe default.
+// Kept session-agnostic on purpose; the nav button deep-links signed-in users
+// to /dashboard.
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   // Pull live platform aggregates for the social-proof bar. Counting in the DB
