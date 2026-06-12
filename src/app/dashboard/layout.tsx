@@ -18,6 +18,7 @@ import { SignOut, MobileSignOut } from "@/components/auth-components"
 import { UserNav } from "@/components/dashboard/user-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogoMark } from "@/components/logo"
+import { BetaBanner } from "@/components/beta-banner"
 import { prisma } from "@/lib/prisma"
 import { hasActivePremium } from "@/lib/premium"
 
@@ -124,6 +125,8 @@ export default async function DashboardLayout({
              <UserNav user={session.user} />
           </div>
         </header>
+
+        <BetaBanner />
 
         <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
           {children}

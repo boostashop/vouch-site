@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthNavButton } from "@/components/auth-nav-button";
 import { LogoMark } from "@/components/logo";
+import { BetaBanner } from "@/components/beta-banner";
 
 // Render the landing page dynamically on every request (like /dashboard).
 //
@@ -32,8 +33,10 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-white selection:bg-indigo-500/30 font-sans">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-black/80 backdrop-blur-xl">
+      {/* Fixed header: beta announcement bar stacked above the nav */}
+      <div className="fixed top-0 w-full z-50">
+        <BetaBanner />
+        <nav className="w-full border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-black/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link href="/" className="flex items-center gap-2.5 group">
@@ -54,7 +57,8 @@ export default async function Home() {
             </div>
           </div>
         </div>
-      </nav>
+        </nav>
+      </div>
 
       <main className="flex-1">
         {/* Hero Section */}
