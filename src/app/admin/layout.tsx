@@ -20,7 +20,10 @@ export default async function AdminLayout({
   // Authoritative DB role check — the JWT role is stale after a grant/revoke.
   if (!(await isAdmin())) redirect("/dashboard")
 
-  const flaggedCount = await prisma.vouch.count({ where: { status: "FLAGGED" } })
+  const [flaggedCount, supportCount] = await Promise.all([
+    prisma.vouch.count({ where: { status: "FLAGGED" } }),
+    prisma.supportTicket.count({ where: { awaitingStaff: true, status: { not: "CLOSED" } } }),
+  ])
 
   return (
     <div className="flex min-h-screen bg-background font-sans text-foreground transition-colors duration-300">
@@ -36,7 +39,7 @@ export default async function AdminLayout({
           </Link>
         </div>
 
-        <AdminSidebarNav flaggedCount={flaggedCount} />
+        <AdminSidebarNav flaggedCount={flaggedCount} supportCount={supportCount} />
 
         <div className="space-y-1.5 border-t border-zinc-100 p-3 dark:border-white/[0.06]">
           <Link
@@ -104,7 +107,7 @@ export default async function AdminLayout({
       </div>
 
       {/* Mobile navigation */}
-      <AdminMobileNav user={session.user ?? {}} flaggedCount={flaggedCount} />
+      <AdminMobileNav user={session.user ?? {}} flaggedCount={flaggedCount} supportCount={supportCount} />
     </div>
   )
 }

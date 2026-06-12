@@ -48,6 +48,28 @@ enum VouchStatus {
   REMOVED
 }
 
+enum TicketStatus {
+  OPEN          // awaiting staff, or the user just replied
+  IN_PROGRESS   // staff is actively working it
+  RESOLVED      // staff considers it done; user can reopen by replying
+  CLOSED        // archived; no further replies
+}
+
+enum TicketCategory {
+  ISSUE
+  SUGGESTION
+  BILLING
+  ACCOUNT
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
 model User {
   id               String    @id @default(cuid())
   name             String?
@@ -73,6 +95,7 @@ model User {
   vouchesReceived  Vouch[]   @relation("ReceivedVouches")
   blacklist        Blacklist[]
   guildConfigs     GuildConfig[]
+  supportTickets   SupportTicket[]
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @default(now()) @updatedAt
@@ -238,6 +261,49 @@ model AppSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// A support ticket raised by a user (issue, suggestion, billing, etc). The body
+// of the conversation lives in TicketMessage rows; the ticket carries workflow
+// state. `awaitingStaff` is denormalized from the last message's author so the
+// admin queue can sort/badge "needs a reply" without scanning messages (mirrors
+// how the flagged-vouch count drives the admin nav badge).
+model SupportTicket {
+  id            String         @id @default(cuid())
+  userId        String
+  subject       String
+  category      TicketCategory @default(ISSUE)
+  status        TicketStatus   @default(OPEN)
+  priority      TicketPriority @default(NORMAL)
+  lastMessageAt DateTime       @default(now()) // queue sort key
+  awaitingStaff Boolean        @default(true)  // last message was from the user
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages TicketMessage[]
+
+  @@index([status, lastMessageAt])
+  @@index([userId, createdAt])
+}
+
+// One message in a ticket thread. authorName/authorRole are denormalized so the
+// thread renders correctly (and survives) even if the author account is later
+// deleted. `internal` messages are staff-only notes never shown or emailed to
+// the user.
+model TicketMessage {
+  id         String   @id @default(cuid())
+  ticketId   String
+  authorId   String?  // null if the author was later deleted
+  authorName String   // denormalized display name, survives deletion
+  authorRole Role     // USER | ADMIN — drives bubble alignment
+  body       String   @db.Text
+  internal   Boolean  @default(false) // staff-only note, hidden from the user
+  createdAt  DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
 }
 
 

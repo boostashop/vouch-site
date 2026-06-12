@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Trophy,
+  LifeBuoy,
   Sparkles,
   Menu,
   X,
@@ -63,6 +64,10 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Community",
     items: [{ href: "/leaderboard", label: "Leaderboard", icon: Trophy }],
   },
+  {
+    label: "Help",
+    items: [{ href: "/dashboard/support", label: "Support", icon: LifeBuoy }],
+  },
 ]
 
 const ADMIN_GROUP: NavGroup = {
@@ -87,6 +92,7 @@ const BREADCRUMB_LABELS: [string, string][] = [
   ["/dashboard/vouches", "Vouches"],
   ["/dashboard/security", "Security"],
   ["/dashboard/bot", "Bot Settings"],
+  ["/dashboard/support", "Support"],
   ["/dashboard", "Overview"],
 ]
 

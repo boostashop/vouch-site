@@ -17,10 +17,13 @@ export type AuditAction =
   | "VOUCH_APPROVE"
   | "VOUCH_REMOVE"
   | "SIGNUPS_TOGGLE"
+  | "TICKET_REPLY"
+  | "TICKET_STATUS"
+  | "TICKET_PRIORITY"
 
 export async function logAdminAction(entry: {
   action: AuditAction
-  targetType: "user" | "vouch" | "setting"
+  targetType: "user" | "vouch" | "setting" | "ticket"
   targetId?: string | null
   summary: string
 }): Promise<void> {

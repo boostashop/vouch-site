@@ -11,6 +11,7 @@ import {
   ScrollText,
   ShieldAlert,
   LayoutDashboard,
+  LifeBuoy,
   ChevronRight,
   Menu,
   X,
@@ -27,8 +28,10 @@ type NavItem = {
   icon: LucideIcon
   exact?: boolean
   /** Key into the counts map for a badge (e.g. flagged queue). */
-  badge?: "flagged"
+  badge?: "flagged" | "support"
 }
+
+type Counts = { flagged: number; support: number }
 
 type NavUser = {
   name?: string | null
@@ -41,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/users", label: "User Management", icon: Users },
   { href: "/admin/vouches", label: "Vouch Audit", icon: MessageSquare },
   { href: "/admin/flagged", label: "Flagged Queue", icon: Bell, badge: "flagged" },
+  { href: "/admin/support", label: "Support Queue", icon: LifeBuoy, badge: "support" },
   { href: "/admin/audit", label: "Audit Log", icon: ScrollText },
   { href: "/admin/settings", label: "Core Settings", icon: ShieldAlert },
 ]
@@ -56,6 +60,7 @@ const BREADCRUMB_LABELS: [string, string][] = [
   ["/admin/users", "User Management"],
   ["/admin/vouches", "Vouch Audit"],
   ["/admin/flagged", "Flagged Queue"],
+  ["/admin/support", "Support Queue"],
   ["/admin/audit", "Audit Log"],
   ["/admin/settings", "Core Settings"],
   ["/admin", "System Pulse"],
@@ -89,7 +94,7 @@ function NavLinks({
   counts,
 }: {
   pathname: string
-  counts: { flagged: number }
+  counts: Counts
 }) {
   return (
     <div className="space-y-0.5">
@@ -131,11 +136,11 @@ function NavLinks({
 }
 
 /** Desktop sidebar nav list (client island inside the server-rendered aside). */
-export function AdminSidebarNav({ flaggedCount }: { flaggedCount: number }) {
+export function AdminSidebarNav({ flaggedCount, supportCount }: { flaggedCount: number; supportCount: number }) {
   const pathname = usePathname()
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4">
-      <NavLinks pathname={pathname} counts={{ flagged: flaggedCount }} />
+      <NavLinks pathname={pathname} counts={{ flagged: flaggedCount, support: supportCount }} />
     </nav>
   )
 }
@@ -144,9 +149,11 @@ export function AdminSidebarNav({ flaggedCount }: { flaggedCount: number }) {
 export function AdminMobileNav({
   user,
   flaggedCount,
+  supportCount,
 }: {
   user: NavUser
   flaggedCount: number
+  supportCount: number
 }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -257,7 +264,7 @@ export function AdminMobileNav({
             </div>
 
             <nav className="flex-1 overflow-y-auto px-3 py-4">
-              <NavLinks pathname={pathname} counts={{ flagged: flaggedCount }} />
+              <NavLinks pathname={pathname} counts={{ flagged: flaggedCount, support: supportCount }} />
               <Link
                 href="/dashboard"
                 className="mt-3 flex items-center gap-2.5 rounded-lg border border-indigo-500/20 px-3 py-2 text-[13px] font-medium text-indigo-600 transition-colors hover:bg-indigo-500/10 dark:text-indigo-400"
