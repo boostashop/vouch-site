@@ -2,20 +2,13 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import {
-  LayoutDashboard,
-  Settings,
-  MessageSquare,
   User as UserIcon,
   ChevronRight,
-  Menu,
   Bell,
-  ShieldAlert,
-  ShieldCheck,
-  Trophy,
-  Sparkles
 } from "lucide-react"
-import { SignOut, MobileSignOut } from "@/components/auth-components"
+import { SignOut } from "@/components/auth-components"
 import { UserNav } from "@/components/dashboard/user-nav"
+import { SidebarNav, MobileNav } from "@/components/dashboard/dashboard-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogoMark } from "@/components/logo"
 import { BetaBanner } from "@/components/beta-banner"
@@ -59,26 +52,7 @@ export default async function DashboardLayout({
           </Link>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1 text-zinc-950 dark:text-white">
-          <NavItem href="/dashboard" icon={<LayoutDashboard size={18} />} label="Overview" />
-          <NavItem href="/leaderboard" icon={<Trophy size={18} />} label="Leaderboard" />
-          <NavItem href="/dashboard/bot" icon={<Settings size={18} />} label="Bot Settings" />
-          <NavItem href="/dashboard/vouches" icon={<MessageSquare size={18} />} label="Vouches" />
-          <NavItem href="/dashboard/profile" icon={<UserIcon size={18} />} label="Public Profile" />
-          <NavItem href="/dashboard/security" icon={<ShieldCheck size={18} />} label="Security" />
-          {session.user?.role === "ADMIN" && (
-            <NavItem href="/admin" icon={<ShieldAlert size={18} />} label="Admin Panel" />
-          )}
-          {!isPremium && (
-            <Link
-              href="/upgrade"
-              className="flex items-center gap-3 px-4 py-3 mt-3 rounded-xl text-sm font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/20 hover:opacity-95 active:scale-[0.98] transition-all"
-            >
-              <Sparkles size={18} />
-              Go Premium
-            </Link>
-          )}
-        </nav>
+        <SidebarNav isAdmin={session.user?.role === "ADMIN"} isPremium={isPremium} />
 
         <div className="p-4 border-t border-zinc-200 dark:border-white/10">
           <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-900/50 mb-4 border border-zinc-200 dark:border-white/5">
@@ -99,11 +73,6 @@ export default async function DashboardLayout({
         {/* Header */}
         <header className="h-16 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between px-4 md:px-8 bg-white/80 dark:bg-black/80 backdrop-blur-xl sticky top-0 z-20 transition-colors duration-300">
           <div className="flex items-center gap-4">
-            {/* Mobile Menu Toggle (Placeholder - requires client component for state) */}
-            <button className="lg:hidden p-2 -ml-2 text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white transition-colors">
-              <Menu size={20} />
-            </button>
-            
             <div className="hidden md:flex items-center gap-3 text-sm font-medium">
               <span className="text-zinc-500">Dashboard</span>
               <ChevronRight size={14} className="text-zinc-300 dark:text-zinc-800" />
@@ -128,63 +97,17 @@ export default async function DashboardLayout({
 
         <BetaBanner />
 
-        <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+        <main className="flex-1 px-4 pt-4 md:px-8 md:pt-8 pb-24 lg:pb-8 max-w-7xl mx-auto w-full">
           {children}
         </main>
       </div>
 
-      {/* Mobile Navigation Bar (Bottom) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/90 dark:bg-black/90 backdrop-blur-xl border-t border-zinc-200 dark:border-white/5 px-4 flex items-center justify-between z-30 transition-colors duration-300">
-        <MobileNavItem href="/dashboard" icon={<LayoutDashboard size={20} />} active />
-        <MobileNavItem href="/dashboard/bot" icon={<Settings size={20} />} />
-        <MobileNavItem href="/dashboard/vouches" icon={<MessageSquare size={20} />} />
-        {session.user?.role === "ADMIN" ? (
-          <MobileNavItem href="/admin" icon={<ShieldAlert size={20} />} />
-        ) : (
-          <MobileNavItem href="/dashboard/profile" icon={<UserIcon size={20} />} />
-        )}
-        {!isPremium && (
-          <Link href="/upgrade" className="p-3 rounded-xl text-indigo-500" aria-label="Go Premium">
-            <Sparkles size={20} />
-          </Link>
-        )}
-        <MobileSignOut />
-      </nav>
-      {/* Spacer for bottom nav on mobile */}
-      <div className="h-16 lg:hidden" />
+      {/* Mobile navigation: labelled bottom tab bar + slide-in drawer */}
+      <MobileNav
+        user={session.user ?? {}}
+        isAdmin={session.user?.role === "ADMIN"}
+        isPremium={isPremium}
+      />
     </div>
-  )
-}
-
-function NavItem({ href, icon, label, active = false }: { href: string, icon: React.ReactNode, label: string, active?: boolean }) {
-  return (
-    <Link 
-      href={href}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group ${
-        active 
-          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" 
-          : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5"
-      }`}
-    >
-      <span className={`${active ? "text-white" : "text-zinc-600 group-hover:text-indigo-400"} transition-colors`}>
-        {icon}
-      </span>
-      {label}
-    </Link>
-  )
-}
-
-function MobileNavItem({ href, icon, active = false }: { href: string, icon: React.ReactNode, active?: boolean }) {
-  return (
-    <Link 
-      href={href}
-      className={`p-3 rounded-xl transition-all ${
-        active 
-          ? "text-indigo-500" 
-          : "text-zinc-600"
-      }`}
-    >
-      {icon}
-    </Link>
   )
 }
