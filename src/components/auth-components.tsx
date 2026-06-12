@@ -249,10 +249,10 @@ export function SignOut(props: React.ComponentPropsWithRef<"button">) {
   return (
     <button 
       onClick={() => signOut({ callbackUrl: "/" })}
-      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all group"
+      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 transition-all group"
       {...props}
     >
-      <LogOut size={18} className="text-zinc-500 group-hover:text-red-400 transition-colors" />
+      <LogOut size={15} className="text-zinc-400 dark:text-zinc-500 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors" />
       Sign Out
     </button>
   )

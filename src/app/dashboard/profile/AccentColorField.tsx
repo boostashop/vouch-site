@@ -10,17 +10,17 @@ export function AccentColorField({ defaultValue }: { defaultValue: string }) {
   const isValidHex = /^#[0-9a-fA-F]{6}$/.test(value)
 
   return (
-    <div className="space-y-2">
-      <label htmlFor="profileAccentColor" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+    <div className="space-y-1.5">
+      <label htmlFor="profileAccentColor" className="field-label">
         Accent Color
       </label>
-      <div className="flex gap-3">
+      <div className="flex gap-2.5">
         <input
           type="color"
           aria-label="Accent color picker"
           value={isValidHex ? value : "#6366f1"}
           onChange={(e) => setValue(e.target.value)}
-          className="w-12 h-12 bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl p-1 cursor-pointer transition-all"
+          className="h-10 w-12 cursor-pointer rounded-lg border border-zinc-200 bg-white p-1 transition-colors dark:border-white/10 dark:bg-black/40"
         />
         <input
           type="text"
@@ -29,11 +29,11 @@ export function AccentColorField({ defaultValue }: { defaultValue: string }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="#6366f1"
-          className="flex-1 bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+          className="input flex-1 font-mono"
         />
       </div>
       {!isValidHex && (
-        <p className="text-[10px] text-amber-500">Enter a 6-digit hex color like #6366f1.</p>
+        <p className="text-xs text-amber-600 dark:text-amber-400">Enter a 6-digit hex color like #6366f1.</p>
       )}
     </div>
   )

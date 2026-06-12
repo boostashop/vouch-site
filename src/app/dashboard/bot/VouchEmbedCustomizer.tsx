@@ -67,7 +67,7 @@ export function VouchEmbedCustomizer({
   const previewFooter = isPremium ? footer : vouchEmbedFooter
 
   return (
-    <form action={updateVouchSettings} className="p-6 space-y-8">
+    <form action={updateVouchSettings} className="p-5 space-y-7">
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Form fields */}
         <div className="space-y-6">

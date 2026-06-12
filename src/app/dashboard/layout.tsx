@@ -1,14 +1,10 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import {
-  User as UserIcon,
-  ChevronRight,
-  Bell,
-} from "lucide-react"
+import { User as UserIcon, ExternalLink } from "lucide-react"
 import { SignOut } from "@/components/auth-components"
 import { UserNav } from "@/components/dashboard/user-nav"
-import { SidebarNav, MobileNav } from "@/components/dashboard/dashboard-nav"
+import { SidebarNav, MobileNav, Breadcrumbs } from "@/components/dashboard/dashboard-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogoMark } from "@/components/logo"
 import { BetaBanner } from "@/components/beta-banner"
@@ -26,42 +22,45 @@ export default async function DashboardLayout({
     redirect("/auth/signin")
   }
 
-  const premiumUser = session.user?.id
+  const dbUser = session.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { isPremium: true, premiumExpiresAt: true, bannedAt: true },
+        select: { isPremium: true, premiumExpiresAt: true, bannedAt: true, slug: true },
       })
     : null
 
   // Enforce bans on already-issued JWT sessions: the proxy is JWT-only (can't
   // see ban state), so this DB-backed check is the real gate for logged-in users.
-  if (premiumUser?.bannedAt) {
+  if (dbUser?.bannedAt) {
     redirect("/banned")
   }
 
-  const isPremium = hasActivePremium(premiumUser)
+  const isPremium = hasActivePremium(dbUser)
+  const isAdmin = session.user?.role === "ADMIN"
 
   return (
-    <div className="flex min-h-screen bg-zinc-50 dark:bg-black font-sans transition-colors duration-300">
+    <div className="flex min-h-screen bg-background font-sans text-foreground transition-colors duration-300">
       {/* Sidebar - Desktop */}
-      <aside className="w-64 border-r border-zinc-200 dark:border-white/10 hidden lg:flex flex-col fixed inset-y-0 left-0 bg-white dark:bg-[#050505] z-30 transition-colors duration-300">
-        <div className="p-6 text-zinc-950 dark:text-white">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <LogoMark size={32} className="rounded-lg shadow-lg shadow-indigo-600/20" />
-            <span className="text-xl font-bold tracking-tight">Vouched.to</span>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-zinc-200 bg-white transition-colors duration-300 dark:border-white/[0.08] dark:bg-[#0c0c0e] lg:flex">
+        <div className="flex h-16 shrink-0 items-center border-b border-zinc-100 px-5 dark:border-white/[0.06]">
+          <Link href="/dashboard" className="flex items-center gap-2.5 text-zinc-950 dark:text-white">
+            <LogoMark size={28} className="rounded-lg" />
+            <span className="text-[15px] font-semibold tracking-tight">Vouched.to</span>
           </Link>
         </div>
 
-        <SidebarNav isAdmin={session.user?.role === "ADMIN"} isPremium={isPremium} />
+        <SidebarNav isAdmin={isAdmin} isPremium={isPremium} />
 
-        <div className="p-4 border-t border-zinc-200 dark:border-white/10">
-          <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-900/50 mb-4 border border-zinc-200 dark:border-white/5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600/10 border border-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-              <UserIcon size={18} />
+        <div className="space-y-2 border-t border-zinc-100 p-3 dark:border-white/[0.06]">
+          <div className="flex items-center gap-3 rounded-lg px-2 py-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-600 ring-1 ring-inset ring-indigo-500/20 dark:text-indigo-400">
+              <UserIcon size={15} />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">{session.user?.name || session.user?.username || 'User'}</p>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate font-medium uppercase tracking-wider">{session.user?.email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-white">
+                {session.user?.name || session.user?.username || "User"}
+              </p>
+              <p className="truncate text-xs text-zinc-500 dark:text-zinc-500">{session.user?.email}</p>
             </div>
           </div>
           <SignOut />
@@ -69,35 +68,41 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-60">
         {/* Header */}
-        <header className="h-16 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between px-4 md:px-8 bg-white/80 dark:bg-black/80 backdrop-blur-xl sticky top-0 z-20 transition-colors duration-300">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-zinc-200 bg-white/90 px-4 backdrop-blur-xl transition-colors duration-300 dark:border-white/[0.08] dark:bg-[#09090b]/90 md:px-8">
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-3 text-sm font-medium">
-              <span className="text-zinc-500">Dashboard</span>
-              <ChevronRight size={14} className="text-zinc-300 dark:text-zinc-800" />
-              <span className="text-zinc-950 dark:text-white">Overview</span>
+            <div className="hidden md:block">
+              <Breadcrumbs />
             </div>
-            
-            <Link href="/dashboard" className="md:hidden flex items-center gap-2">
-              <LogoMark size={28} className="rounded-md" />
+
+            <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
+              <LogoMark size={28} className="rounded-lg" />
+              <span className="text-[15px] font-semibold tracking-tight text-zinc-950 dark:text-white">
+                Vouched.to
+              </span>
             </Link>
           </div>
-          
-          <div className="flex items-center gap-2">
-             <ThemeToggle />
-             <div className="h-6 w-[1px] bg-zinc-200 dark:bg-white/10 mx-1" />
-             <button className="p-2 text-zinc-500 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-white transition-colors rounded-full hover:bg-zinc-100 dark:hover:bg-white/5">
-               <Bell size={18} />
-             </button>
-             <div className="h-6 w-[1px] bg-zinc-200 dark:bg-white/10 mx-1" />
-             <UserNav user={session.user} />
+
+          <div className="flex items-center gap-1.5">
+            {dbUser?.slug && (
+              <Link
+                href={`/u/${dbUser.slug}`}
+                target="_blank"
+                className="btn-secondary mr-1 hidden !py-2 text-[13px] sm:inline-flex"
+              >
+                View profile
+                <ExternalLink size={13} className="text-zinc-400" />
+              </Link>
+            )}
+            <ThemeToggle />
+            <UserNav user={session.user} />
           </div>
         </header>
 
         <BetaBanner />
 
-        <main className="flex-1 px-4 pt-4 md:px-8 md:pt-8 pb-24 lg:pb-8 max-w-7xl mx-auto w-full">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-6 md:px-8 md:pt-8 lg:pb-12">
           {children}
         </main>
       </div>
@@ -105,7 +110,7 @@ export default async function DashboardLayout({
       {/* Mobile navigation: labelled bottom tab bar + slide-in drawer */}
       <MobileNav
         user={session.user ?? {}}
-        isAdmin={session.user?.role === "ADMIN"}
+        isAdmin={isAdmin}
         isPremium={isPremium}
       />
     </div>

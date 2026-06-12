@@ -6,7 +6,7 @@ import { getCheckoutUrl } from "@/lib/payments"
 import { EmbedBadgePanel } from "@/components/dashboard/EmbedBadgePanel"
 import { AccentColorField } from "./AccentColorField"
 import { DangerZone } from "./DangerZone"
-import { User, Link as LinkIcon, Shield, CheckCircle, Palette, Globe, Search, Code2 } from "lucide-react"
+import { User, Shield, Palette, Globe, Search, Code2, Brush, ArrowUpRight, ExternalLink, Lock } from "lucide-react"
 
 export default async function ProfileSettingsPage() {
   const session = await auth()
@@ -19,60 +19,68 @@ export default async function ProfileSettingsPage() {
   const baseUrl = (process.env.AUTH_URL || "").replace(/\/$/, "")
 
   return (
-    <div className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Profile Settings</h1>
-        <p className="text-zinc-600 dark:text-zinc-400 mt-1">Manage your public identity, themes, and professional appearance.</p>
+    <div className="max-w-3xl space-y-6 pb-16 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="page-title">Public Profile</h1>
+          <p className="page-subtitle">Manage your public identity, appearance, and domain.</p>
+        </div>
+        {user?.slug && (
+          <a href={`/u/${user.slug}`} target="_blank" className="btn-secondary !py-2 text-[13px]">
+            View public profile
+            <ExternalLink size={13} className="text-zinc-400" />
+          </a>
+        )}
       </div>
 
-      <form action={updateProfile} className="space-y-8">
+      <form action={updateProfile} className="space-y-6">
         {/* Public Identity */}
-        <section className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/50 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
-              <User size={20} />
+        <section className="card overflow-hidden">
+          <div className="card-header">
+            <div className="card-icon">
+              <User size={15} className="text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
-              <h2 className="font-bold text-zinc-900 dark:text-white">Public Identity</h2>
-              <p className="text-xs text-zinc-500">How you appear to others on your public profile.</p>
+              <h2 className="card-title">Public Identity</h2>
+              <p className="card-subtitle">How you appear to others on your public profile.</p>
             </div>
           </div>
-          
-          <div className="p-6 space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+
+          <div className="card-body space-y-5">
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label htmlFor="name" className="field-label">
                   Display Name
                 </label>
-                <input 
+                <input
                   type="text"
                   id="name"
                   name="name"
                   defaultValue={user?.name || ""}
                   placeholder="John Doe"
-                  className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                  className="input"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="slug" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <div className="space-y-1.5">
+                <label htmlFor="slug" className="field-label">
                   Profile Slug
                 </label>
                 <div className="relative">
-                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm font-medium select-none">
-                     /u/
-                   </div>
-                   <input 
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 select-none text-sm text-zinc-400">
+                    /u/
+                  </div>
+                  <input
                     type="text"
                     id="slug"
                     name="slug"
                     defaultValue={user?.slug || ""}
                     placeholder="john-doe"
-                    className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-mono"
+                    className="input pl-10 font-mono"
                   />
                 </div>
-                <p className="text-[10px] text-zinc-500">
-                   This will be your public URL: <strong>vouched.to/u/{user?.slug || 'your-name'}</strong>
+                <p className="help-text">
+                  Your public URL: <span className="font-medium text-zinc-700 dark:text-zinc-300">vouched.to/u/{user?.slug || "your-name"}</span>
                 </p>
               </div>
             </div>
@@ -80,28 +88,28 @@ export default async function ProfileSettingsPage() {
         </section>
 
         {/* Profile Customization */}
-        <section className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/50 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-              <Palette size={20} />
+        <section className="card overflow-hidden">
+          <div className="card-header">
+            <div className="card-icon">
+              <Palette size={15} className="text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <h2 className="font-bold text-zinc-900 dark:text-white">Profile Customization</h2>
-              <p className="text-xs text-zinc-500">Express yourself with themes and colors.</p>
+              <h2 className="card-title">Appearance</h2>
+              <p className="card-subtitle">Theme, typography and colors for your public page.</p>
             </div>
           </div>
-          
-          <div className="p-6 space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="profileTheme" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+
+          <div className="card-body space-y-5">
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label htmlFor="profileTheme" className="field-label">
                   Theme
                 </label>
                 <select
                   id="profileTheme"
                   name="profileTheme"
                   defaultValue={user?.profileTheme || "dark"}
-                  className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
+                  className="input appearance-none"
                 >
                   <option value="dark">Midnight (Dark)</option>
                   <option value="light">Daylight (Light)</option>
@@ -109,15 +117,15 @@ export default async function ProfileSettingsPage() {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="profileFontFamily" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <div className="space-y-1.5">
+                <label htmlFor="profileFontFamily" className="field-label">
                   Font Style
                 </label>
                 <select
                   id="profileFontFamily"
                   name="profileFontFamily"
                   defaultValue={user?.profileFontFamily || "sans"}
-                  className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
+                  className="input appearance-none"
                 >
                   <option value="sans">Sans-serif (Default)</option>
                   <option value="serif">Serif (Editorial)</option>
@@ -128,8 +136,8 @@ export default async function ProfileSettingsPage() {
 
             <AccentColorField defaultValue={user?.profileAccentColor || "#6366f1"} />
 
-            <div className="space-y-2">
-              <label htmlFor="profileBannerImage" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <div className="space-y-1.5">
+              <label htmlFor="profileBannerImage" className="field-label">
                 Banner Image URL
               </label>
               <input
@@ -138,11 +146,10 @@ export default async function ProfileSettingsPage() {
                 name="profileBannerImage"
                 defaultValue={user?.profileBannerImage || ""}
                 placeholder="https://example.com/banner.jpg"
-                className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                className="input"
               />
-              <p className="text-[10px] text-zinc-500">Displays as a full-width header image on your public profile.</p>
+              <p className="help-text">Displays as a full-width header image on your public profile.</p>
             </div>
-
           </div>
         </section>
 
@@ -150,192 +157,177 @@ export default async function ProfileSettingsPage() {
         {isPremium ? (
           <a
             href="/dashboard/profile/builder"
-            className="flex items-center justify-between gap-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6 hover:from-indigo-500/15 hover:to-purple-500/15 transition-all group"
+            className="card group flex items-center justify-between gap-4 p-5 transition-colors hover:border-indigo-300 dark:hover:border-indigo-500/40"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xl group-hover:scale-110 transition-transform">
-                🎨
+            <div className="flex items-center gap-3.5">
+              <div className="card-icon">
+                <Brush size={15} className="text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
-                <h3 className="font-extrabold text-zinc-900 dark:text-white">Design Studio</h3>
-                <p className="text-sm text-zinc-500 mt-0.5">Visual editor with live preview — no CSS knowledge needed</p>
+                <h3 className="card-title">Design Studio</h3>
+                <p className="card-subtitle mt-0.5">Visual editor with live preview — no CSS knowledge needed.</p>
               </div>
             </div>
-            <span className="text-indigo-500 font-bold text-sm shrink-0">Open →</span>
+            <span className="flex shrink-0 items-center gap-1 text-[13px] font-semibold text-indigo-600 dark:text-indigo-400">
+              Open <ArrowUpRight size={13} />
+            </span>
           </a>
         ) : (
           <a
             href={checkoutUrl ?? "#"}
-            className="flex items-center justify-between gap-4 bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl p-6 hover:border-zinc-300 dark:hover:border-white/10 transition-all group"
+            className="card group flex items-center justify-between gap-4 p-5 transition-colors hover:border-zinc-300 dark:hover:border-white/[0.15]"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-2xl">🔒</div>
+            <div className="flex items-center gap-3.5">
+              <div className="card-icon">
+                <Lock size={15} />
+              </div>
               <div>
-                <h3 className="font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
+                <h3 className="card-title flex items-center gap-2">
                   Design Studio
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">Premium</span>
+                  <span className="chip-indigo">Premium</span>
                 </h3>
-                <p className="text-sm text-zinc-500 mt-0.5">Visual color & layout editor with live iframe preview</p>
+                <p className="card-subtitle mt-0.5">Visual color &amp; layout editor with live preview.</p>
               </div>
             </div>
-            {checkoutUrl && <span className="text-emerald-500 font-bold text-sm shrink-0">Upgrade →</span>}
+            {checkoutUrl && (
+              <span className="flex shrink-0 items-center gap-1 text-[13px] font-semibold text-indigo-600 dark:text-indigo-400">
+                Upgrade <ArrowUpRight size={13} />
+              </span>
+            )}
           </a>
         )}
 
         {/* SEO & Domain */}
-        <section className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/50 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-              <Globe size={20} />
+        <section className="card overflow-hidden">
+          <div className="card-header">
+            <div className="card-icon">
+              <Globe size={15} className="text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <h2 className="font-bold text-zinc-900 dark:text-white">SEO & Domain</h2>
-              <p className="text-xs text-zinc-500">Control how search engines and custom domains see you.</p>
+              <h2 className="card-title">SEO &amp; Domain</h2>
+              <p className="card-subtitle">Control how search engines and custom domains see you.</p>
             </div>
           </div>
-          
-          <div className="p-6 space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="profileMetaTitle" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Meta Title
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-                  <input 
-                    type="text"
-                    id="profileMetaTitle"
-                    name="profileMetaTitle"
-                    defaultValue={user?.profileMetaTitle || ""}
-                    placeholder="My Professional Vouch Profile"
-                    className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <label htmlFor="profileMetaDescription" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Meta Description
-                </label>
-                <textarea 
-                  id="profileMetaDescription"
-                  name="profileMetaDescription"
-                  defaultValue={user?.profileMetaDescription || ""}
-                  placeholder="Check out my verified vouches and testimonials..."
-                  rows={3}
-                  className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all resize-none"
+          <div className="card-body space-y-5">
+            <div className="space-y-1.5">
+              <label htmlFor="profileMetaTitle" className="field-label">
+                Meta Title
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
+                <input
+                  type="text"
+                  id="profileMetaTitle"
+                  name="profileMetaTitle"
+                  defaultValue={user?.profileMetaTitle || ""}
+                  placeholder="My Professional Vouch Profile"
+                  className="input pl-10"
                 />
               </div>
+            </div>
 
-              <div className="space-y-2 pt-4">
-                <label htmlFor="customDomain" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
-                  Custom Domain
-                  {!isPremium && <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Premium</span>}
-                </label>
-                <div className="relative">
-                   <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-                   <input 
-                    type="text"
-                    id="customDomain"
-                    name="customDomain"
-                    defaultValue={user?.customDomain || ""}
-                    disabled={!isPremium}
-                    placeholder="vouch.yourname.com"
-                    className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-                <p className="text-[10px] text-zinc-500">
-                   Map your own domain to your profile. (CNAME record to <strong>cname.vouched.to</strong>)
-                </p>
+            <div className="space-y-1.5">
+              <label htmlFor="profileMetaDescription" className="field-label">
+                Meta Description
+              </label>
+              <textarea
+                id="profileMetaDescription"
+                name="profileMetaDescription"
+                defaultValue={user?.profileMetaDescription || ""}
+                placeholder="Check out my verified vouches and testimonials..."
+                rows={3}
+                className="input resize-none"
+              />
+            </div>
+
+            <div className="space-y-1.5 border-t border-zinc-100 pt-5 dark:border-white/[0.06]">
+              <label htmlFor="customDomain" className="field-label flex items-center justify-between">
+                Custom Domain
+                {!isPremium && <span className="chip-indigo">Premium</span>}
+              </label>
+              <div className="relative">
+                <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
+                <input
+                  type="text"
+                  id="customDomain"
+                  name="customDomain"
+                  defaultValue={user?.customDomain || ""}
+                  disabled={!isPremium}
+                  placeholder="vouch.yourname.com"
+                  className="input pl-10"
+                />
               </div>
+              <p className="help-text">
+                Map your own domain to your profile. (CNAME record to{" "}
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">cname.vouched.to</span>)
+              </p>
             </div>
           </div>
 
-          <div className="p-6 border-t border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-black/20 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <Shield size={14} className="text-emerald-500/50" />
-              Settings are saved immediately to your profile
+          <div className="card-footer">
+            <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+              <Shield size={13} className="text-emerald-500/70" />
+              Changes apply to your profile immediately
             </div>
-            <button 
-              type="submit"
-              className="bg-zinc-900 dark:bg-white text-white dark:text-black px-8 py-3 rounded-xl text-sm font-extrabold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all active:scale-95 shadow-lg shadow-black/5 dark:shadow-white/5"
-            >
-              Save All Changes
+            <button type="submit" className="btn-primary">
+              Save Changes
             </button>
           </div>
         </section>
       </form>
 
       {/* Embeddable Badge */}
-      <section className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm">
-        <div className="p-6 border-b border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/50 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
-            <Code2 size={20} />
+      <section className="card overflow-hidden">
+        <div className="card-header">
+          <div className="card-icon">
+            <Code2 size={15} className="text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <h2 className="font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+            <h2 className="card-title flex items-center gap-2">
               Embeddable Badge
-              {!isPremium && (
-                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">
-                  Premium
-                </span>
-              )}
+              {!isPremium && <span className="chip-indigo">Premium</span>}
             </h2>
-            <p className="text-xs text-zinc-500">A live image of your rep for forum signatures &amp; listings.</p>
+            <p className="card-subtitle">A live image of your rep for forum signatures &amp; listings.</p>
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="card-body">
           {!user?.slug ? (
             <p className="text-sm text-zinc-500">
-              Set a <strong>profile slug</strong> above and save to unlock your embeddable badge.
+              Set a <span className="font-medium text-zinc-700 dark:text-zinc-300">profile slug</span> above and save to
+              unlock your embeddable badge.
             </p>
           ) : isPremium ? (
             <EmbedBadgePanel baseUrl={baseUrl} slug={user.slug} name={user.name || user.slug} />
           ) : (
             <a
               href={checkoutUrl ?? "#"}
-              className="flex items-center justify-between gap-4 bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 rounded-2xl p-6 hover:border-zinc-300 dark:hover:border-white/10 transition-all group"
+              className="group flex items-center justify-between gap-4 rounded-lg border border-zinc-200 p-4 transition-colors hover:border-zinc-300 dark:border-white/[0.08] dark:hover:border-white/[0.15]"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-2xl">🔒</div>
+              <div className="flex items-center gap-3.5">
+                <div className="card-icon">
+                  <Lock size={15} />
+                </div>
                 <div>
-                  <h3 className="font-extrabold text-zinc-900 dark:text-white">Live reputation badge</h3>
-                  <p className="text-sm text-zinc-500 mt-0.5">
-                    A self-updating image showing your vouch count, rating &amp; verified status — with copy-paste BBCode, HTML &amp; Markdown.
+                  <h3 className="card-title">Live reputation badge</h3>
+                  <p className="card-subtitle mt-0.5">
+                    A self-updating image showing your vouch count, rating &amp; verified status — with copy-paste
+                    BBCode, HTML &amp; Markdown.
                   </p>
                 </div>
               </div>
-              {checkoutUrl && <span className="text-emerald-500 font-bold text-sm shrink-0">Upgrade →</span>}
+              {checkoutUrl && (
+                <span className="flex shrink-0 items-center gap-1 text-[13px] font-semibold text-indigo-600 dark:text-indigo-400">
+                  Upgrade <ArrowUpRight size={13} />
+                </span>
+              )}
             </a>
           )}
         </div>
       </section>
 
-      {user?.slug && (
-         <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-           <div className="flex items-center gap-5">
-             <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/10 shadow-inner">
-               <LinkIcon size={24} />
-             </div>
-             <div>
-               <h4 className="font-bold text-lg text-zinc-900 dark:text-white">Your profile is live!</h4>
-               <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Share your reputation with the world.</p>
-             </div>
-           </div>
-           <a
-             href={`/u/${user.slug}`}
-             target="_blank"
-             className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
-           >
-             View Public Profile
-             <CheckCircle size={18} />
-           </a>
-         </div>
-      )}
-
       <DangerZone />
     </div>
   )
 }
-

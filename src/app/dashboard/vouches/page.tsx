@@ -1,6 +1,6 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { MessageSquare } from "lucide-react"
+import { MessageSquare, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { Prisma } from "@prisma/client"
 import { getSignedProofUrl } from "@/lib/proof-url"
@@ -44,46 +44,50 @@ export default async function VouchesPage(props: {
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE))
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Your Vouches</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 mt-1">Review, reply to, and moderate the testimonials your bots collect.</p>
+        <h1 className="page-title">Vouches</h1>
+        <p className="page-subtitle">Review, reply to, and moderate the testimonials your bots collect.</p>
       </div>
 
       {/* Filter tabs */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white p-1 shadow-[0_1px_2px_0_rgb(0_0_0/0.03)] dark:border-white/[0.08] dark:bg-[#101012] dark:shadow-none">
         {FILTERS.map((f) => (
           <Link
             key={f.id}
             href={`/dashboard/vouches?filter=${f.id}`}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+            className={`inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
               filter === f.id
-                ? "bg-zinc-900 dark:bg-white text-white dark:text-black border-transparent"
-                : "bg-white dark:bg-zinc-900/30 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-white/5 hover:border-zinc-300 dark:hover:border-white/10"
+                ? "bg-zinc-100 text-zinc-900 dark:bg-white/[0.08] dark:text-white"
+                : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
             }`}
           >
             {f.label}
             {f.id === "flagged" && flaggedCount > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-black text-[9px] font-black">{flaggedCount}</span>
+              <span className="rounded-full bg-amber-500/15 px-1.5 text-[11px] font-semibold text-amber-600 ring-1 ring-inset ring-amber-500/20 dark:text-amber-400">
+                {flaggedCount}
+              </span>
             )}
           </Link>
         ))}
       </div>
 
       {vouches.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-zinc-400 dark:text-zinc-600 border border-dashed border-zinc-200 dark:border-white/10 rounded-2xl bg-zinc-50 dark:bg-zinc-900/10 shadow-inner">
-          <MessageSquare size={64} className="mb-4 opacity-10" />
-          <h3 className="text-lg font-semibold text-zinc-500 dark:text-zinc-400">
+        <div className="card flex flex-col items-center px-6 py-16 text-center">
+          <div className="card-icon !h-11 !w-11">
+            <MessageSquare size={18} />
+          </div>
+          <h3 className="mt-4 text-sm font-semibold text-zinc-900 dark:text-white">
             {filter === "all" ? "No vouches yet" : `No ${filter} vouches`}
           </h3>
-          <p className="text-sm max-w-xs text-center mt-2 leading-relaxed">
+          <p className="mt-1 max-w-xs text-xs leading-relaxed text-zinc-500">
             {filter === "all"
               ? "Your vouches will appear here automatically once your bot is connected and users start leaving feedback."
               : "Nothing here right now."}
           </p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           {vouches.map((vouch) => (
             <VouchCard
               key={vouch.id}
@@ -104,16 +108,18 @@ export default async function VouchesPage(props: {
       )}
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between pt-1">
           {page > 1 ? (
-            <Link href={`/dashboard/vouches?filter=${filter}&page=${page - 1}`} className="px-4 py-2 rounded-xl border border-zinc-200 dark:border-white/10 text-xs font-bold hover:border-zinc-300 dark:hover:border-white/20 transition-all">
-              ← Newer
+            <Link href={`/dashboard/vouches?filter=${filter}&page=${page - 1}`} className="btn-secondary !py-2 text-[13px]">
+              <ChevronLeft size={14} className="text-zinc-400" /> Newer
             </Link>
           ) : <span />}
-          <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Page {page} of {totalPages}</span>
+          <span className="text-xs font-medium text-zinc-400 dark:text-zinc-500">
+            Page {page} of {totalPages}
+          </span>
           {page < totalPages ? (
-            <Link href={`/dashboard/vouches?filter=${filter}&page=${page + 1}`} className="px-4 py-2 rounded-xl border border-zinc-200 dark:border-white/10 text-xs font-bold hover:border-zinc-300 dark:hover:border-white/20 transition-all">
-              Older →
+            <Link href={`/dashboard/vouches?filter=${filter}&page=${page + 1}`} className="btn-secondary !py-2 text-[13px]">
+              Older <ChevronRight size={14} className="text-zinc-400" />
             </Link>
           ) : <span />}
         </div>

@@ -7,22 +7,146 @@
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  /* Layered surfaces (page < card < raised) so dark mode has depth instead of
+     flat pure-black, and light mode gets a subtle canvas behind white cards. */
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-edge: var(--edge);
+
+  /* next/font exposes these variables on <html>; without this mapping Tailwind's
+     `font-sans` fell back to the browser default (Arial), wasting the Geist load. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", "Cascadia Code", monospace;
 }
 
 :root {
-  --background: #ffffff;
+  --background: #fafafa;
   --foreground: #09090b;
+  --surface: #ffffff;
+  --surface-raised: #fafafa;
+  --edge: #e7e7ea;
 }
 
 .dark {
-  --background: #000000;
+  --background: #09090b;
   --foreground: #fafafa;
+  --surface: #101012;
+  --surface-raised: #18181b;
+  --edge: rgba(255, 255, 255, 0.08);
 }
 
 body {
-  background-color: var(--background) !important;
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
+/* ---------------------------------------------------------------------------
+   Dashboard design system. Every panel page composes these instead of
+   re-inventing card/input/button styles, so the UI can't drift again.
+   --------------------------------------------------------------------------- */
+@layer components {
+  /* Cards */
+  .card {
+    @apply rounded-xl border border-zinc-200/90 bg-white shadow-[0_1px_2px_0_rgb(0_0_0/0.03)]
+      dark:border-white/[0.08] dark:bg-[#101012] dark:shadow-none;
+  }
+  .card-header {
+    @apply flex items-center gap-3 border-b border-zinc-100 px-5 py-4 dark:border-white/[0.06];
+  }
+  .card-body {
+    @apply p-5;
+  }
+  .card-footer {
+    @apply flex items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/60 px-5 py-3.5
+      dark:border-white/[0.06] dark:bg-white/[0.02];
+  }
+  .card-icon {
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200/80
+      bg-zinc-50 text-zinc-500 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-400;
+  }
 
+  /* Typography */
+  .page-title {
+    @apply text-xl font-semibold tracking-tight text-zinc-900 dark:text-white sm:text-2xl;
+  }
+  .page-subtitle {
+    @apply mt-1 text-sm text-zinc-500 dark:text-zinc-400;
+  }
+  .card-title {
+    @apply text-sm font-semibold text-zinc-900 dark:text-white;
+  }
+  .card-subtitle {
+    @apply text-xs text-zinc-500 dark:text-zinc-400;
+  }
+  .field-label {
+    @apply text-[13px] font-medium text-zinc-700 dark:text-zinc-300;
+  }
+  .help-text {
+    @apply text-xs leading-relaxed text-zinc-500 dark:text-zinc-500;
+  }
+
+  /* Form controls */
+  .input {
+    @apply w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900
+      placeholder-zinc-400 shadow-[0_1px_2px_0_rgb(0_0_0/0.03)] transition-[border-color,box-shadow]
+      focus:border-indigo-500/70 focus:outline-none focus:ring-[3px] focus:ring-indigo-500/15
+      disabled:cursor-not-allowed disabled:opacity-50
+      dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder-zinc-600 dark:shadow-none
+      dark:focus:border-indigo-400/60 dark:focus:ring-indigo-400/15;
+  }
+
+  /* Buttons. Tailwind v4's @apply can't inline other component classes, so the
+     shared base lives in a selector list instead of a nested @apply. */
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger-ghost {
+    @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg
+      text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2
+      focus-visible:ring-indigo-500/40 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-indigo-600 px-4 py-2.5 text-white shadow-sm hover:bg-indigo-500;
+  }
+  .btn-secondary {
+    @apply border border-zinc-200 bg-white px-4 py-2.5 text-zinc-700 shadow-[0_1px_2px_0_rgb(0_0_0/0.03)]
+      hover:bg-zinc-50 hover:text-zinc-900
+      dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-300 dark:shadow-none
+      dark:hover:bg-white/[0.08] dark:hover:text-white;
+  }
+  .btn-ghost {
+    @apply px-3 py-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900
+      dark:text-zinc-400 dark:hover:bg-white/[0.06] dark:hover:text-white;
+  }
+  .btn-danger-ghost {
+    @apply px-3 py-2 text-red-600 hover:bg-red-500/10 dark:text-red-400;
+  }
+
+  /* Status chips */
+  .chip-emerald,
+  .chip-amber,
+  .chip-zinc,
+  .chip-indigo,
+  .chip-sky {
+    @apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset;
+  }
+  .chip-emerald {
+    @apply bg-emerald-500/10 text-emerald-600 ring-emerald-500/20 dark:text-emerald-400;
+  }
+  .chip-amber {
+    @apply bg-amber-500/10 text-amber-600 ring-amber-500/20 dark:text-amber-400;
+  }
+  .chip-zinc {
+    @apply bg-zinc-500/10 text-zinc-600 ring-zinc-500/20 dark:text-zinc-400;
+  }
+  .chip-indigo {
+    @apply bg-indigo-500/10 text-indigo-600 ring-indigo-500/20 dark:text-indigo-400;
+  }
+  .chip-sky {
+    @apply bg-sky-500/10 text-sky-600 ring-sky-500/20 dark:text-sky-400;
+  }
+}

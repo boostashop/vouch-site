@@ -1,76 +1,100 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { User, Settings, LogOut, ChevronDown } from "lucide-react"
+import { User, Settings, LogOut, ChevronDown, ShieldCheck } from "lucide-react"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
 
-export function UserNav({ user }: { user: any }) {
+type NavUser = {
+  name?: string | null
+  username?: string | null
+  email?: string | null
+  image?: string | null
+}
+
+const MENU_LINKS = [
+  { href: "/dashboard/profile", label: "Public Profile", icon: User },
+  { href: "/dashboard/bot", label: "Bot Settings", icon: Settings },
+  { href: "/dashboard/security", label: "Security", icon: ShieldCheck },
+]
+
+export function UserNav({ user }: { user: NavUser | undefined }) {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (!isOpen) return
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
     }
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsOpen(false)
+    }
     document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+    document.addEventListener("keydown", handleKey)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("keydown", handleKey)
+    }
+  }, [isOpen])
 
   return (
     <div className="relative" ref={menuRef}>
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1 rounded-full hover:bg-white/5 transition-colors group"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        className="group flex items-center gap-1.5 rounded-full p-1 transition-colors hover:bg-zinc-100 dark:hover:bg-white/[0.06]"
       >
         {user?.image ? (
-          <img 
-            src={user.image} 
-            alt="Profile" 
-            className="w-8 h-8 rounded-full border border-white/10 shadow-sm"
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.image}
+            alt="Profile"
+            className="h-7 w-7 rounded-full border border-zinc-200 dark:border-white/10"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full border border-white/10 bg-zinc-900 flex items-center justify-center text-zinc-500 group-hover:text-white transition-colors">
-            <User size={14} />
-          </div>
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-600 ring-1 ring-inset ring-indigo-500/20 dark:text-indigo-400">
+            <User size={13} />
+          </span>
         )}
-        <ChevronDown size={14} className={`text-zinc-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          size={13}
+          className={`text-zinc-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+        />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 origin-top-right bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-          <div className="px-4 py-3 border-b border-white/5 mb-2">
-            <p className="text-sm font-bold text-white truncate">{user?.name || user?.username || 'User'}</p>
-            <p className="text-[10px] text-zinc-500 truncate uppercase tracking-wider mt-0.5">{user?.email}</p>
+        <div className="absolute right-0 z-50 mt-2 w-60 origin-top-right rounded-xl border border-zinc-200 bg-white py-1.5 shadow-xl shadow-black/5 animate-in fade-in zoom-in-95 duration-100 dark:border-white/10 dark:bg-[#141416] dark:shadow-black/40">
+          <div className="border-b border-zinc-100 px-3.5 pb-2.5 pt-2 dark:border-white/[0.06]">
+            <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-white">
+              {user?.name || user?.username || "User"}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-zinc-500">{user?.email}</p>
           </div>
-          
-          <div className="px-2 space-y-1">
-            <Link 
-              href="/dashboard/profile" 
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
-            >
-              <User size={16} />
-              Public Profile
-            </Link>
-            <Link 
-              href="/dashboard/bot" 
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
-            >
-              <Settings size={16} />
-              Bot Settings
-            </Link>
+
+          <div className="px-1.5 pt-1.5">
+            {MENU_LINKS.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/[0.06] dark:hover:text-white"
+              >
+                <Icon size={15} className="text-zinc-400 dark:text-zinc-500" />
+                {label}
+              </Link>
+            ))}
           </div>
-          
-          <div className="mt-2 pt-2 border-t border-white/5 px-2">
-            <button 
+
+          <div className="mt-1.5 border-t border-zinc-100 px-1.5 pt-1.5 dark:border-white/[0.06]">
+            <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-500/10 dark:text-red-400"
             >
-              <LogOut size={16} />
+              <LogOut size={15} />
               Sign Out
             </button>
           </div>

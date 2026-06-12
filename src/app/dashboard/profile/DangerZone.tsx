@@ -9,34 +9,34 @@ export function DangerZone() {
   const [confirm, setConfirm] = useState("")
 
   return (
-    <section className="bg-white dark:bg-zinc-900/30 border border-red-500/20 rounded-2xl overflow-hidden shadow-sm">
-      <div className="p-6 border-b border-red-500/10 bg-red-500/5 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
-          <AlertTriangle size={20} />
+    <section className="card overflow-hidden !border-red-500/25">
+      <div className="card-header !border-red-500/10 bg-red-500/[0.04]">
+        <div className="card-icon !border-red-500/20 !bg-red-500/10 !text-red-500">
+          <AlertTriangle size={15} />
         </div>
         <div>
-          <h2 className="font-bold text-zinc-900 dark:text-white">Danger Zone</h2>
-          <p className="text-xs text-zinc-500">Permanently delete your account and all associated data.</p>
+          <h2 className="card-title">Danger Zone</h2>
+          <p className="card-subtitle">Permanently delete your account and all associated data.</p>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="card-body">
         {!open ? (
           <button
             onClick={() => setOpen(true)}
-            className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95"
+            className="inline-flex items-center justify-center rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-2 text-[13px] font-medium text-red-600 transition-all hover:bg-red-500/20 active:scale-[0.98] dark:text-red-400"
           >
             Delete account
           </button>
         ) : (
           <form action={deleteAccount} className="space-y-4">
-            <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
+            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
               This permanently deletes your account, profile, all vouches you&apos;ve received, bot
               configuration, and connected bot tokens. <strong>This cannot be undone.</strong>
             </p>
-            <div className="space-y-2">
-              <label htmlFor="confirm" className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                Type <span className="font-mono text-red-500">DELETE</span> to confirm
+            <div className="space-y-1.5">
+              <label htmlFor="confirm" className="field-label">
+                Type <span className="font-mono font-semibold text-red-500">DELETE</span> to confirm
               </label>
               <input
                 id="confirm"
@@ -44,21 +44,21 @@ export function DangerZone() {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 autoComplete="off"
-                className="w-full max-w-xs bg-white dark:bg-black border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all"
+                className="input max-w-xs font-mono focus:!border-red-500/70 focus:!ring-red-500/15"
               />
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 type="submit"
                 disabled={confirm.trim() !== "DELETE"}
-                className="bg-red-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-red-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Permanently delete
               </button>
               <button
                 type="button"
                 onClick={() => { setOpen(false); setConfirm("") }}
-                className="text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white px-2 transition-colors"
+                className="btn-ghost text-[13px]"
               >
                 Cancel
               </button>
